@@ -17,11 +17,11 @@ The MiSTeryNano is a work in progress. Current features are:
     * PAL color video via HDMI
     * YM2149 sound via HDMI
     * Blitter
-  * Supports for 192k PAL TOS
+  * Supports 192k PAL TOS
     * Tested with german TOS 1.04
   * Mouse via IO pins of Tang Nano
     * Full IKBD implementation
-  * Single floppy disk images directly mapped to ST card
+  * Single floppy disk image directly mapped to SD card
 
 ## Missing features
 
@@ -33,7 +33,7 @@ The MiSTeryNano is a work in progress. Current features are:
   * Support for 8 MBytes RAM as available on the Tang Nano 20k
   * Floppy disk write support
 
-Currently the FPGA of the Tang Nano 20k is already 70% full. It may thus
+Currently the FPGA on the Tang Nano 20k is already 70% full. It may thus
 not be possible to add all missing features.
 
 ## Getting started
