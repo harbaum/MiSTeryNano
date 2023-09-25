@@ -23,6 +23,18 @@ The MiSTeryNano is a work in progress. Current features are:
     * Full IKBD implementation
   * Single floppy disk images directly mapped to ST card
 
+## Missing features
+
+  * Support for keyboards
+  * Support for NTSC color and monochrome video
+  * Support for multiple ST floppy disk images stored on FAT formatted SD cards
+  * User interface (OSD)
+  * Full STE chipset support
+  * Support for 8 MBytes RAM as available on the Tang Nano 20k
+  * Floppy disk write support
+
+Currently the FPGA of the Tang Nano 20k is already 70% full. It may thus
+not be possible to add all missing features.
 
 ## Getting started
 
