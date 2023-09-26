@@ -120,3 +120,24 @@ sudo dd if=disk_a.st of=/dev/sdb
 
 This SD card can directly be inserted into slot on the bottom side
 of the Tang Nano 20k and will be read by the MiSTeryNano.
+
+### Using the mouse
+
+The MiSTeryNano currently implements some basic mouse control via
+five digital direction inputs on the Tang Nano 20k which need to be
+switched to GND.
+
+| Function | Pin Name | Pin No |
+|----------|---------:|-------:|
+| Button   |   IOB8A  |    27  |
+| Right    |   IOB8B  |    28  |
+| Left     |   IOB6A  |    25  |
+| Down     |   IOB6B  |    26  |
+| Up       |  IOB14A  |    29  |
+| GND      |     GND  |        |
+
+Alternally a [Blackberry
+Trackball](https://www.sparkfun.com/products/retired/13169) can be
+used on the same pins. In this case the core needs to be
+re-synthesized with the [```BLACKBERRY_TRACKBALL``` option defined](https://github.com/harbaum/MiSTeryNano/blob/654294ce95bff70d2db4991c88532ad7a3cf4b26/src/tangnano20k/top.sv#L3)
+instead of ```JOYSTICK_MOUSE```.
