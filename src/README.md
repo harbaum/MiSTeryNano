@@ -1,10 +1,9 @@
-# MiSTeryNano soure code
+# MiSTeryNano source code
 
-The MiSTeryNano builds upon several other projects. These include:
+The MiSTeryNano is based on several other projects. These include:
 
   * [FX68K cycle exact 68000 CPU core](https://github.com/ijor/fx68k)
   * [Verilator compatible version of FX68K](https://github.com/emoon/fx68x_verilator)
-
   * [GSTMCU Atari ST chipset implementation](https://github.com/gyurco/gstmcu)
   * [MiSTery Atari ST core](https://github.com/gyurco/MiSTery)
   * [JT49 YM2149 sound chip implementation in verilog](https://github.com/jotego/jt49)
