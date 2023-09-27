@@ -35,7 +35,7 @@ which on the real device [displays some test
 pattern](https://www.youtube.com/shorts/qndojsbH9jw). A stable test
 image means that RAM and ROM are both working reliably.
 
-![test image](../../images/ram_tb.png)
+![test image](../images/ram_tb.png)
 
 The same test also runs in verilator and exports the test image from
 the testbench. It can be viewed by ```make video```.
