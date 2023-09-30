@@ -1,7 +1,7 @@
 /* top.sv - atarist on tang nano toplevel */
 
-`define BLACKBERRY_TRACKBALL
-// `define JOYSTICK_MOUSE
+// `define BLACKBERRY_TRACKBALL
+`define JOYSTICK_MOUSE
 
 module top(
   input		clk,

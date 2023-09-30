@@ -18,7 +18,8 @@ module ikbd (
 		output	    caps_lock,
 
 	     // keyboard matrix
-		input [7:0] keyboard_matrix[14:0],
+        output [14:0] matrix_out,
+		input [7:0] matrix_in,
 	     
 		// digital joystick with one fire button (FRLDU) or mouse with two buttons
 		input [4:0] joystick1, // regular joystick
@@ -52,28 +53,13 @@ module ikbd (
 			      .DO(),
 			      .DI(),
 			      
-                              .PI1(matrix_out),
+                              .PI1(matrix_in),
 			      .PI2({po2[4], rx, ~fire_buttons, po2[0]}),
                               .PI4(pi4),
 			      .PO1(),
 			      .PO2(po2)
 	      );
 
-   wire [7:0] matrix_out =
-	      (!po3[1]?keyboard_matrix[0]:8'hff)&
-	      (!po3[2]?keyboard_matrix[1]:8'hff)&
-	      (!po3[3]?keyboard_matrix[2]:8'hff)&
-	      (!po3[4]?keyboard_matrix[3]:8'hff)&
-	      (!po3[5]?keyboard_matrix[4]:8'hff)&
-	      (!po3[6]?keyboard_matrix[5]:8'hff)&
-	      (!po3[7]?keyboard_matrix[6]:8'hff)&
-	      (!po4[0]?keyboard_matrix[7]:8'hff)&
-	      (!po4[1]?keyboard_matrix[8]:8'hff)&
-	      (!po4[2]?keyboard_matrix[9]:8'hff)&
-	      (!po4[3]?keyboard_matrix[10]:8'hff)&
-	      (!po4[4]?keyboard_matrix[11]:8'hff)&
-	      (!po4[5]?keyboard_matrix[12]:8'hff)&
-	      (!po4[6]?keyboard_matrix[13]:8'hff)&
-	      (!po4[7]?keyboard_matrix[14]:8'hff);
+   assign matrix_out = { po4, po3[7:1] }; 
    
 endmodule
