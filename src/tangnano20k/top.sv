@@ -1,7 +1,7 @@
 /* top.sv - atarist on tang nano toplevel */
 
-// `define BLACKBERRY_TRACKBALL
-`define JOYSTICK_MOUSE
+`define BLACKBERRY_TRACKBALL
+// `define JOYSTICK_MOUSE
 
 module top(
   input		clk,
@@ -148,7 +148,7 @@ always @(posedge clk_32) begin
 end
 
 wire mbit = mouse_emu_cnt[19];
-wire [4:0] joy0 = { !io[0], !io[2] & mbit, !io[1] & mbit, !io[4] & mbit, !io[3] & mbit };
+wire [5:0] joy0 = { !io[0], !io[1], !io[3] & mbit, !io[2] & mbit, !io[5] & mbit, !io[4] & mbit };
 `endif
 
 `ifdef BLACKBERRY_TRACKBALL
@@ -158,7 +158,7 @@ reg [1:0] mouse_x;
 reg [1:0] mouse_y;
 
 always @(posedge clk_32) begin
-    ioD <= { ioD[6], io[1], ioD[4], io[2], ioD[2], io[3], ioD[0], io[4] };
+    ioD <= { ioD[6], io[2], ioD[4], io[3], ioD[2], io[4], ioD[0], io[5] };
 
     if(ioD[7] != ioD[6])  mouse_x <= { !mouse_x[0],  mouse_x[1] };
     if(ioD[5] != ioD[4])  mouse_x <= {  mouse_x[0], !mouse_x[1] };
@@ -167,7 +167,7 @@ always @(posedge clk_32) begin
     if(ioD[1] != ioD[0])  mouse_y <= {  mouse_y[0], !mouse_y[1] };
 end
 
-wire [4:0] joy0 = { !io[0], mouse_x[1], mouse_x[0], mouse_y[1], mouse_y[0] };
+wire [5:0] joy0 = { !io[0], !io[1], mouse_x[1], mouse_x[0], mouse_y[1], mouse_y[0] };
 `endif
 
 wire [1:0]  sd_rd;   // fdc requests sector read
@@ -176,6 +176,8 @@ wire [31:0] sd_lba;
 wire [8:0]  sd_byte_index;
 wire	    sd_rd_byte_strobe;
 wire	    sd_busy, sd_done;
+wire [31:0] sd_img_size;
+wire [1:0]  sd_img_mounted;
 
 atarist atarist (
     .clk_32(clk_32),
@@ -192,18 +194,22 @@ atarist atarist (
     .b(st_b),
     .monomode(),
 
-	.joy0( { 11'h0000, joy0 } ),
-	.joy1(16'h0000),
+    .keyboard_matrix_out(),
+    .keyboard_matrix_in(8'hff),
+	.joy0( joy0  ),
+	.joy1( 5'h00 ),
 
     // Sound output
-    .audio_mix_l(audio_l),
-    .audio_mix_r(audio_r),
+    .audio_mix_l( audio_l ),
+    .audio_mix_r( audio_r ),
 
     // MIDI UART
     .midi_rx(1'b0),
     .midi_tx(),
 
     // floppy sd card interface
+    .sd_img_mounted ( sd_img_mounted ),
+    .sd_img_size    ( sd_img_size ),
 	.sd_lba         ( sd_lba ),
 	.sd_rd          ( sd_rd ),
 	.sd_wr          (),
@@ -243,8 +249,9 @@ video video (
 	     .g_in(st_g),
 	     .b_in(st_b),
 
-         .audio_l( { 1'b0, audio_l } ),
-         .audio_r( { 1'b0, audio_r } ),
+         // sign expand audio to 16 bit
+         .audio_l( { audio_l[14], audio_l } ),
+         .audio_r( { audio_r[14], audio_r } ),
 
 	     .tmds_clk_n(tmds_clk_n),
 	     .tmds_clk_p(tmds_clk_p),
@@ -261,9 +268,9 @@ assign sd_dat = 4'b111z;   // drive unused data lines high and configure dat[0] 
 wire [3:0] sd_card_stat;
 wire [1:0] sd_card_type;
 
-sd_reader #(
+sd_fat_reader #(
     .CLK_DIV(3'd1)                    // for 32 Mhz clock
-) sd_reader (
+) sd_fat_reader (
     .rstn(pll_lock),                  // rstn active-low, 1:working, 0:reset
     .clk(clk_32),                     // clock
 
@@ -275,6 +282,9 @@ sd_reader #(
     // show card status
     .card_stat(sd_card_stat),         // show the sdcard initialize status
     .card_type(sd_card_type),         // 0=UNKNOWN    , 1=SDv1    , 2=SDv2  , 3=SDHCv2
+
+    .file_len(sd_img_size),           // length of image file
+    .file_ready(sd_img_mounted),
 
     // user read sector command interface (sync with clk)
     .rstart(sd_rd[0]), 

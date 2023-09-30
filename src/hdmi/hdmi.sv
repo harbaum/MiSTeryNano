@@ -7,11 +7,6 @@
 
 module hdmi 
 #(
-    // Defaults to 640x480 which should be supported by almost if not all HDMI sinks.
-    // See README.md or CEA-861-D for enumeration of video id codes.
-    // Pixel repetition, interlaced scans and other special output modes are not implemented (yet).
-    parameter int VIDEO_ID_CODE = 1,
-
     // The IT content bit indicates that image samples are generated in an ad-hoc
     // manner (e.g. directly from values in a framebuffer, as by a PC video
     // card) and therefore aren't suitable for filtering or analog
@@ -25,8 +20,8 @@ module hdmi
 
     // Defaults to minimum bit lengths required to represent positions.
     // Modify these parameters if you have alternate desired bit lengths.
-    parameter int BIT_WIDTH = VIDEO_ID_CODE < 4 ? 10 : VIDEO_ID_CODE == 4 || VIDEO_ID_CODE == 65 ? 11 : 12,
-    parameter int BIT_HEIGHT = VIDEO_ID_CODE == 16 ? 11: 10,
+    parameter int BIT_WIDTH = 11,
+    parameter int BIT_HEIGHT = 10,
 
     // A true HDMI signal sends auxiliary data (i.e. audio, preambles) which prevents it from being parsed by DVI signal sinks.
     // HDMI signal sinks are fortunately backwards-compatible with DVI signals.
@@ -34,9 +29,6 @@ module hdmi
     parameter bit DVI_OUTPUT = 1'b0,
 
     // **All parameters below matter ONLY IF you plan on sending auxiliary data (DVI_OUTPUT == 1'b0)**
-
-    // Specify the refresh rate in Hz you are using for audio calculations
-    parameter real VIDEO_REFRESH_RATE = 59.94,
 
     // As specified in Section 7.3, the minimal audio requirements are met: 16-bit or more L-PCM audio at 32 kHz, 44.1 kHz, or 48 kHz.
     // See Table 7-4 or README.md for an enumeration of sampling frequencies supported by HDMI.
@@ -72,6 +64,7 @@ module hdmi
     input logic clk_audio,
     // synchronous reset back to 0,0
     input logic reset,
+    input logic pal,         // input signal is scan doubled pal
     input logic [23:0] rgb,    
     input logic [AUDIO_BIT_WIDTH-1:0] audio_sample_word [1:0],
 
@@ -105,98 +98,19 @@ logic [BIT_WIDTH-1:0] hsync_pulse_start, hsync_pulse_size;
 logic [BIT_HEIGHT-1:0] vsync_pulse_start, vsync_pulse_size;
 logic [1:0] invert;
 
-// See CEA-861-D for more specifics formats described below.
-generate
-    case (VIDEO_ID_CODE)
-        1:
-        begin
-            assign frame_width = 800;
-            assign frame_height = 525;
-            assign screen_width = 640;
-            assign screen_height = 480;
-            assign hsync_pulse_start = 16;
-            assign hsync_pulse_size = 96;
-            assign vsync_pulse_start = 10;
-            assign vsync_pulse_size = 2;
-            assign invert = 2'b11;
-            end
-        2, 3:
-        begin
-            assign frame_width = 858;
-            assign frame_height = 525;
-            assign screen_width = 720;
-            assign screen_height = 480;
-            assign hsync_pulse_start = 16;
-            assign hsync_pulse_size = 62;
-            assign vsync_pulse_start = 9;
-            assign vsync_pulse_size = 6;
-            assign invert = 2'b11;
-            end
-        4:
-        begin
-            assign frame_width = 1650;
-            assign frame_height = 750;
-            assign screen_width = 1280;
-            assign screen_height = 720;
-            assign hsync_pulse_start = 110;
-            assign hsync_pulse_size = 40;
-            assign vsync_pulse_start = 5;
-            assign vsync_pulse_size = 5;
-            assign invert = 2'b00;
-        end
-        16, 34:
-        begin
-            assign frame_width = 2200;
-            assign frame_height = 1125;
-            assign screen_width = 1920;
-            assign screen_height = 1080;
-            assign hsync_pulse_start = 88;
-            assign hsync_pulse_size = 44;
-            assign vsync_pulse_start = 4;
-            assign vsync_pulse_size = 5;
-            assign invert = 2'b00;
-        end
-        17, 18:
-        begin
-            assign frame_width = 1024;
-            // is usually 800, but Atari in PAL outputs 840 pixels per line
-            // and (our) HDMI implementation expects the width to be a multiple of 16
-            assign screen_width = 848;
-            assign hsync_pulse_start = 24;
-            assign hsync_pulse_size = 72;
-            // should be 625, has to be 626 for Atari ST in PAL mode
-            assign frame_height = 626;
-            assign screen_height = 576;
-            assign vsync_pulse_start = 5;
-            assign vsync_pulse_size = 5;
-            assign invert = 2'b11;
-        end
-        19:
-        begin
-            assign frame_width = 1980;
-            assign frame_height = 750;
-            assign screen_width = 1280;
-            assign screen_height = 720;
-            assign hsync_pulse_start = 440;
-            assign hsync_pulse_size = 40;
-            assign vsync_pulse_start = 5;
-            assign vsync_pulse_size = 5;
-            assign invert = 2'b00;
-        end
-        95, 105, 97, 107:
-        begin
-            assign frame_width = 4400;
-            assign frame_height = 2250;
-            assign screen_width = 3840;
-            assign screen_height = 2160;
-            assign hsync_pulse_start = 176;
-            assign hsync_pulse_size = 88;
-            assign vsync_pulse_start = 8;
-            assign vsync_pulse_size = 10;
-            assign invert = 2'b00;
-        end
-    endcase
-endgenerate
+assign frame_width = pal?1024:1016;
+// is usually 800, but Atari ST in PAL outputs 840 pixels per line
+// and (our) HDMI implementation expects the width to be a multiple of 16
+// Also demos openeing the screen can only address 832 pixels properly
+assign screen_width = pal?832:848;
+assign hsync_pulse_start = pal?24:16;
+assign hsync_pulse_size = pal?72:62;
+// should be 625/525, has to be 626/526 for Atari ST in PAL/NTSC mode
+assign frame_height = pal?626:526;
+assign screen_height = pal?576:484;
+assign vsync_pulse_start = pal?5:9;
+assign vsync_pulse_size = pal?5:6;
+assign invert = 2'b11;
 
 always_comb begin
     hsync <= invert[0] ^ (cx >= screen_width + hsync_pulse_start && cx < screen_width + hsync_pulse_start + hsync_pulse_size);
@@ -210,15 +124,7 @@ always_comb begin
         vsync <= invert[1] ^ (cy >= screen_height + vsync_pulse_start && cy < screen_height + vsync_pulse_start + vsync_pulse_size);
 end
 
-localparam real VIDEO_RATE = (VIDEO_ID_CODE == 1 ? 25.2E6
-    : VIDEO_ID_CODE == 2 || VIDEO_ID_CODE == 3 ? 27.027E6
-    : VIDEO_ID_CODE == 4 ? 74.25E6
-    : VIDEO_ID_CODE == 16 ? 148.5E6
-    : VIDEO_ID_CODE == 17 || VIDEO_ID_CODE == 18 ? 32E6
-    : VIDEO_ID_CODE == 19 ? 74.25E6
-    : VIDEO_ID_CODE == 34 ? 74.25E6
-    : VIDEO_ID_CODE == 95 || VIDEO_ID_CODE == 105 || VIDEO_ID_CODE == 97 || VIDEO_ID_CODE == 107 ? 594E6
-    : 0) * (VIDEO_REFRESH_RATE == 59.94 || VIDEO_REFRESH_RATE == 29.97 ? 1000.0/1001.0 : 1); // https://groups.google.com/forum/#!topic/sci.engr.advanced-tv/DQcGk5R_zsM
+localparam real VIDEO_RATE = 32E6;
 
 // Wrap-around pixel position counters indicating the pixel to be generated by the user in THIS clock and sent out in the NEXT clock.
 always_ff @(posedge clk_pixel)
@@ -312,7 +218,6 @@ generate
         assign video_field_end = cx == screen_width - 1'b1 && cy == screen_height - 1'b1;
         logic [4:0] packet_pixel_counter;
         packet_picker #(
-            .VIDEO_ID_CODE(VIDEO_ID_CODE),
             .VIDEO_RATE(VIDEO_RATE),
             .IT_CONTENT(IT_CONTENT),
             .AUDIO_RATE(AUDIO_RATE),
@@ -320,7 +225,7 @@ generate
             .VENDOR_NAME(VENDOR_NAME),
             .PRODUCT_DESCRIPTION(PRODUCT_DESCRIPTION),
             .SOURCE_DEVICE_INFORMATION(SOURCE_DEVICE_INFORMATION)
-        ) packet_picker (.clk_pixel(clk_pixel), .clk_audio(clk_audio), .reset(reset), .video_field_end(video_field_end), .packet_enable(packet_enable), .packet_pixel_counter(packet_pixel_counter), .audio_sample_word(audio_sample_word), .header(header), .sub(sub));
+        ) packet_picker (.clk_pixel(clk_pixel), .clk_audio(clk_audio), .reset(reset), .pal(pal), .video_field_end(video_field_end), .packet_enable(packet_enable), .packet_pixel_counter(packet_pixel_counter), .audio_sample_word(audio_sample_word), .header(header), .sub(sub));
         logic [8:0] packet_data;
         packet_assembler packet_assembler (.clk_pixel(clk_pixel), .reset(reset), .data_island_period(data_island_period), .header(header), .sub(sub), .packet_data(packet_data), .counter(packet_pixel_counter));
 

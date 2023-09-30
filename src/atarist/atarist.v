@@ -18,8 +18,11 @@ module atarist (
 	output reg	   monomode,
 	output wire	   blank_n,
 
-	input wire     [15:0] joy0,
-	input wire     [15:0] joy1,
+    // keyboard, mouse and joystick(s)
+    output wire [14:0] keyboard_matrix_out,
+    input wire [7:0] keyboard_matrix_in,
+	input wire     [5:0] joy0,
+	input wire     [4:0] joy1,
 
 	// Sound output
 	output wire [14:0] audio_mix_l,
@@ -30,10 +33,12 @@ module atarist (
     output [1:0]   sd_rd,
     output [1:0]   sd_wr,
     input          sd_ack,
-    input    [8:0] sd_buff_addr,
-    input    [7:0] sd_dout,
-    output   [7:0] sd_din,
+    input  [8:0]   sd_buff_addr,
+    input  [7:0]   sd_dout,
+    output [7:0]   sd_din,
     input          sd_dout_strobe,
+    input  [1:0]   sd_img_mounted,
+    input  [31:0]  sd_img_size,
 
 	// MIDI UART
 	input wire	   midi_rx,
@@ -92,18 +97,20 @@ always @(posedge clk_32) begin
 end
 
 // generate 2.4576MHz MFP clock
-// TODO: Simplify once known working
 reg [31:0]  clk_cnt_mfp;
 reg 	    clk_mfp;
+
+wire [31:0] SYSTEM_CLOCK = 32'd32084988;
+wire [31:0] MFP_CLOCK = 32'd2457600;
 
 always @(posedge clk_32) begin
     if(!porb)
         clk_cnt_mfp <= 32'd0;
     else begin
-        if(clk_cnt_mfp < 32'd16000000)
-            clk_cnt_mfp <= clk_cnt_mfp + 32'd2457600;
+        if(clk_cnt_mfp < SYSTEM_CLOCK/2)
+            clk_cnt_mfp <= clk_cnt_mfp + MFP_CLOCK;
         else begin
-            clk_cnt_mfp <= clk_cnt_mfp - 32'd16000000;
+            clk_cnt_mfp <= clk_cnt_mfp - (SYSTEM_CLOCK/2 - MFP_CLOCK);
             clk_mfp <= !clk_mfp;
         end
     end   
@@ -167,7 +174,7 @@ assign      cpu_din =
               {snd_data_oe_l ? 8'hff : snd_data_out, 8'hff} &
 // STE only       {12'hfff, button_n ? 4'hf : ste_buttons} &
 // STE only       {joyrh_n ? 8'hff : ste_joy_in[15:8], joyrl_n ? 8'hff : ste_joy_in[7:0]} &
-//                {12'hfff, (rtccs_n & rw) ? 4'hf : rtc_data_out} &
+              {12'hfff, (rtccs_n & rw) ? 4'hf : rtc_data_out} &
               {mcu_oe_h ? mcu_dout[15:8] : 8'hff, mcu_oe_l ? mcu_dout[7:0] : 8'hff};
 
 // Shifter signals
@@ -197,6 +204,23 @@ wire        dtack_n = mcu_dtack_n_adj & ~mfp_dtack & blitter_dtack_n;
 /* ------------------------------ GSTMCU + Shifter ------------------------------ */
 /* ------------------------------------------------------------------------------ */
 
+// auto detect TOS ROM location at end of rom cycle (rising edge of rom_n)
+// analyze the reset vector stored at address 4
+reg	    rom_nD;
+reg	    rom192k;
+	    
+always @(posedge clk_32) begin
+   if( !porb ) begin
+      rom192k <= 1'b1;
+      rom_nD <= 1'b1;
+   end else begin  
+      rom_nD <= rom_n;
+      if(rom_n == 1'b1 && rom_nD == 1'b0)
+	if(rom_addr == 23'd2)
+	  rom192k <= rom_data_out == 16'h00fc;
+   end
+end
+   
 gstmcu gstmcu (
 	.clk32      ( clk_32 ),
 	.resb       ( mcu_reset_n ),
@@ -285,9 +309,9 @@ gstmcu gstmcu (
 	.JOYRH_N    ( joyrh_n  ),
 
 	.st            ( ~ste ),
-	.extra_ram     ( 1'b0 ),    // Tang Nano might offer 8MB
-	.tos192k       ( 1'b1 ),    // TOS 1.04
-	.turbo         ( 1'b0 ),    // no turbo
+	.extra_ram     ( 1'b0 ),     // Tang Nano might offer 8MB
+	.tos192k       ( rom192k ), 
+	.turbo         ( 1'b0 ),     // no turbo
 	.viking_at_c0  ( 1'b0 ),
 	.viking_at_e8  ( 1'b0 ),
 	.bus_cycle     ( )
@@ -462,20 +486,7 @@ reg         ikbd_reset;
 always @(posedge clk_2) ikbd_reset <= peripheral_reset;
 
 wire ikbd_tx, ikbd_rx;
-
-reg [7:0] keyboard_matrix[14:0];
-always @(posedge  clk_32) if(ikbd_reset) begin   
-   // reset entire matrix to 1's
-   keyboard_matrix[ 0] <= 8'hff; keyboard_matrix[ 1] <= 8'hff;
-   keyboard_matrix[ 2] <= 8'hff; keyboard_matrix[ 3] <= 8'hff;
-   keyboard_matrix[ 4] <= 8'hff; keyboard_matrix[ 5] <= 8'hff;
-   keyboard_matrix[ 6] <= 8'hff; keyboard_matrix[ 7] <= 8'hff;
-   keyboard_matrix[ 8] <= 8'hff; keyboard_matrix[ 9] <= 8'hff;
-   keyboard_matrix[10] <= 8'hff; keyboard_matrix[11] <= 8'hff;
-   keyboard_matrix[12] <= 8'hff; keyboard_matrix[13] <= 8'hff;
-   keyboard_matrix[14] <= 8'hff;      
-end   
-   
+  
 ikbd ikbd (
 	.clk(clk_2),
 	.res(ikbd_reset),
@@ -483,7 +494,9 @@ ikbd ikbd (
 	.tx(ikbd_tx),
 	.rx(ikbd_rx),
 	   
-        .keyboard_matrix(keyboard_matrix),
+    .matrix_out(keyboard_matrix_out),
+    .matrix_in(keyboard_matrix_in),
+
 	.joystick0({joy0[5:4], joy0[0], joy0[1], joy0[2], joy0[3]}),
 	.joystick1({joy1[  4], joy1[0], joy1[1], joy1[2], joy1[3]})
 );
@@ -568,30 +581,6 @@ wire [1:0] floppy_sel = port_a_out[2:1];
 assign     parallel_out_strobe = port_a_out[5];
 assign     parallel_out = port_b_out;
 
-`ifdef YM2149   
-YM2149 #(.MIXER_VOLTABLE(1'b1)) ym2149 (
-	.CLK         ( clk_32        ),
-	.ENA         ( clk_2_en      ),
-	.RESET_L     ( ~peripheral_reset ),
-	.I_DA        ( mbus_dout[15:8]),
-	.O_DA        ( snd_data_out  ),
-	.O_DA_OE_L   ( snd_data_oe_l ),
-	.O_AUDIO_L   ( ym_audio_out_l),
-	.O_AUDIO_R   ( ym_audio_out_r),
-	.I_A9_L      ( 1'b0          ),  // YM2149.vhd default = 0
-	.I_A8        ( 1'b1          ),  // YM2149.vhd default = 1
-	.I_BDIR      ( sndir         ),
-	.I_BC1       ( sndcs         ),
-	.I_BC2       ( 1'b1          ),  // YM2149.vhd default = 1
-	.I_SEL_L     ( 1'b1          ),  // YM2149.vhd default = 1
-	.I_STEREO    ( 1'b0          ),  // YM2149.vhd default = 0
-	.I_IOA       ( port_a_in     ),
-	.O_IOA       ( port_a_out    ),
-	.I_IOB       ( port_b_in     ),
-	.O_IOB       ( port_b_out    )
-);
-`else // !`ifdef YM2149
-
 assign ym_audio_out_r = ym_audio_out_l;   
 assign snd_data_oe_l = !(sndir == 1'b0 && sndcs == 1'b1); 
    
@@ -621,8 +610,6 @@ jt49_bus jt49_bus (
  .IOB_oe()
  );
   
-`endif
-   
 // audio output processing
 
 // YM and STE audio channels are expanded to 14 bits and added resulting in 15 bits
@@ -739,7 +726,7 @@ ste_joypad ste_joypad1 (
 /* ------------------------------------------------------------------------------ */
 
 // a dummy time to start with ...
-wire [51:0] rtc = { 4'd6, 8'd43,8'd09,8'd03, 8'd13, 8'd33, 8'd00 };
+wire [51:0] rtc = { 4'h6, 8'h23,8'h09,8'h03, 8'h13,8'h33,8'h00 };
    
 reg [3:0] rtc_data_out;
 reg       rtc_bank;
@@ -849,10 +836,6 @@ wire [1:0] floppy_sel_exclusive = (floppy_sel == 2'b00)?2'b10:floppy_sel;
 // -> waits for spin up, but no index pulses
 // Fix: Floppy should generate index pulses even without disk inserted
    
-// mount fake image directly after reset
-// TODO: This should depend on the SD card being present
-wire [1:0] img_mounted = peripheral_reset?2'b00:2'b01;   
-   
 fdc1772 fdc1772 (
 	.clkcpu         ( clk_32           ), // system cpu clock.
 	.clk8m_en       ( mhz8_en1         ),
@@ -875,9 +858,9 @@ fdc1772 fdc1772 (
 	// place any signals that need to be passed up to the top after here.
 	.img_ds         ( 1'b0             ), // "double sided" image. Unused in ST
 	.img_type       ( 3'd1             ), // Atari ST floppy type
-	.img_mounted    ( img_mounted      ), // signaling that new image has been mounted
+	.img_mounted    ( sd_img_mounted   ), // signaling that new image has been mounted
 	.img_wp         ( 2'b11            ), // write protect
-	.img_size       ( 32'd737280       ), // size of image in bytes, 737280 for 80 tracks, 9 spt double sided
+	.img_size       ( sd_img_size      ), // size of image in bytes, 737280 for 80 tracks, 9 spt double sided
 
 	.sd_lba         ( sd_lba           ), // sector requested by fdc to be read/written
 	.sd_rd          ( sd_rd            ), // read request for two floppy drives

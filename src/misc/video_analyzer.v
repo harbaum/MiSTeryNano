@@ -7,11 +7,12 @@
 module video_analyzer 
 (
  // system interface
- input clk,
- input hs,
- input vs,
- input de,
+ input 	    clk,
+ input 	    hs,
+ input 	    vs,
+ input 	    de,
 
+ output reg pal,
  output reg vreset
 );
    
@@ -48,16 +49,22 @@ always @(posedge clk) begin
           // check if image height has changed during last cycle
           vcntL <= vcnt;
           if(vcntL != vcnt)
-            changed <= 1'b1;
+             changed <= 1'b1;
 
           vcnt <= 0;
+	  
+	  // check for PAL/NTSC values
+	  if(vcnt == 10'd312 && hcntL == 13'd2047) pal <= 1'b1;	     
+	  if(vcnt == 10'd262 && hcntL == 13'd2031) pal <= 1'b0;
+	  
        end else
          vcnt <= vcnt + 10'd1;
     end
        
    vreset <= 1'b0;
-    // account for back porches
-   if(hcnt == 160 && vcnt == 28 && changed) begin
+   // account for back porches
+   if( (hcnt == 152 && vcnt == 28 && changed &&  pal) ||
+       (hcnt == 152 && vcnt == 18 && changed && !pal) ) begin
       vreset <= 1'b1;
       changed <= 1'b0;
    end

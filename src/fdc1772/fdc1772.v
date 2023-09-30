@@ -619,39 +619,45 @@ always @(posedge clkcpu) begin
 
 					// write sector
 					if(cmd[7:5] == 3'b101) begin
-						if ((sector - fd_sector_base) >= fd_spt) begin
-							// wait 5 rotations (1 sec) before setting RNF
-							sector_not_found <= 1'b1;
-							delay_cnt <= 24'd1000 * CLK_EN;
-						end else if (sd_state == SD_IDLE) begin
-							case (data_transfer_state)
-							2'b00: begin
-								// pre-read phase
-									if (fd_sector_size_code < 2) sd_card_read <= 1;
-									data_transfer_state <= 2'b10;
-								end
-							2'b10: begin
-								// CPU phase
-								if (fifo_cpuptr == 0 && fd_ready && fd_sector_hdr && (fd_sector == sector)) data_transfer_start <= 1'b1;
-								if (data_transfer_done) begin
-									sd_card_write <= 1;
-									data_transfer_state <= 2'b11;
-								end
-							end
+                        if (fd_writeprot) begin
+                            // on write protection immediately end command
+                            busy <= 1'b0;
+                            irq_set <= 1'b1;
+                        end else begin
 
-							2'b11: begin
-								// SD Card phase
-								data_transfer_state <= 2'b00;
-								if (cmd[4]) sector_inc_strobe <= 1'b1; // multiple sector transfer
-								else begin
-									busy <= 1'b0;
-									irq_set <= 1'b1; // emit irq when command done
-								end
-							end
+                            if ((sector - fd_sector_base) >= fd_spt) begin
+                                // wait 5 rotations (1 sec) before setting RNF
+                                sector_not_found <= 1'b1;
+                                delay_cnt <= 24'd1000 * CLK_EN;
+                            end else if (sd_state == SD_IDLE) begin
+                                case (data_transfer_state)
+                                2'b00: begin
+                                    // pre-read phase
+                                        if (fd_sector_size_code < 2) sd_card_read <= 1;
+                                        data_transfer_state <= 2'b10;
+                                    end
+                                2'b10: begin
+                                    // CPU phase
+                                    if (fifo_cpuptr == 0 && fd_ready && fd_sector_hdr && (fd_sector == sector)) data_transfer_start <= 1'b1;
+                                    if (data_transfer_done) begin
+                                        sd_card_write <= 1;
+                                        data_transfer_state <= 2'b11;
+                                    end
+                                end
 
-							default: ;
-							endcase
+                                2'b11: begin
+                                    // SD Card phase
+                                    data_transfer_state <= 2'b00;
+                                    if (cmd[4]) sector_inc_strobe <= 1'b1; // multiple sector transfer
+                                    else begin
+                                        busy <= 1'b0;
+                                        irq_set <= 1'b1; // emit irq when command done
+                                    end
+                                end
 
+                                default: ;
+                                endcase
+                            end
 						end
 					end
 				end

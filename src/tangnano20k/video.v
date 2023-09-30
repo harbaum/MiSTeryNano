@@ -57,7 +57,7 @@ always @(posedge clk_pixel) begin
     end
 end
 
-wire vreset;
+wire vreset, vpal;
 
 video_analyzer video_analyzer (
    .clk(clk_pixel),
@@ -65,6 +65,7 @@ video_analyzer video_analyzer (
    .hs(hs_in_n),
    .de(de_in),
 
+   .pal(vpal),
    .vreset(vreset)  // reset signal
 );  
 
@@ -101,7 +102,7 @@ scandoubler #(10) scandoubler (
 wire [2:0] tmds;
 wire tmds_clock;
 
-hdmi #( .VIDEO_ID_CODE(17), .VIDEO_REFRESH_RATE(50),
+hdmi #(
     .AUDIO_RATE(48000), .AUDIO_BIT_WIDTH(16),
     .VENDOR_NAME( { "MiSTle", 16'd0} ),
     .PRODUCT_DESCRIPTION( {"Atari ST", 64'd0} )
@@ -114,6 +115,7 @@ hdmi #( .VIDEO_ID_CODE(17), .VIDEO_REFRESH_RATE(50),
   .tmds_clock(tmds_clock),
 
   // video input
+  .pal(vpal),        // current video mode is ST PAL 50Hz
   .reset(vreset),    // signal to synchronize HDMI
 
   // Atari STE outputs 4 bits per color. Scandoubler outputs 6 bits (to be

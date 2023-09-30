@@ -716,6 +716,7 @@ module bltScore( input blt_clks Clks, input [15:0] SEL, input [15:0] iDBUS,
 	reg [15:0] hRam[16];
 	logic [15:0] rambuf;
 
+`ifdef ORIG
 	// synthesis translate off
 	initial	for( int i = 0; i < 16; i++)	hRam[i] = 0;
 	// synthesis translate on
@@ -723,12 +724,28 @@ module bltScore( input blt_clks Clks, input [15:0] SEL, input [15:0] iDBUS,
 	always_ff @(posedge Clks.clk) begin
 		if( Clks.enPhi1 & ramWrSel)			hRam[ ramSelIdx] <= iDBUS;
 
-        //TH TODO if( busOwned & enIas)				rambuf <= hRam[ ramIdx];
+        //TH if( busOwned & enIas)				rambuf <= hRam[ ramIdx];
 	end
 	assign rambuf = hRam[ ramIdx];			// Ascyn read. Will not infer RAM on FPGA	
 	// Will infer dual port RAM.
 	always_ff @(posedge Clks.clk)
 		if( ramSel & Clks.enPhi2)			ramOut <= hRam[ ramSelIdx];	
+`else
+    logic [3:0] lRamIdx;
+	always_comb lRamIdx = busOwned?ramIdx:ramSelIdx;
+    assign ramOut = rambuf;
+
+	always_ff @(posedge Clks.clk) begin
+        if(!busOwned) begin
+            // CPU hram write
+            if( Clks.enPhi1 & ramWrSel)			hRam[ lRamIdx] <= iDBUS;
+            // CPU hram read
+            else if( ramSel & Clks.enPhi2)	    rambuf <= hRam[ lRamIdx];	
+        end else
+            // read during blitter operation
+            if( enIas)				rambuf <= hRam[ lRamIdx];
+	end
+`endif
 	
 	// Blit OP: ~( (~S & ~D) | (~S & D) | (S & ~D) | (S & D) )
 	//               OP[3]       OP[2]     OP[1]      OP[0]

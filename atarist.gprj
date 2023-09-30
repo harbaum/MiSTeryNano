@@ -92,6 +92,7 @@
 
 	<File path="./src/misc/sdcmd_ctrl.v" type="file.verilog" enable="1"/>
 	<File path="./src/misc/sd_reader.v" type="file.verilog" enable="1"/>
+	<File path="./src/misc/sd_fat_reader.v" type="file.verilog" enable="1"/>
 	
 	<File path="./src/tangnano20k/atarist.cst" type="file.cst" enable="1"/>
         <File path="./src/tangnano20k/atarist.sdc" type="file.sdc" enable="1"/>
