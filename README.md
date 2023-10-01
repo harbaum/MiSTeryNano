@@ -45,8 +45,7 @@ of three steps:
 
 ### Installation of the core
 
-Use [openFPGAloader](https://github.com/trabucayre/openFPGALoader) to install the MiSTeryNano core named ```atarist.fs```
-on your Tang Nano 20k:
+Use [openFPGAloader](https://github.com/trabucayre/openFPGALoader) to install the MiSTeryNano core named [```atarist.fs```](https://github.com/harbaum/MiSTeryNano/releases) on your Tang Nano 20k:
 
 ```
 $ openFPGALoader -f impl/pnr/atarist.fs 
