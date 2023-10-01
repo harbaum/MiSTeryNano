@@ -10,7 +10,7 @@ OBJ_DIR=obj_dir
 VERILATOR_DIR=/usr/local/share/verilator/include
 VERILATOR_FILES=verilated.cpp verilated_vcd_c.cpp verilated_threads.cpp
 
-HDL_FILES = floppy_tb.v sd_fake.v ../../src/misc/sdcmd_ctrl.v ../../src/misc/sd_reader.v ../../src/fdc1772/fdc1772.v ../../src/fdc1772/floppy.v
+HDL_FILES = floppy_tb.v sd_fake.v ../../src/misc/sd_fat_reader.v ../../src/misc/sdcmd_ctrl.v ../../src/misc/sd_reader.v ../../src/fdc1772/fdc1772.v ../../src/fdc1772/floppy.v
 
 all: $(PRJ)
 

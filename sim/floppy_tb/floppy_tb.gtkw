@@ -1,97 +1,83 @@
 [*]
 [*] GTKWave Analyzer v3.3.114 (w)1999-2023 BSI
-[*] Mon Sep 25 11:01:44 2023
+[*] Fri Sep 29 15:54:58 2023
 [*]
-[dumpfile] "floppy_tb.vcd"
-[dumpfile_mtime] "Mon Sep 25 11:00:59 2023"
-[dumpfile_size] 246630585
-[savefile] "floppy_tb.gtkw"
-[timestart] 39371000000
-[size] 1644 891
-[pos] 229 49
-*-29.135635 81800000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[dumpfile] "/home/harbaum/projekte/private_stuff/mistlite/atarist/sim/floppy_tb/floppy_tb.vcd"
+[dumpfile_mtime] "Fri Sep 29 15:54:37 2023"
+[dumpfile_size] 291293187
+[savefile] "/home/harbaum/projekte/private_stuff/mistlite/atarist/sim/floppy_tb/floppy_tb.gtkw"
+[timestart] 5514470000
+[size] 1280 947
+[pos] -1 -1
+*-22.235636 5515343749 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
 [treeopen] TOP.
 [treeopen] TOP.floppy_tb.
 [treeopen] TOP.floppy_tb.fdc1772.
 [treeopen] TOP.floppy_tb.fdc1772.fdd[0].
-[treeopen] TOP.floppy_tb.sd_reader.
+[treeopen] TOP.floppy_tb.sd_fat_reader.
 [sst_width] 209
-[signals_width] 273
+[signals_width] 316
 [sst_expanded] 1
-[sst_vpaned_height] 475
+[sst_vpaned_height] 512
 @28
 TOP.clk
 TOP.clk8m_en
-TOP.floppy_tb.sdclk
-@c00022
-TOP.floppy_tb.sddat[3:0]
-@28
-(0)TOP.floppy_tb.sddat[3:0]
-(1)TOP.floppy_tb.sddat[3:0]
-(2)TOP.floppy_tb.sddat[3:0]
-(3)TOP.floppy_tb.sddat[3:0]
-@1401200
--group_end
-@22
-TOP.floppy_tb.sd_fake.request_pre_st[3:0]
-@28
-TOP.floppy_tb.sd_fake.request_stop
-TOP.floppy_tb.sd_fake.sdcmd
-TOP.floppy_tb.sd_reader.sddat_stat[2:0]
-@22
-TOP.floppy_tb.sd_reader.sdcmd_stat[3:0]
-@28
-TOP.floppy_tb.sd_reader.u_sdcmd_ctrl.busy
-TOP.floppy_tb.sd_reader.u_sdcmd_ctrl.done
-@22
-TOP.floppy_tb.sd_reader.outaddr[8:0]
-TOP.floppy_tb.sd_reader.outbyte[7:0]
-@28
-TOP.floppy_tb.sd_reader.outen
-TOP.floppy_tb.sd_reader.sddat0
-TOP.floppy_tb.sd_fake.respstate[1:0]
-TOP.floppy_tb.sd_reader.rstart
-TOP.floppy_tb.fdc1772.cpu_rw
-@22
-TOP.floppy_tb.fdc1772.cpu_din[7:0]
-@28
-TOP.floppy_tb.fdc1772.cpu_we
-[color] 2
-TOP.floppy_tb.fdc1772.fdd[0].floppy.ready
-TOP.floppy_tb.fdc1772.busy
-@22
-TOP.floppy_tb.fdc1772.fdd[0].floppy.current_sector[5:0]
-@28
-TOP.floppy_tb.fdc1772.cpu_sel
-TOP.floppy_tb.fdc1772.irq
-TOP.floppy_tb.fdc1772.drq
-TOP.floppy_tb.fdc1772.cmd_type_2
 @22
 TOP.floppy_tb.fdc1772.cmd[7:0]
 @28
 TOP.floppy_tb.fdc1772.sd_rd[0]
-TOP.floppy_tb.fdc1772.sd_ack
-@22
-TOP.floppy_tb.sd_byte_index[8:0]
-@28
-TOP.floppy_tb.rdreq
-@22
-TOP.floppy_tb.rdaddr[39:0]
-TOP.floppy_tb.rddata[15:0]
-@28
-TOP.floppy_tb.sd_reader.rbusy
-TOP.floppy_tb.sd_reader.rdone
-TOP.floppy_tb.fdc1772.irq_set
-TOP.floppy_tb.fdc1772.irq_clr
-TOP.floppy_tb.fdc1772.sd_state[1:0]
 TOP.floppy_tb.fdc1772.sd_card_read
+@22
 TOP.floppy_tb.fdc1772.data_transfer_start
 TOP.floppy_tb.fdc1772.data_transfer_done
-TOP.floppy_tb.fdc1772.unnamedblk3.data_transfer_state[1:0]
-@22
-TOP.floppy_tb.fdc1772.unnamedblk5.data_transfer_cnt[10:0]
-TOP.floppy_tb.fdc1772.fd_sector[5:0]
 @28
 TOP.floppy_tb.fdc1772.fd_sector_hdr
+TOP.floppy_tb.sd_fat_reader.outen
+@22
+TOP.floppy_tb.sd_fat_reader.outaddr[8:0]
+TOP.floppy_tb.sd_fat_reader.outbyte[7:0]
+@28
+TOP.floppy_tb.sd_fat_reader.istart
+TOP.floppy_tb.sd_fat_reader.iwaiting
+TOP.floppy_tb.sd_fat_reader.istart
+@22
+TOP.floppy_tb.sd_fat_reader.state[7:0]
+TOP.floppy_tb.sd_fat_reader.card_stat[3:0]
+@28
+TOP.floppy_tb.sd_fat_reader.card_type[1:0]
+TOP.floppy_tb.sd_fat_reader.ibusy
+@22
+TOP.floppy_tb.sd_fat_reader.debug[7:0]
+@24
+[color] 2
+TOP.floppy_tb.sd_fat_reader.isector[31:0]
+TOP.floppy_tb.sd_fat_reader.bps[15:0]
+TOP.floppy_tb.sd_fat_reader.rsvd[15:0]
+TOP.floppy_tb.sd_fat_reader.spf[31:0]
+TOP.floppy_tb.sd_fat_reader.spc[7:0]
+@22
+TOP.floppy_tb.sd_fat_reader.fcluster[31:0]
+@28
+TOP.floppy_tb.sd_fat_reader.dir_entry_mismatch
+@24
+TOP.floppy_tb.sd_fat_reader.current_fat_sector[31:0]
+TOP.floppy_tb.sd_fat_reader.current_cluster[31:0]
+TOP.floppy_tb.sd_fat_reader.next_cluster[31:0]
+@28
+TOP.floppy_tb.sd_fat_reader.end_of_chain
+@22
+TOP.floppy_tb.sd_fat_reader.rsector[31:0]
+@28
+TOP.floppy_tb.sd_fat_reader.rstart
+@22
+TOP.floppy_tb.sd_fat_reader.lsector[31:0]
+@28
+TOP.floppy_tb.sd_fat_reader.lstart
+@25
+TOP.floppy_tb.sd_fat_reader.file_len[31:0]
+@22
+TOP.floppy_tb.fdc1772.status[7:0]
+@28
+TOP.floppy_tb.sd_fat_reader.mbr_vbr_ok
 [pattern_trace] 1
 [pattern_trace] 0

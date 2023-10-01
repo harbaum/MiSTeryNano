@@ -33,14 +33,22 @@ void tick(int c) {
   // check for floppy data request
   if(!disk) {
     FILE *fd = NULL;
-    fd = fopen("disk_a.st", "rb");
-    disk = (unsigned short *)malloc(737280);
-    fread(disk, 720, 1024, fd);
+    fd = fopen("sd16g.img", "rb");
+    if(!fd)  { perror("Unable to open image"); exit(-1); }
+    
+    disk = (unsigned short *)malloc(10*1024*1024);
+    fread(disk, 10*1024, 1024, fd);
     fclose(fd);
   }
 
-  if(c && tb->rdreq)
-    tb->rddata = disk[tb->rdaddr];
+  static int last_rdreq = 0;
+  if(c && tb->rdreq) {
+    if(last_rdreq == 0) printf("Read word 0x%lx sector %ld/%ld\n", tb->rdaddr, tb->rdaddr/256, tb->rdaddr & 255);
+    if(tb->rdaddr < 10*1024*1024/2) tb->rddata = disk[tb->rdaddr];
+    else                            tb->rddata = 0xffff;
+
+  }
+  last_rdreq = tb->rdreq;
   
   trace->dump(1000000000000 * simulation_time);
   simulation_time += TICKLEN;
@@ -150,8 +158,9 @@ int main(int argc, char **argv) {
   run(10);
   tb->reset = 1;
 
-  run(1000);
-
+  wait_ms(10);
+  
+#if 1
   printf("RESTORE\n");
   cpu_write(0, 0x0b);  // Restore, Motor on, 6ms  
   while(cpu_read(0) & 0x01) wait_ms(1);  // wait for end of command
@@ -166,6 +175,7 @@ int main(int argc, char **argv) {
   cpu_write(3, 0x00);  // data 0 ?
   cpu_write(0, 0x88);  // read sector, spinup
 
+#if 1
   // reading data should generate 512 drq's until a irq is generated
   int i = 0;
   unsigned char buffer[1024];
@@ -177,13 +187,16 @@ int main(int argc, char **argv) {
       i++;
     }
   }
-  
   // read status to clear interrupt
   printf("READ_SECTOR done, read %d bytes, status = %x\n", i, cpu_read(0));
   
-  hexdump(buffer, i);
+  hexdump(buffer, i);  
+#endif
   
-  wait_ms(5);
-
+  wait_ms(10);
+#else
+  run(1000000);
+#endif
+  
   trace->close();
 }

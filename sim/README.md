@@ -20,6 +20,17 @@ SD card reader](https://github.com/WangXuan95/FPGA-SDcard-Reader). It reads
 a sector from the simulated SD card and emits it via the floppy disk
 controller implementation.
 
+The latest version of the floppy testbench includes testing of the
+FAT parser for SD card. It thus expects a SD card image named ```sd16g.img``` with one partition which in turn has the ```disk_a.st``` file stored
+in the root directory. One way to create such an image is to copy
+```disk_a.st``` onto an SD card (only 16GB cards have been tested so far)
+and then copying the raw card image into a file. The first 10MB of the
+card are probably sufficient:
+
+```
+$ dd if=/dev/sdb of=sd16g.img bs=1024 count=10240
+```
+
 ## flash_tb
 
 [Flash_tb](flash_tb) simulates interfacing to the SPI flash of the Tang Nano
@@ -39,3 +50,17 @@ image means that RAM and ROM are both working reliably.
 
 The same test also runs in verilator and exports the test image from
 the testbench. It can be viewed by ```make video```.
+
+## video_tb
+
+[Video_tb](video_tb) is a test for the video generation. It displays
+a static image and runs it through the ```scandoubler.v``` and
+```video_analyzer.v```. This demo will also write an image file
+for visial inspection.
+
+The demo can also be run on real hardware. In that case the image
+has to be copied to flash memory first:
+
+```
+$ openFPGALoader --external-flash -o 1048576 vmem32k.bin
+```

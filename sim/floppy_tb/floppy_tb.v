@@ -91,10 +91,10 @@ sd_fake sd_fake
  .rddata(rddata)
  );
 
-sd_reader #(
+sd_fat_reader #(
     .CLK_DIV(3'd1),                    // for 32 Mhz clock
     .SIMULATE(1'b1)
-) sd_reader (
+) sd_fat_reader (
     .rstn(reset),                  // rstn active-low, 1:working, 0:reset
     .clk(clk),                     // clock
 

@@ -14,19 +14,20 @@ The MiSTeryNano is a work in progress. Current features are:
     * Complete Atari ST chipset
     * Cycle exact 8 MHz 68000 CPU
     * 4MB RAM
-    * PAL color video via HDMI
+    * PAL and NTSC color video via HDMI
     * YM2149 sound via HDMI
     * Blitter
-  * Supports 192k PAL TOS
-    * Tested with german TOS 1.04
+  * Supports most TOS
+    * Tested with german TOS 1.04, german TOS 2.06 and US TOS 1.00
   * Mouse via IO pins of Tang Nano
     * Full IKBD implementation
-  * Single floppy disk image directly mapped to SD card
+  * Single floppy disk image stored on regular FAT formatted SD card
+    * Tested with 16 GB cards only
 
 ## Missing features
 
   * Support for keyboards
-  * Support for NTSC color and monochrome video
+  * Support for monochrome video
   * Support for multiple ST floppy disk images stored on FAT formatted SD cards
   * User interface (OSD)
   * Full STE chipset support
@@ -74,10 +75,12 @@ Done
 
 ### Installation of the TOS image
 
-Currently only 192k TOS images (TOS 1.00 - TOS 1.04) are supported.
-Also the HDMI video signal generation needs a PAL TOS. Currently
-only the german TOS 1.04 has been tested. This needs to be flashed
-into the flash ROM of the Tang Nano 20k at 1MB offset:
+Most TOS images should be supported by now. This has been tested with
+US TOS 1.00 (60 Hz NTSC video) and german TOS 1.04 and TOS 2.06 (both
+50 Hz PAL video).
+
+This needs to be flashed into the flash ROM of the Tang Nano 20k at
+1MB offset:
 
 ```
 $ openFPGALoader --external-flash -o 1048576 tos104de.img
@@ -106,20 +109,15 @@ Now the MiSTeryNano should already boot into the TOS desktop.
 
 ### Installation of a floppy disk image
 
-Currently, the MiSTeryNano core only supports a single 720k (737280 bytes)
-ST floppy disk image to be stored directly on SD card. This can e.g.
-directly been dd'd to the raw disk image assuming e.g. your SD card reader
-shows up as ```/dev/sdb```:
+Since releae 0.9.0 MiSTeryNano supports reading floppy disk images from
+a FAT formatted SD card. This has only been tested with 16GB cards.
+Especially smaller cards may not work if the FAT file system uses less
+then 16 sectors per cluster.
 
-```
-sudo dd if=disk_a.st of=/dev/sdb
-1440+0 records in
-1440+0 records out
-737280 bytes (737 kB, 720 KiB) copied, 0,202815 s, 3,6 MB/s
-```
-
-This SD card can directly be inserted into slot on the bottom side
-of the Tang Nano 20k and will be read by the MiSTeryNano.
+The MiSTeryNano will automatically load a file named ```disk_a.st```
+into floppy disk A. This SD card is then inserted into the slot on the
+bottom side of the Tang Nano 20k inconveniently placed right below the
+USB connector.
 
 ### Using the mouse
 
@@ -129,11 +127,12 @@ switched to GND.
 
 | Function | Pin Name | Pin No |
 |----------|---------:|-------:|
-| Button   |   IOB8A  |    27  |
-| Right    |   IOB8B  |    28  |
-| Left     |   IOB6A  |    25  |
-| Down     |   IOB6B  |    26  |
-| Up       |  IOB14A  |    29  |
+| Button-R |   IOB8A  |    27  |
+| Button-L |   IOB8B  |    28  |
+| Right    |   IOB6A  |    25  |
+| Left     |   IOB6B  |    26  |
+| Down     |  IOB14A  |    29  |
+| Up       |  IOB14B  |    30  |
 | GND      |     GND  |        |
 
 Alternally a [Blackberry
