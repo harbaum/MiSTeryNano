@@ -113,10 +113,10 @@ a FAT formatted SD card. This has only been tested with 16GB cards.
 Especially smaller cards may not work if the FAT file system uses less
 then 16 sectors per cluster.
 
+This SD card is then inserted into the slot on the bottom side of the
+Tang Nano 20k inconveniently placed right below the USB connector.
 The MiSTeryNano will automatically load a file named ```disk_a.st```
-into floppy disk A. This SD card is then inserted into the slot on the
-bottom side of the Tang Nano 20k inconveniently placed right below the
-USB connector.
+and use it as the image for floppy disk drive A.
 
 ### Using the mouse
 
