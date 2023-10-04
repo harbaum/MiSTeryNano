@@ -104,7 +104,17 @@ Writing: [==================================================] 100.00%
 Done
 ```
 
-Now the MiSTeryNano should already boot into the TOS desktop.
+Now the MiSTeryNano should already boot into the TOS desktop in ST mode.
+
+For STE mode a STE capable TOS needs to be flashed to a different flash
+location:
+
+```
+$ openFPGALoader --external-flash -o 1310720 tos206de.img
+```
+
+This TOS image is always use when STE mode is selected (see the
+configuration section below)
 
 ### Installation of a floppy disk image
 
@@ -118,7 +128,7 @@ Tang Nano 20k inconveniently placed right below the USB connector.
 The MiSTeryNano will automatically load a file named ```disk_a.st```
 and use it as the image for floppy disk drive A.
 
-### Using the mouse
+### Configuration
 
 The MiSTeryNano currently implements some basic mouse control via
 five digital direction inputs on the Tang Nano 20k which need to be
