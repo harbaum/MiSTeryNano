@@ -41,6 +41,9 @@ video.png: video.rgb
 	elif [ $$(du -b $< | cut -f 1) = 941824 ]; then\
           echo "scandoubled ST PAL";\
 	  ffmpeg -vcodec rawvideo -f rawvideo -pix_fmt rgb444 -s 832x566 -i video.rgb -f image2 -vcodec png video.png;\
+	elif [ $$(du -b $< | cut -f 1) = 512000 ]; then\
+          echo "Monochrome ST";\
+	  ffmpeg -vcodec rawvideo -f rawvideo -pix_fmt rgb444 -s 640x400 -i video.rgb -f image2 -vcodec png video.png;\
 	else \
           echo "Unknown format";\
 	fi;

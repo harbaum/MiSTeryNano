@@ -1,8 +1,5 @@
 /* top.sv - atarist on tang nano toplevel */
 
-// `define BLACKBERRY_TRACKBALL
-`define JOYSTICK_MOUSE
-
 module top(
   input		clk,
 
@@ -33,6 +30,8 @@ module top(
 
   // generic IO, used for mouse/joystick/...
   input [7:0]	io,
+  // config inputs
+  input [3:0]	cfg,
 
   // SD card slot
   output	  sd_clk,
@@ -79,8 +78,9 @@ flash flash (
     .ready(flash_ready),
     .busy(),
 
-    // cpu expects ROM to start at fc0000 and it in fact is at 100000
-    .address( { 5'b00100, rom_addr[17:1] } ),
+    // cpu expects ROM to start at $fc0000 and it is in fact is at $100000 in
+    // ST mode and at $140000 in STE mode
+    .address( { 4'b0010, !cfg[3], rom_addr[17:1] } ),
     .cs( !rom_n ),
     .dout(rom_dout),
 
@@ -119,12 +119,15 @@ sdram sdram (
         .sd_ras(O_sdram_ras_n),    // row address select
         .sd_cas(O_sdram_cas_n),    // columns address select
 
+        // allow RAM access to the entire 8MB provided by the
+        // Tang Nano 20k. It's up to the ST chipset to make use
+        // if this
         .refresh(refresh),
         .din(mdout),                // data input from chipset/cpu
         .dout(mdin),
         .addr(ram_a[22:1]),         // 22 bit word address
         .ds( { cash_n, casl_n } ),  // upper/lower data strobe
-        .cs( !ras_n ),              // cpu/chipset requests read/write
+        .cs( !ras_n && !ram_a[23] ),// cpu/chipset requests read/write
         .we( !we_n )                // cpu/chipset requests write
 );
 
@@ -137,7 +140,6 @@ wire [3:0] st_b;
 wire [14:0] audio_l;
 wire [14:0] audio_r;
 
-`ifdef JOYSTICK_MOUSE
 // -------------------- simulate mouse from joystick signals ------------------------
 reg [32:0] mouse_emu_cnt;
 always @(posedge clk_32) begin
@@ -148,10 +150,9 @@ always @(posedge clk_32) begin
 end
 
 wire mbit = mouse_emu_cnt[19];
-wire [5:0] joy0 = { !io[0], !io[1], !io[3] & mbit, !io[2] & mbit, !io[5] & mbit, !io[4] & mbit };
-`endif
+wire [5:0] mjoy_joy0 = { !io[0], !io[1], !io[3] & mbit, !io[2] & mbit, !io[5] & mbit, !io[4] & mbit };
 
-`ifdef BLACKBERRY_TRACKBALL
+// -------------------- parse blackberry trackball signals ------------------------
 reg [7:0] ioD;
 
 reg [1:0] mouse_x;
@@ -167,9 +168,12 @@ always @(posedge clk_32) begin
     if(ioD[1] != ioD[0])  mouse_y <= {  mouse_y[0], !mouse_y[1] };
 end
 
-wire [5:0] joy0 = { !io[0], !io[1], mouse_x[1], mouse_x[0], mouse_y[1], mouse_y[0] };
-`endif
+wire [5:0] mbtb_joy0 = { !io[0], !io[1], mouse_x[1], mouse_x[0], mouse_y[1], mouse_y[0] };
 
+// cfg[1] selects between "joystick mouse" and "blackberry trackball"
+wire [5:0] joy0 = cfg[1]?mjoy_joy0:mbtb_joy0;
+
+// signals to wire the floppy controller to the sd card
 wire [1:0]  sd_rd;   // fdc requests sector read
 wire [7:0]  sd_rd_data;
 wire [31:0] sd_lba;  
@@ -192,7 +196,7 @@ atarist atarist (
     .r(st_r),
     .g(st_g),
     .b(st_b),
-    .monomode(),
+    .mono_detect(cfg[0]),    // mono=0, color=1
 
     .keyboard_matrix_out(),
     .keyboard_matrix_in(8'hff),
@@ -223,6 +227,9 @@ atarist atarist (
     .rom_n(rom_n),
     .rom_addr(rom_addr),
     .rom_data_out(rom_dout),
+
+    .ste(!cfg[3]),                 // enable STE mode if cfg[3] is tied to GND
+    .enable_extra_ram(!cfg[2]),    // enable extra ram if cfg[2] is tied to gnd
 
     // interface to sdram
     .ram_ras_n(ras_n),

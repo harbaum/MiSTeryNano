@@ -4,58 +4,62 @@
 
 module atarist (
 	// System clocks / reset / settings
-	input wire	   clk_32,
-	input wire	   porb,
-	input wire	   resb,
+	input wire 	   clk_32,
+	input wire 	   porb,
+	input wire 	   resb,
 
 	// Video output
+	input wire 	   mono_detect,   // low for monochrome
 	output wire [3:0]  r,
 	output wire [3:0]  g,
 	output wire [3:0]  b,
-	output wire	   hsync_n,
-	output wire	   vsync_n,
-	output wire	   de,
-	output reg	   monomode,
-	output wire	   blank_n,
+	output wire 	   hsync_n,
+	output wire 	   vsync_n,
+	output wire 	   de,
+	output wire 	   blank_n,
 
     // keyboard, mouse and joystick(s)
-    output wire [14:0] keyboard_matrix_out,
-    input wire [7:0] keyboard_matrix_in,
-	input wire     [5:0] joy0,
-	input wire     [4:0] joy1,
+	output wire [14:0] keyboard_matrix_out,
+	input wire [7:0]   keyboard_matrix_in,
+	input wire [5:0]   joy0,
+	input wire [4:0]   joy1,
 
 	// Sound output
 	output wire [14:0] audio_mix_l,
 	output wire [14:0] audio_mix_r,
 
     // floopy disk/sd card interface
-    output [31:0]  sd_lba,
-    output [1:0]   sd_rd,
-    output [1:0]   sd_wr,
-    input          sd_ack,
-    input  [8:0]   sd_buff_addr,
-    input  [7:0]   sd_dout,
-    output [7:0]   sd_din,
-    input          sd_dout_strobe,
-    input  [1:0]   sd_img_mounted,
-    input  [31:0]  sd_img_size,
+	output [31:0] 	   sd_lba,
+	output [1:0] 	   sd_rd,
+	output [1:0] 	   sd_wr,
+	input 		   sd_ack,
+	input [8:0] 	   sd_buff_addr,
+	input [7:0] 	   sd_dout,
+	output [7:0] 	   sd_din,
+	input 		   sd_dout_strobe,
+	input [1:0] 	   sd_img_mounted,
+	input [31:0] 	   sd_img_size,
 
 	// MIDI UART
-	input wire	   midi_rx,
-	output wire	   midi_tx,
+	input wire 	   midi_rx,
+	output wire 	   midi_tx,
+
+    // enable STE and extra 8MB ram
+    input wire     ste,
+    input wire     enable_extra_ram,
 
 	// DRAM interface
-	output wire	   ram_ras_n,
-	output wire	   ram_cash_n,
-	output wire	   ram_casl_n,
-	output wire	   ram_we_n,
-	output wire	   ram_ref,
+	output wire 	   ram_ras_n,
+	output wire 	   ram_cash_n,
+	output wire 	   ram_casl_n,
+	output wire 	   ram_we_n,
+	output wire 	   ram_ref,
 	output wire [23:1] ram_addr,
 	output wire [15:0] ram_data_in,
 	input wire [15:0]  ram_data_out,
 
 	// TOS ROM interface
-	output wire	   rom_n, 
+	output wire 	   rom_n, 
 	output wire [23:1] rom_addr,
 	input wire [15:0]  rom_data_out,
 
@@ -63,13 +67,9 @@ module atarist (
 	output wire [1:0]  leds
 );
 
-// enable additional ste/megaste features
-wire ste = 1'b0;
-
 // STe always has a blitter
 wire       blitter_en = 1'b1; // ste;
 wire [7:0] acsi_enable = 8'b00000000;  
-wire       mono_monitor = 1'b1;
 
 // registered reset signals
 reg         reset;
@@ -309,7 +309,7 @@ gstmcu gstmcu (
 	.JOYRH_N    ( joyrh_n  ),
 
 	.st            ( ~ste ),
-	.extra_ram     ( 1'b0 ),     // Tang Nano might offer 8MB
+	.extra_ram     ( enable_extra_ram ),     // Tang Nano might offer 8MB
 	.tos192k       ( rom192k ), 
 	.turbo         ( 1'b0 ),     // no turbo
 	.viking_at_c0  ( 1'b0 ),
@@ -351,12 +351,6 @@ gstshifter gstshifter (
 	.audio_left ( dma_snd_l ),
 	.audio_right( dma_snd_r )
 );
-
-// assume mono mode only if it's set during VSYNC
-// demos like to switch it on/off during active display to get rid of borders
-always @(posedge clk_32) begin
-	if (!vsync_n) monomode <= mono;
-end
 
 /* ------------------------------------------------------------------------------ */
 /* ------------------------------------ CPU ------------------------------------- */
@@ -420,7 +414,7 @@ end
 wire xsint_delayed = xsint_delay[7];
 
 // mfp io7 is mono_detect which in ste is xor'd with the dma sound irq
-wire mfp_io7 = mono_monitor ^ (ste?xsint:1'b0);
+wire mfp_io7 = mono_detect ^ (ste?xsint:1'b0);
 
 // fake fixed printer signals. TODO: export
 wire parallel_in_strobe = 1'b0;     // TODO: check polarity   

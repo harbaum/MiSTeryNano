@@ -7,13 +7,13 @@
 module video_analyzer 
 (
  // system interface
- input 	    clk,
- input 	    hs,
- input 	    vs,
- input 	    de,
+ input		  clk,
+ input		  hs,
+ input		  vs,
+ input		  de,
 
- output reg pal,
- output reg vreset
+ output reg [1:0] mode, // 0=ntsc, 1=pal, 2=mono
+ output reg	  vreset
 );
    
 
@@ -54,17 +54,26 @@ always @(posedge clk) begin
           vcnt <= 0;
 	  
 	  // check for PAL/NTSC values
-	  if(vcnt == 10'd312 && hcntL == 13'd2047) pal <= 1'b1;	     
-	  if(vcnt == 10'd262 && hcntL == 13'd2031) pal <= 1'b0;
+	  if(vcnt == 10'd312 && hcntL == 13'd2047) mode <= 2'd1;  // PAL
+	  if(vcnt == 10'd262 && hcntL == 13'd2031) mode <= 2'd0;  // NTSC
+
+	  // check for MONO
+	  if(vcnt == 10'd500 && hcntL == 13'd895)  mode <= 2'd2;  // MONO
 	  
        end else
          vcnt <= vcnt + 10'd1;
     end
-       
+
+   // the reset signal is sent to the HDMI generator. On reset the
+   // HDMI re-adjusts its counters to the start of the visible screen
+   // area
+   
    vreset <= 1'b0;
-   // account for back porches
-   if( (hcnt == 152 && vcnt == 28 && changed &&  pal) ||
-       (hcnt == 152 && vcnt == 18 && changed && !pal) ) begin
+   // account for back porches to adjust image position within the
+   // HDMI frame
+   if( (hcnt == 244 && vcnt == 36 && changed && mode == 2'd2) ||
+       (hcnt == 152 && vcnt == 28 && changed && mode == 2'd1) ||
+       (hcnt == 152 && vcnt == 18 && changed && mode == 2'd0) ) begin
       vreset <= 1'b1;
       changed <= 1'b0;
    end

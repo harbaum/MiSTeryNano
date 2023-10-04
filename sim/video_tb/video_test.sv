@@ -1,5 +1,8 @@
 /* top.sv - atarist on tang nano toplevel */
 
+// load image into board:
+// openFPGALoader --external-flash -o 2097152 mono32k.bin
+  
 // the to 0 for pal
 `define VIDEO_NTSC  1'b1
 
@@ -36,6 +39,7 @@ module top(
   output [3:0] O_sdram_dqm,       // 32/4
 
   input [7:0] io,
+  input [3:0] cfg,
 
   // hdmi/tdms
   output       tmds_clk_n,
@@ -103,7 +107,8 @@ ELVDS_OBUF tmds_bufds [3:0] (
 );
 
 logic vsync_n, hsync_n;
-logic vreset, vpal;
+logic vreset;
+logic [1:0] vmode;
 
 wire [5:0] r;  // from scan doubler with dim'd lines
 wire [5:0] g;
@@ -122,7 +127,7 @@ hdmi #(
   .tmds_clock(tmds_clock),
 
   // video input
-  .pal(vpal),        // pal video detected
+  .stmode(vmode),    // st video mode detected
   .reset(vreset),    // signal to synchronize HDMI
 
   // Atari STE outputs 4 bits per color. Scandoubler outputs 6 bits (to be
@@ -145,8 +150,9 @@ ste_tb ste_tb (
     .VSYNC_N(vsync_n),
     .BLANK_N(),
 
-    .ntsc(user),      // request ntsc/pal signal
-    .vpal(vpal),
+    .mono_detect(1'b0),   // 0 for monochrome
+    .ntsc(user),          // request ntsc/pal signal
+    .vmode(vmode),
     .vreset(vreset),
 
     .R(r),

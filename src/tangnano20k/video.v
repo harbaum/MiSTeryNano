@@ -57,7 +57,8 @@ always @(posedge clk_pixel) begin
     end
 end
 
-wire vreset, vpal;
+wire vreset;
+wire [1:0] vmode;
 
 video_analyzer video_analyzer (
    .clk(clk_pixel),
@@ -65,7 +66,7 @@ video_analyzer video_analyzer (
    .hs(hs_in_n),
    .de(de_in),
 
-   .pal(vpal),
+   .mode(vmode),
    .vreset(vreset)  // reset signal
 );  
 
@@ -77,8 +78,8 @@ wire [5:0] sd_b;
 scandoubler #(10) scandoubler (
         // system interface
         .clk_sys(clk_pixel),
-        .bypass(1'b0),
-        .ce_divider(1'b1),   // /2
+        .bypass(vmode == 2'd2),      // bypass in ST high/mono
+        .ce_divider(1'b1),
         .pixel_ena(),
 
         // scanlines (00-none 01-25% 10-50% 11-75%)
@@ -115,7 +116,7 @@ hdmi #(
   .tmds_clock(tmds_clock),
 
   // video input
-  .pal(vpal),        // current video mode is ST PAL 50Hz
+  .stmode(vmode),    // current video mode PAL/NTSC/MONO
   .reset(vreset),    // signal to synchronize HDMI
 
   // Atari STE outputs 4 bits per color. Scandoubler outputs 6 bits (to be

@@ -56,11 +56,14 @@ the testbench. It can be viewed by ```make video```.
 [Video_tb](video_tb) is a test for the video generation. It displays
 a static image and runs it through the ```scandoubler.v``` and
 ```video_analyzer.v```. This demo will also write an image file
-for visial inspection.
+for visual inspection.
 
 The demo can also be run on real hardware. In that case the image
 has to be copied to flash memory first:
 
 ```
-$ openFPGALoader --external-flash -o 1048576 vmem32k.bin
+$ openFPGALoader --external-flash -o 2097152 vmem32k.bin
 ```
+
+If you want to test a monochrome video use ```mono32k.bin``` for
+a monochrome test image.

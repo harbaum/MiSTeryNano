@@ -64,7 +64,7 @@ module hdmi
     input logic clk_audio,
     // synchronous reset back to 0,0
     input logic reset,
-    input logic pal,         // input signal is scan doubled pal
+    input logic [1:0] stmode,         // atari st video mode, 0=60hz ntsc, 1=50hz pal, 2=mono
     input logic [23:0] rgb,    
     input logic [AUDIO_BIT_WIDTH-1:0] audio_sample_word [1:0],
 
@@ -98,18 +98,18 @@ logic [BIT_WIDTH-1:0] hsync_pulse_start, hsync_pulse_size;
 logic [BIT_HEIGHT-1:0] vsync_pulse_start, vsync_pulse_size;
 logic [1:0] invert;
 
-assign frame_width = pal?1024:1016;
+assign frame_width = (stmode==2'd0)?1016:(stmode==2'd1)?1024:896;
 // is usually 800, but Atari ST in PAL outputs 840 pixels per line
 // and (our) HDMI implementation expects the width to be a multiple of 16
 // Also demos openeing the screen can only address 832 pixels properly
-assign screen_width = pal?832:848;
-assign hsync_pulse_start = pal?24:16;
-assign hsync_pulse_size = pal?72:62;
+assign screen_width = (stmode==2'd0)?848:(stmode==2'd1)?832:640;
+assign hsync_pulse_start = (stmode==2'd0)?16:24;
+assign hsync_pulse_size = (stmode==2'd0)?62:72;
 // should be 625/525, has to be 626/526 for Atari ST in PAL/NTSC mode
-assign frame_height = pal?626:526;
-assign screen_height = pal?576:484;
-assign vsync_pulse_start = pal?5:9;
-assign vsync_pulse_size = pal?5:6;
+assign frame_height = (stmode==2'd0)?526:(stmode==2'd1)?626:501;
+assign screen_height = (stmode==2'd0)?484:(stmode==2'd1)?576:400;
+assign vsync_pulse_start = (stmode==2'd0)?9:5;
+assign vsync_pulse_size = (stmode==2'd0)?6:5;
 assign invert = 2'b11;
 
 always_comb begin
@@ -225,7 +225,7 @@ generate
             .VENDOR_NAME(VENDOR_NAME),
             .PRODUCT_DESCRIPTION(PRODUCT_DESCRIPTION),
             .SOURCE_DEVICE_INFORMATION(SOURCE_DEVICE_INFORMATION)
-        ) packet_picker (.clk_pixel(clk_pixel), .clk_audio(clk_audio), .reset(reset), .pal(pal), .video_field_end(video_field_end), .packet_enable(packet_enable), .packet_pixel_counter(packet_pixel_counter), .audio_sample_word(audio_sample_word), .header(header), .sub(sub));
+        ) packet_picker (.clk_pixel(clk_pixel), .clk_audio(clk_audio), .reset(reset), .stmode(stmode), .video_field_end(video_field_end), .packet_enable(packet_enable), .packet_pixel_counter(packet_pixel_counter), .audio_sample_word(audio_sample_word), .header(header), .sub(sub));
         logic [8:0] packet_data;
         packet_assembler packet_assembler (.clk_pixel(clk_pixel), .reset(reset), .data_island_period(data_island_period), .header(header), .sub(sub), .packet_data(packet_data), .counter(packet_pixel_counter));
 

@@ -5,83 +5,83 @@
 //============================================================================
 
 module ste_tb (
-    input 	  clk32,
-    input 	  flash_clk,
-    input 	  resb,
-    input 	  porb,
-    input 	  BR_N,
-    input 	  FC0,
-    input 	  FC1,
-    input 	  FC2,
-    output 	  AS_N,
-    output 	  RW,
-    output 	  UDS_N,
-    output 	  LDS_N,
-    input 	  VMA_N,
-    input 	  MFPINT_N,
+    input	  clk32,
+    input	  flash_clk,
+    input	  resb,
+    input	  porb,
+    input	  BR_N,
+    input	  FC0,
+    input	  FC1,
+    input	  FC2,
+    output	  AS_N,
+    output	  RW,
+    output	  UDS_N,
+    output	  LDS_N,
+    input	  VMA_N,
+    input	  MFPINT_N,
     output [23:0] A, // from CPU
     output [15:0] DIN,
     output [15:0] DOUT,
-    output 	  MHZ8,
-    output 	  MHZ8_EN1,
-    output 	  MHZ8_EN2,
-    output 	  MHZ4,
-    output 	  MHZ4_EN,
-    output 	  BERR_N,
-    output 	  IPL0_N,
-    output 	  IPL1_N,
-    output 	  IPL2_N,
-    output 	  DTACK_N,
-    output 	  IACK_N,
-    output 	  ROM0_N,
-    output 	  ROM1_N,
-    output 	  ROM2_N,
-    output 	  ROM3_N,
-    output 	  ROM4_N,
-    output 	  ROM5_N,
-    output 	  ROM6_N,
-    output 	  ROMP_N,
-    output 	  RAM_N,
-    output 	  RAS0_N,
-    output 	  RAS1_N,
-    output 	  CAS0L_N,
-    output 	  CAS0H_N,
-    output 	  CAS1L_N,
-    output 	  CAS1H_N,
-    output 	  RAM_LDS,
-    output 	  RAM_UDS,
-    output 	  REF,
-    output 	  VPA_N,
-    output 	  MFPCS_N,
-    output 	  SNDIR,
-    output 	  SNDCS,
-    output 	  N6850,
-    output 	  FCS_N,
-    output 	  RTCCS_N,
-    output 	  RTCRD_N,
-    output 	  RTCWR_N,
-    output 	  HSYNC_N,
-    output 	  VSYNC_N,
-    output 	  BLANK_N,
-    output 	  SINT,
+    output	  MHZ8,
+    output	  MHZ8_EN1,
+    output	  MHZ8_EN2,
+    output	  MHZ4,
+    output	  MHZ4_EN,
+    output	  BERR_N,
+    output	  IPL0_N,
+    output	  IPL1_N,
+    output	  IPL2_N,
+    output	  DTACK_N,
+    output	  IACK_N,
+    output	  ROM0_N,
+    output	  ROM1_N,
+    output	  ROM2_N,
+    output	  ROM3_N,
+    output	  ROM4_N,
+    output	  ROM5_N,
+    output	  ROM6_N,
+    output	  ROMP_N,
+    output	  RAM_N,
+    output	  RAS0_N,
+    output	  RAS1_N,
+    output	  CAS0L_N,
+    output	  CAS0H_N,
+    output	  CAS1L_N,
+    output	  CAS1H_N,
+    output	  RAM_LDS,
+    output	  RAM_UDS,
+    output	  REF,
+    output	  VPA_N,
+    output	  MFPCS_N,
+    output	  SNDIR,
+    output	  SNDCS,
+    output	  N6850,
+    output	  FCS_N,
+    output	  RTCCS_N,
+    output	  RTCRD_N,
+    output	  RTCWR_N,
+    output	  HSYNC_N,
+    output	  VSYNC_N,
+    output	  BLANK_N,
+    output	  SINT,
 
-    output 	  vreset,
-    output    vpal,    
-
-    input 	  ntsc,
-    output 	  MONO,
+    output	  vreset,
+    output [1:0]  vmode, 
+	       
+    input	  ntsc,
+    input	  mono_detect,
     output [5:0]  R,
     output [5:0]  G,
     output [5:0]  B,
 
     output [23:1] ram_a,
-    output 	  we_n,
+    output	  we_n,
     output [15:0] mdout,
     input [15:0]  mdin,
 
     // sdram interface
-    output 	  sd_clk,
-    output 	  sd_cke,
+    output	  sd_clk,
+    output	  sd_cke,
     inout [31:0]  sd_data, 
 `ifdef VERILATOR
     input [31:0]  sd_data_in,
@@ -89,25 +89,25 @@ module ste_tb (
     output [10:0] sd_addr,
     output [3:0]  sd_dqm,
     output [1:0]  sd_ba,
-    output 	  sd_cs,
-    output 	  sd_we,
-    output 	  sd_ras,
-    output 	  sd_cas,
+    output	  sd_cs,
+    output	  sd_we,
+    output	  sd_ras,
+    output	  sd_cas,
 
     // SPI flash interface
-    output 	  mspi_cs,
-    inout 	  mspi_di,
-    inout 	  mspi_hold,
-    inout 	  mspi_wp,
-    inout 	  mspi_do,
+    output	  mspi_cs,
+    inout	  mspi_di,
+    inout	  mspi_hold,
+    inout	  mspi_wp,
+    inout	  mspi_do,
 	       
 `ifdef VERILATOR		
-    input [1:0]   mspi_din, 
+    input [1:0]	  mspi_din, 
 `endif
 
     output [5:0]  led,
 
-    output 	  bus_free
+    output	  bus_free
    );
 
 assign led = { !flash_ready, 2'b11, mspi_cs, !flash_cs, !flash_busy };
@@ -155,7 +155,7 @@ assign led = { !flash_ready, 2'b11, mspi_cs, !flash_cs, !flash_busy };
    // start copy state machine once flash and sdram are ready
    always @(posedge clk32 or negedge mem_ready) begin
       if(!mem_ready) begin
-        flash_addr <= 22'h80000;     // start reading at 1MB
+        flash_addr <= 22'h100000;     // start reading at 2MB
         ram_addr <= 22'hfc000;       // only write video ram area
         word_count <= 22'd16000;     // only read 32k image data
 
@@ -234,7 +234,7 @@ assign led = { !flash_ready, 2'b11, mspi_cs, !flash_cs, !flash_busy };
 	 1: wrdata = { 24'hff8200, 16'h001f }; // video base hi    \ 
 	 2: wrdata = { 24'hff8202, 16'h0080 }; // video base mid   / below 2MB top
 
-	 3: wrdata = { 24'hff8260, 16'h0000 }; // 320x200
+	 3: wrdata = { 24'hff8260, mono_detect?16'h0000:16'h0202 }; // 320x200
 	 4: wrdata = { 24'hff820a, ntsc?16'h0000:16'h0200 }; // NTSC/PAL
 	 5: wrdata = { 24'hff8240, 16'h0777 }; // default palette
 	 6: wrdata = { 24'hff8242, 16'h0700 }; // for 4bpp
@@ -261,7 +261,7 @@ assign led = { !flash_ready, 2'b11, mspi_cs, !flash_cs, !flash_busy };
    assign AS_N = !wract;
    assign UDS_N = !wract;
    assign LDS_N = !wract;
-   assign RW = !wract;	 	    
+   assign RW = 1'b0; // !wract;	 	    
 
    reg [31:0] setup_wait;   
    
@@ -464,7 +464,7 @@ gstshifter gstshifter (
     .MDOUT(mdout),
 
     // VIDEO
-    .MONO_OUT(MONO),
+    .MONO_OUT(),
     .LOAD_N(dcyc_n),
     .DE(st_de),
     .BLANK_N(BLANK_N),
@@ -485,14 +485,14 @@ video_analyzer video_analyzer (
    .hs(st_hs_n),
    .de(st_de),
 
-   .pal(vpal),        // pal video detected
+   .mode(vmode),        // report video mode detected
    .vreset(vreset)  // reset signal
 );  
    
 scandoubler scandoubler (
         // system interface
         .clk_sys(clk32),
-        .bypass(1'b0),
+        .bypass(!mono_detect),       // mono
         .ce_divider(1'b0),   // /4
         .pixel_ena(),
 

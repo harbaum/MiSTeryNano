@@ -6,6 +6,7 @@
 #include "verilated.h"
 #include "verilated_vcd_c.h"
 
+#define MONO
 // #define NTSC  // undef for PAL
 
 static Vste_tb *tb;
@@ -18,10 +19,14 @@ static unsigned char rom[8*1024*1024];  // 8 MB spi flash
 void initrom() {
   for(int i=0;i<sizeof(ram);i++) ram[i] = i;
   
-  // load ram into into space at 1 MB
+  // load ram into into space at 2 MB
+#ifdef MONO
+  FILE *file=fopen("mono32k.bin", "rb");
+#else
   FILE *file=fopen("vmem32k.bin", "rb");
-  if(!file) { perror("opening vmem32k.bin"); exit(-1); }
-  fread(rom+0x100000, 32, 1000, file);
+#endif
+  if(!file) { perror("opening mono/vmem32k.bin"); exit(-1); }
+  fread(rom+0x200000, 32, 1000, file);
   fclose(file);
 }
 
@@ -133,6 +138,12 @@ void dump() {
       pix = 0;
     }
 
+#ifdef MONO
+    #define COLS 640
+    #define ROWS 400
+    #define COL1ST  149
+    #define ROW1ST  38
+#else
 #ifdef NTSC
     #define COLS 848
     #define ROWS 484
@@ -143,6 +154,7 @@ void dump() {
     #define ROWS 566
     #define COL1ST  82
     #define ROW1ST  58
+#endif
 #endif
     
     vsync = tb->VSYNC_N;
@@ -174,11 +186,18 @@ int main(int argc, char **argv) {
   tb->trace(trace, 99);
   trace->open("gstmcu.vcd");
 
+#ifdef MONO
+  tb->mono_detect = 0;  // 1 - color, 0 - mono
+#else
+  tb->mono_detect = 1;
+  
 #ifdef NTSC
   tb->ntsc = 1;
 #else
   tb->ntsc = 0;
 #endif
+#endif
+  
   tb->resb = 0;
   tb->porb = 0;  // 0=cold, 1=warm boot
   tick(1);

@@ -87,9 +87,9 @@ end
 
 always @(posedge clk_sys) begin
 	if(bypass) begin
-		r_out <= r;
-		g_out <= g;
-		b_out <= b;
+		r_out <= { r, 2'b00 };
+		g_out <= { g, 2'b00 };
+		b_out <= { b, 2'b00 };
 		hs_out <= hs_sd;
 		vs_out <= vs_sd;
 	end else if(ce_x2) begin
@@ -205,7 +205,7 @@ always @(posedge clk_sys) begin
 		vs_sd <= vs_in;
 	end
 	if(bypass) begin
-		sd_bypass_out <= {r_in, g_in, b_in};
+		sd_bypass_out <= {r_in, g_in, b_in };
 		hs_sd <= hs_in;
 		vs_sd <= vs_in;
 	end
