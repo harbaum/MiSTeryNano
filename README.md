@@ -124,18 +124,9 @@ The MiSTeryNano currently implements some basic mouse control via
 five digital direction inputs on the Tang Nano 20k which need to be
 switched to GND.
 
-| Function | Pin Name | Pin No |
-|----------|---------:|-------:|
-| Button-R |   IOB8A  |    27  |
-| Button-L |   IOB8B  |    28  |
-| Right    |   IOB6A  |    25  |
-| Left     |   IOB6B  |    26  |
-| Down     |  IOB14A  |    29  |
-| Up       |  IOB14B  |    30  |
-| GND      |     GND  |        |
+![MiSTeryNano wiring](images/wiring.png)
 
 Alternally a [Blackberry
 Trackball](https://www.sparkfun.com/products/retired/13169) can be
-used on the same pins. In this case the core needs to be
-re-synthesized with the [```BLACKBERRY_TRACKBALL``` option defined](https://github.com/harbaum/MiSTeryNano/blob/654294ce95bff70d2db4991c88532ad7a3cf4b26/src/tangnano20k/top.sv#L3)
-instead of ```JOYSTICK_MOUSE```.
+used on the same pins. In this case the ```TRACKB``` config switch
+needs to be closed.
