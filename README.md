@@ -12,30 +12,32 @@ The MiSTeryNano is a work in progress. Current features are:
 
   * Atari ST
     * Complete Atari ST chipset
+    * ST or STE configurable
     * Cycle exact 8 MHz 68000 CPU
-    * 4MB RAM
-    * PAL and NTSC color video via HDMI
-    * YM2149 sound via HDMI
+    * 4MB RAM, optional 8MB STRAM
+    * color and monochrome video via HDMI
+    * YM2149 and STE DMA sound via HDMI
     * Blitter
   * Supports most TOS
     * Tested with german TOS 1.04, german TOS 2.06 and US TOS 1.00
-  * Mouse via IO pins of Tang Nano
-    * Full IKBD implementation
-  * Single floppy disk image stored on regular FAT formatted SD card
-    * Tested with 16 GB cards only
+  * Full IKBD implementation
+    * Mouse via IO pins of Tang Nano
+    * Joystick via IO pins of Tang Nano
+  * Floppy disk image stored on regular FAT formatted SD card
+    * Tested with several 4, 16 an d 32 GB cards
+    * Up to 32 .ST disk images selectable via on-screen-display
 
 ## Missing features
 
   * Support for keyboards
-  * Support for monochrome video
-  * Support for multiple ST floppy disk images stored on FAT formatted SD cards
-  * User interface (OSD)
-  * Full STE chipset support
-  * Support for 8 MBytes RAM as available on the Tang Nano 20k
+  * Support for floppy drive B
+  * Support for hard disk images
   * Floppy disk write support
 
-Currently the FPGA on the Tang Nano 20k is already 70% full. It may thus
-not be possible to add all missing features.
+Currently the FPGA on the Tang Nano 20k is around 87% full and this setup
+is considered to be mostly complete with respect to the FPGA itself.
+Further development will focus on the BL616 microcontroller of the Tang
+Nano 20k which will allow to implement the missing features.
 
 ## Getting started
 
