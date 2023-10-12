@@ -29,7 +29,7 @@ module top(
   output [3:0]	O_sdram_dqm, // 32/4
 
   // generic IO, used for mouse/joystick/...
-  input [7:0]	io,
+  input [9:0]	io,
   // config inputs
   input [3:0]	cfg,
 
@@ -172,6 +172,9 @@ wire [5:0] mbtb_joy0 = { !io[0], !io[1], mouse_x[1], mouse_x[0], mouse_y[1], mou
 
 // cfg[1] selects between "joystick mouse" and "blackberry trackball"
 wire [5:0] joy0 = cfg[1]?mjoy_joy0:mbtb_joy0;
+// joystick fire button is shared with right mouse button
+wire [4:0] joy1 = { !io[0], !io[7], !io[6], !io[9], !io[8] };
+
 
 // signals to wire the floppy controller to the sd card
 wire [1:0]  sd_rd;   // fdc requests sector read
@@ -183,9 +186,11 @@ wire	    sd_busy, sd_done;
 wire [31:0] sd_img_size;
 wire [1:0]  sd_img_mounted;
 
+wire reset_btn;
+
 atarist atarist (
     .clk_32(clk_32),
-    .resb(!reset && pll_lock && ram_ready && flash_ready),       // user reset button
+    .resb(!reset_btn && pll_lock && ram_ready && flash_ready),       // user reset button
     .porb(pll_lock),
 
     // video output
@@ -200,8 +205,8 @@ atarist atarist (
 
     .keyboard_matrix_out(),
     .keyboard_matrix_in(8'hff),
-	.joy0( joy0  ),
-	.joy1( 5'h00 ),
+	.joy0( joy0 ),
+	.joy1( joy1 ),
 
     // Sound output
     .audio_mix_l( audio_l ),
@@ -244,10 +249,27 @@ atarist atarist (
     .leds(leds[1:0])
   );
 
+wire [7:0] osd_dir_row;
+wire [3:0] osd_dir_col;
+wire [7:0] osd_dir_chr;
+wire [5:0] osd_dir_len;
+wire [7:0] osd_file;
+wire osd_file_selected;
+
 video video (
 	     .clk(clk),
 	     .clk_32(clk_32),
 	     .pll_lock(pll_lock_hdmi),
+
+         // interface to show directory on OSD
+         .osd_btn_in({user,reset}),
+         .osd_btn_out(reset_btn),
+         .osd_dir_row(osd_dir_row),
+         .osd_dir_col(osd_dir_col),
+         .osd_dir_chr(osd_dir_chr),
+         .osd_dir_len(osd_dir_len),
+         .osd_file_selected(osd_file_selected),
+         .osd_file(osd_file),
 	 
 	     .hs_in_n(st_hs_n),
 	     .vs_in_n(st_vs_n),
@@ -280,6 +302,13 @@ sd_fat_reader #(
 ) sd_fat_reader (
     .rstn(pll_lock),                  // rstn active-low, 1:working, 0:reset
     .clk(clk_32),                     // clock
+
+    .dir_entries_used(osd_dir_len),
+    .dir_row(osd_dir_row),
+    .dir_col(osd_dir_col),
+    .dir_chr(osd_dir_chr),
+    .file_index(osd_file),
+    .file_selected(osd_file_selected),
 
     // SD card signals
     .sdclk(sd_clk),

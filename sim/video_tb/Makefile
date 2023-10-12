@@ -12,7 +12,7 @@ GSTMCU_FILES=gstmcu.v clockgen.v mcucontrol.v hsyncgen.v hdegen.v vsyncgen.v vde
 VERILATOR_DIR=/usr/local/share/verilator/include
 VERILATOR_FILES=verilated.cpp verilated_vcd_c.cpp verilated_threads.cpp
 
-HDL_FILES = $(GSTMCU_FILES:%=$(GSTMCU_DIR)/%) ../../src/misc/scandoubler.v ../../src/misc/video_analyzer.v ../../src/tangnano20k/sdram.v ../../src/tangnano20k/flash_dspi.v
+HDL_FILES = $(GSTMCU_FILES:%=$(GSTMCU_DIR)/%) ../../src/misc/scandoubler.v ../../src/misc/font_8x8_fnt.v ../../src/misc/osd_ascii.v ../../src/misc/video_analyzer.v ../../src/tangnano20k/sdram.v ../../src/tangnano20k/flash_dspi.v
 
 all: $(PRJ)
 

@@ -6,7 +6,7 @@
 #include "verilated.h"
 #include "verilated_vcd_c.h"
 
-#define MONO
+// #define MONO
 // #define NTSC  // undef for PAL
 
 static Vste_tb *tb;
@@ -15,6 +15,17 @@ static int tickcount;
 
 static unsigned char ram[4*1024*1024];
 static unsigned char rom[8*1024*1024];  // 8 MB spi flash
+
+// dummy data for on screen display
+char dummy_dir[][17] = {
+// 0123456789abcdef
+  "DISK_A   ST     ",
+  "TEST_FILE       ",
+  "12345678ABC     ",
+  "Hello World     ",
+  "This is some    ",
+  "test data!      ",
+  "DISK_B   ST     " };
 
 void initrom() {
   for(int i=0;i<sizeof(ram);i++) ram[i] = i;
@@ -36,6 +47,12 @@ void tick(int c) {
 
   tb->eval();
   trace->dump(tickcount++);
+
+  // input [7:0]  dir_chr,
+  
+  // handle OSD
+  if(tb->osd_dir_row <= 6)
+    tb->osd_dir_chr = dummy_dir[tb->osd_dir_row][tb->osd_dir_col];
   
   // ------------ handle spi flash -------------------	
   // process spi on rising edge of spi clk
@@ -197,7 +214,8 @@ int main(int argc, char **argv) {
   tb->ntsc = 0;
 #endif
 #endif
-  
+
+  tb->osd_dir_len = 7;
   tb->resb = 0;
   tb->porb = 0;  // 0=cold, 1=warm boot
   tick(1);
@@ -229,9 +247,15 @@ int main(int argc, char **argv) {
   }
 
   printf("RAM loaded\n");
+
+  // make OSD appear
+  tb->osd_btn_in = 2;
+  for(int i=0;i<100000;i++) { tick(1); tick(0); }  
+  tb->osd_btn_in = 0;
+  for(int i=0;i<100000;i++) { tick(1); tick(0); }
   
 #if 1
-  for(int i=0;i<1200000;i++) {
+  for(int i=0;i<1000000;i++) {
     tick(1); tick(0);
 	}
   dump();

@@ -84,7 +84,7 @@
  "Run_Timing_Driven" : true,
  "SECURE_MODE" : false,
  "SECURITY_BIT" : true,
- "SSPI" : false,
+ "SSPI" : true,
  "STOP_CMSER" : false,
  "Show_All_Warnings" : false,
  "Synthesis On/Off Implemented as Translate On/Off" : false,

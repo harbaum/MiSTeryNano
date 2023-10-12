@@ -1,22 +1,29 @@
 module floppy_tb(
-  input		   clk,
-  input		   reset,
-  output	   clk8m_en,
+  input 	   clk,
+  input 	   reset,
+  output 	   clk8m_en,
 
   // fdc interface		 
-  input [1:0]	   cpu_addr,
-  input		   cpu_sel,
-  input		   cpu_rw,
-  input [7:0]	   cpu_din,
+  input [1:0] 	   cpu_addr,
+  input 	   cpu_sel,
+  input 	   cpu_rw,
+  input [7:0] 	   cpu_din,
   output reg [7:0] cpu_dout,
 
-  output	   irq,
-  output	   drq,
+  output 	   irq,
+  output 	   drq,
 
+  output [5:0] 	   osd_dir_entries_used,
+  input [7:0] 	   osd_dir_row,
+  input [3:0] 	   osd_dir_col,
+  output [7:0] 	   osd_dir_chr,
+  input 	   osd_file_selected,
+  input [7:0] 	   osd_file_index,
+   
   // interface to read data for fake sd card		 
-  output	   rdreq,
-  output [39:0]	   rdaddr,
-  input [15:0]	   rddata
+  output 	   rdreq,
+  output [39:0]    rdaddr,
+  input [15:0] 	   rddata
 );
 
 reg [1:0] cnt_8mhz;  
@@ -97,6 +104,14 @@ sd_fat_reader #(
 ) sd_fat_reader (
     .rstn(reset),                  // rstn active-low, 1:working, 0:reset
     .clk(clk),                     // clock
+
+    // output directory listing for display in OSD
+    .dir_entries_used(osd_dir_entries_used),
+    .dir_row(osd_dir_row),
+    .dir_col(osd_dir_col),
+    .dir_chr(osd_dir_chr),
+    .file_selected(osd_file_selected),
+    .file_index(osd_file_index),
 
     // SD card signals
     .sdclk(sdclk),

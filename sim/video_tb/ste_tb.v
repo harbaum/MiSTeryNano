@@ -79,6 +79,13 @@ module ste_tb (
     output [15:0] mdout,
     input [15:0]  mdin,
 
+    input [1:0]   osd_btn_in,
+    output        osd_btn_out,
+    output [3:0]  osd_dir_col,
+    output [7:0]  osd_dir_row,
+    input [7:0]	  osd_dir_chr,
+    input [5:0]	  osd_dir_len,
+   
     // sdram interface
     output	  sd_clk,
     output	  sd_cke,
@@ -488,6 +495,10 @@ video_analyzer video_analyzer (
    .mode(vmode),        // report video mode detected
    .vreset(vreset)  // reset signal
 );  
+
+wire [5:0] sd_r;
+wire [5:0] sd_g;
+wire [5:0] sd_b;  
    
 scandoubler scandoubler (
         // system interface
@@ -509,11 +520,36 @@ scandoubler scandoubler (
         // output interface
         .hs_out(HSYNC_N),
         .vs_out(VSYNC_N),
+        .r_out(sd_r),
+        .g_out(sd_g),
+        .b_out(sd_b)
+);
+
+osd_ascii osd_ascii (
+        .clk(clk32),
+
+        .btn_in(osd_btn_in),
+        .btn_out(osd_btn_out),
+
+	// request directory data to be displayed
+	.dir_row(osd_dir_row),
+	.dir_col(osd_dir_col),
+	.dir_chr(osd_dir_chr),
+	.dir_len(osd_dir_len),
+	     
+        // video in
+        .hs(HSYNC_N),
+        .vs(VSYNC_N),	     
+        .r_in(sd_r),
+        .g_in(sd_g),
+        .b_in(sd_b),
+
+        // video out
         .r_out(R),
         .g_out(G),
         .b_out(B)
 );
-
+   
 wire [21:0] sdram_addr =
 	    (!atari_reset_n)?(ram_addr):
 	    ram_a[22:1];

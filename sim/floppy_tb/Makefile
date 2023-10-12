@@ -15,7 +15,7 @@ HDL_FILES = floppy_tb.v sd_fake.v ../../src/misc/sd_fat_reader.v ../../src/misc/
 all: $(PRJ)
 
 $(PRJ): $(PRJ).cpp ${HDL_FILES} Makefile
-	verilator -Wno-fatal --trace --top-module $(TOP) -cc ${HDL_FILES} --exe $(PRJ).cpp -o ../$(PRJ)
+	verilator -Wno-fatal --trace --trace-max-array 512 --trace-max-width 512 --top-module $(TOP) -cc ${HDL_FILES} --exe $(PRJ).cpp -o ../$(PRJ)
 	make -j -C ${OBJ_DIR} -f V$(TOP).mk
 
 $(TOP).vcd: $(PRJ) disk_a.st

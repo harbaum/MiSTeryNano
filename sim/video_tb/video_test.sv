@@ -4,6 +4,7 @@
 // openFPGALoader --external-flash -o 2097152 mono32k.bin
   
 // the to 0 for pal
+`define VIDEO_MONO  1'b1   // 1=color
 `define VIDEO_NTSC  1'b1
 
 module top(
@@ -38,7 +39,7 @@ module top(
   output [1:0] O_sdram_ba,        // two banks
   output [3:0] O_sdram_dqm,       // 32/4
 
-  input [7:0] io,
+  input [9:0] io,
   input [3:0] cfg,
 
   // hdmi/tdms
@@ -64,13 +65,10 @@ wire pll_lock = flash_pll_lock && main_pll_lock;
 wire flash_clk;
 flash_pll flash_pll (
         .clkout( flash_clk ),       // 104 MHz
-        .clkoutp( /*mspi_clk*/ ),   // -22.5/+337.5 deg
+        .clkoutp( mspi_clk ),   // -22.5/+337.5 deg
         .lock(flash_pll_lock),
         .clkin(clk)
     );
-
-// run spi chip and spi state machine in the same clock
-assign mspi_clk = flash_clk;
 
 `PLL pll_inst (
         .clkout(clk_pixel_x5), //output clkout
@@ -135,9 +133,38 @@ hdmi #(
   .rgb( { r, 2'b00, g, 2'b00, b, 2'b00 } )
 );
 
+// some test messages
+wire [7:0] messages [13][11];
+assign messages[0]  = "DISK_A  ST ";
+assign messages[1]  = "DISK_B  ST ";
+assign messages[2]  = "ABCDEF~1ST1";
+assign messages[3]  = "DISK_C  ST ";
+assign messages[4]  = "DISK_D  ST ";
+assign messages[5]  = "DISK_E  ST ";
+assign messages[6]  = "DISK_F  ST ";
+assign messages[7]  = "DISK_G  ST ";
+assign messages[8]  = "DISK_H  ST ";
+assign messages[9]  = "DISK_I  ST ";
+assign messages[10] = "DISK_J  ST ";
+assign messages[11] = "DISK_K  ST ";
+assign messages[12] = "LASTFILETXT";
+
+wire [3:0] osd_dir_col;
+wire [7:0] osd_dir_row;
+reg [7:0] osd_dir_chr;
+wire [5:0] osd_dir_len = 6'd13;
+wire reset_btn;
+
+// assign osd_dir_chr = { 1'b1, osd_dir_row, osd_dir_col };
+always @(posedge clk_pixel)
+    osd_dir_chr <= 
+        (osd_dir_row >= osd_dir_len)?8'd66:   // this should never happen
+        (osd_dir_col >= 11)?8'h20:            // should change
+        messages[osd_dir_row][osd_dir_col];
+
 ste_tb ste_tb (
     .clk32(clk_pixel),
-    .resb(!reset && pll_lock),       // user reset button
+    .resb(!reset_btn && pll_lock),       // user reset button
     .porb(pll_lock),
     .BR_N(1'b1),
     .FC0(1'b0),
@@ -146,12 +173,20 @@ ste_tb ste_tb (
     .VMA_N(1'b1),
     .MFPINT_N(1'b1),
 
+    .osd_btn_in({user,reset}),
+    .osd_btn_out(reset_btn),
+
+    .osd_dir_col(osd_dir_col),
+    .osd_dir_row(osd_dir_row),
+    .osd_dir_chr(osd_dir_chr),
+    .osd_dir_len(osd_dir_len),
+
     .HSYNC_N(hsync_n),
     .VSYNC_N(vsync_n),
     .BLANK_N(),
 
-    .mono_detect(1'b0),   // 0 for monochrome
-    .ntsc(user),          // request ntsc/pal signal
+    .mono_detect(`VIDEO_MONO),   // 0 for monochrome
+    .ntsc(`VIDEO_NTSC),          // request ntsc/pal signal
     .vmode(vmode),
     .vreset(vreset),
 

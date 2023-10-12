@@ -22,7 +22,10 @@ static uint64_t GetTickCountMs() {
 
 void tick(int c) {
   static uint64_t ticks = 0;
-  static unsigned short *disk = NULL;
+  static unsigned long sector = 0xffffffff;
+  static unsigned short sector_data[256];
+  static unsigned long long flen;
+  static FILE *fd = NULL;
   
   tb->clk = c; 
   tb->eval();
@@ -31,21 +34,28 @@ void tick(int c) {
     ticks = GetTickCountMs();
 
   // check for floppy data request
-  if(!disk) {
-    FILE *fd = NULL;
-    fd = fopen("sd16g.img", "rb");
-    if(!fd)  { perror("Unable to open image"); exit(-1); }
-    
-    disk = (unsigned short *)malloc(10*1024*1024);
-    fread(disk, 10*1024, 1024, fd);
-    fclose(fd);
+  if(!fd) {
+    fd = fopen("sd.img", "rb");
+    if(!fd) { perror("OPEN ERROR"); exit(-1); }
+    fseek(fd, 0, SEEK_END);
+    flen = ftello(fd);
+    printf("Image size is %lld\n", flen);
+    fseek(fd, 0, SEEK_SET);
   }
 
   static int last_rdreq = 0;
   if(c && tb->rdreq) {
-    if(last_rdreq == 0) printf("Read word 0x%lx sector %ld/%ld\n", tb->rdaddr, tb->rdaddr/256, tb->rdaddr & 255);
-    if(tb->rdaddr < 10*1024*1024/2) tb->rddata = disk[tb->rdaddr];
-    else                            tb->rddata = 0xffff;
+    int s = tb->rdaddr / 256;
+    if(s != sector) {
+      printf("Loading sector %d\n", s);
+      fseek(fd, 512 * s, SEEK_SET);
+      fread(sector_data, 2, 256, fd);
+      sector = s;
+    }
+    
+    //    if(last_rdreq == 0) printf("Read word 0x%lx sector %ld/%ld\n", tb->rdaddr, tb->rdaddr/256, tb->rdaddr & 255);
+    if(tb->rdaddr < flen/2) tb->rddata = sector_data[tb->rdaddr & 255];
+    else                    tb->rddata = 0xa5a5;
 
   }
   last_rdreq = tb->rdreq;
@@ -133,6 +143,33 @@ void hexdump(void *data, int size) {
   }
 }
 
+void read_sector(int no) {
+  // and read a sector
+  printf("READ_SECTOR\n");
+  cpu_write(1, 0);     // track 0
+  cpu_write(2, no);     // sector 3
+  cpu_write(3, 0x00);  // data 0 ?
+  cpu_write(0, 0x88);  // read sector, spinup
+
+#if 1
+  // reading data should generate 512 drq's until a irq is generated
+  int i = 0;
+  unsigned char buffer[1024];
+  while(!tb->irq) {
+    wait_ns(100);
+    if(tb->drq) {
+      int data = cpu_read(3);      
+      if(i < 1024) buffer[i] = data;
+      i++;
+    }
+  }
+  // read status to clear interrupt
+  printf("READ_SECTOR done, read %d bytes, status = %x\n", i, cpu_read(0));
+  
+  hexdump(buffer, i);  
+#endif
+}
+  
 int main(int argc, char **argv) {
   // Initialize Verilators variables
   Verilated::commandArgs(argc, argv);
@@ -167,36 +204,43 @@ int main(int argc, char **argv) {
   printf("RESTORE done\n");
 
   wait_ms(40);
-  
-  // and read a sector
-  printf("READ_SECTOR\n");
-  cpu_write(1, 0);     // track 0
-  cpu_write(2, 3);     // sector 3
-  cpu_write(3, 0x00);  // data 0 ?
-  cpu_write(0, 0x88);  // read sector, spinup
 
-#if 1
-  // reading data should generate 512 drq's until a irq is generated
-  int i = 0;
-  unsigned char buffer[1024];
-  while(!tb->irq) {
-    wait_ns(100);
-    if(tb->drq) {
-      int data = cpu_read(3);      
-      if(i < 1024) buffer[i] = data;
-      i++;
-    }
-  }
-  // read status to clear interrupt
-  printf("READ_SECTOR done, read %d bytes, status = %x\n", i, cpu_read(0));
-  
-  hexdump(buffer, i);  
-#endif
+  read_sector(3);
   
   wait_ms(10);
+
+  // list directory
+  printf("files: %d\n", tb->osd_dir_entries_used);
+  for(int i=0;i<tb->osd_dir_entries_used;i++) {
+    printf("%d: ", i);
+    tb->osd_dir_row = i;
+    for(int c=0;c<16;c++) {
+      tb->osd_dir_col = c;
+      tick(0); tick(1);
+      printf("%c", tb->osd_dir_chr);
+    }
+    printf("\n");
+  }  
+
+  if(tb->osd_dir_entries_used >= 3) {
+  
+    // open disk 2
+    tb->osd_file_index = 2;
+    tb->osd_file_selected = 1;
+    tick(0); tick(1);
+    tb->osd_file_selected = 0;
+    
+    wait_ms(10);  
+  
+    read_sector(3);
+    
+    wait_ms(10);  
+  }
+    
 #else
   run(1000000);
 #endif
+
   
   trace->close();
 }
