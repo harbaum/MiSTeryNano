@@ -10,8 +10,8 @@ The MiSTeryNano is a port of the
 
 The MiSTeryNano is a work in progress. Current features are:
 
-  * Atari ST
-    * Complete Atari ST chipset
+  * Atari ST/STE
+    * Complete Atari ST/E chipset
     * ST or STE configurable
     * Cycle exact 8 MHz 68000 CPU
     * 4MB RAM, optional 8MB STRAM
@@ -142,3 +142,5 @@ Alternally a [Blackberry
 Trackball](https://www.sparkfun.com/products/retired/13169) can be
 used on the same pins. In this case the ```TRACKB``` config switch
 needs to be closed.
+
+![MiSTeryNano trackball](images/trackball.png)
