@@ -84,7 +84,7 @@ This needs to be flashed into the flash ROM of the Tang Nano 20k at
 1MB offset:
 
 ```
-$ openFPGALoader --external-flash -o 1048576 tos104de.img
+$ openFPGALoader --external-flash -o 1048576 tos162de.img
 write to flash
 Jtag frequency : requested 6.00MHz   -> real 6.00MHz  
 Parse file DONE
@@ -121,14 +121,32 @@ configuration section below)
 ### Installation of a floppy disk image
 
 Since releae 0.9.0 MiSTeryNano supports reading floppy disk images from
-a FAT formatted SD card. This has only been tested with 16GB cards.
+a FAT formatted SD card. This has only been tested with 16 and 32 GB cards.
 Especially smaller cards may not work if the FAT file system uses less
-then 16 sectors per cluster.
+then 8 sectors per cluster.
 
-This SD card is then inserted into the slot on the bottom side of the
+At least a file named ```DISK_A.ST``` needs to be placed in the root
+directory of the SD card. This file is by default used as a disk image
+for floppy drive A. Further .ST disk images can be placed in the root
+directory of the SD card. Up to 32 disk images can be handled by the
+core at the moment.
+
+The SD card is to be inserted into the slot on the bottom side of the
 Tang Nano 20k inconveniently placed right below the USB connector.
-The MiSTeryNano will automatically load a file named ```disk_a.st```
+The MiSTeryNano will automatically load a file named ```DISK_A.ST```
 and use it as the image for floppy disk drive A.
+
+#### Changing the floppy disk image
+
+You can use the buttons on the left and right of the USB-C connector
+on the Tang Nano to change disk images. Button S1 will open the
+on screen display. Short presses on S1 will step through the installed
+images. Pressing S2 will insert the current image into floppy drive A.
+A long press on S1 will close the on screen display without changing the
+installed disk images.
+
+Button S2 will also act as a reset button for the Atari ST when the
+on screen display is not open.
 
 ### Configuration
 
