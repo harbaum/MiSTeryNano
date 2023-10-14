@@ -125,7 +125,7 @@ a FAT formatted SD card. This has only been tested with 16 and 32 GB cards.
 Especially smaller cards may not work if the FAT file system uses less
 then 8 sectors per cluster.
 
-At least a file named ```DISK_A.ST``` needs to be placed in the root
+At least a file named [```DISK_A.ST```](sim/floppy_tb/disk_a.st) needs to be placed in the root
 directory of the SD card. This file is by default used as a disk image
 for floppy drive A. Further .ST disk images can be placed in the root
 directory of the SD card. Up to 32 disk images can be handled by the
@@ -133,8 +133,7 @@ core at the moment.
 
 The SD card is to be inserted into the slot on the bottom side of the
 Tang Nano 20k inconveniently placed right below the USB connector.
-The MiSTeryNano will automatically load a file named ```DISK_A.ST```
-and use it as the image for floppy disk drive A.
+The MiSTeryNano will automatically load a file named [```DISK_A.ST```](sim/floppy_tb/disk_a.st) and use it as the image for floppy disk drive A.
 
 #### Changing the floppy disk image
 
