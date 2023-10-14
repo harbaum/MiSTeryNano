@@ -67,7 +67,11 @@ localparam [7:0] STATE_RESET       = 8'd0,
                  STATE_SCAN_FILE   = 8'd4,   // scan file cluster chain
                  STATE_READY       = 8'd5,
                  STATE_SEARCH_FILE = 8'd6,   // search for user selected file
-                 STATE_ERROR       = 8'h80;  // + error code
+                 STATE_ERROR       = 8'h80,  // + error code
+                 STATE_ERROR_MBR   = 8'h81,  // error parsing MBR
+                 STATE_ERROR_VBR   = 8'h82,  // error parsing VBR
+                 STATE_ERROR_SPC   = 8'h83,  // cluster size mismatch
+                 STATE_ERROR_NOFILE= 8'h84;  // file not found
 
 reg [7:0]	  state;  
 
@@ -374,7 +378,7 @@ always @(posedge clk) begin
 	   STATE_MBR: begin
 	      // analyze MBR
 	      if(!mbr_vbr_ok)
-		state <= STATE_ERROR + 8'h01;  // error 1: mbr error
+		state <= STATE_ERROR_MBR;  // error 1: mbr error
 	      else begin
 		 // next: read volume boot record 
 		 state <= STATE_VBR;
@@ -386,9 +390,9 @@ always @(posedge clk) begin
 	   STATE_VBR: begin
 	      // analyze partition boot record
 	      if(!mbr_vbr_ok)
-              state <= STATE_ERROR + 8'h02;  // error 2: vbr error
+              state <= STATE_ERROR_VBR;  // error 2: vbr error
           else if(spc != 8'd128 && spc != 8'd64 && spc != 8'd32 && spc != 8'd16 && spc != 8'd8) 
-              state <= STATE_ERROR + 8'h03;  // error 3: unsupported cluster size
+              state <= STATE_ERROR_SPC;  // error 3: unsupported cluster size
 	      else begin
 		 // next: read root directory
 		 state <= STATE_RD_DIR;
@@ -409,7 +413,7 @@ always @(posedge clk) begin
 		 iwaiting <= 1'b1;		 
 	      end else begin	      
 		 if(!file_found)
-		   state <= STATE_ERROR + 8'h04;  // error 3: file not found
+		   state <= STATE_ERROR_NOFILE;  // error 3: file not found
 		 else begin
 		    // next: scan the cluster chain of the file
 		    state <= STATE_SCAN_FILE;
@@ -444,8 +448,12 @@ always @(posedge clk) begin
 	      end
 	   end
 
-	   STATE_READY: begin
-	      file_ready <= 2'b01;
+       // error 04 is "file not found". In that case the user may
+       // still select another file
+	   STATE_READY, STATE_ERROR_NOFILE: begin
+
+          if(state == STATE_READY)
+            file_ready <= 2'b01;
 
           // user may select a different file
           if(file_selected) begin
