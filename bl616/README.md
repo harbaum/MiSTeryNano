@@ -12,3 +12,23 @@ This can be eased a little bit by adding an external USB UART like the CP2102 to
 
 ![M0S DOCK USB UART](../images/m0s_dock_usb_uart.jpeg)
 
+# USB HID on M0S Dock
+
+The [usb_hid](usb_hid) code lets the
+[M0S Dock](https://wiki.sipeed.com/hardware/en/maixzero/m0s/m0s.html)
+act as a USB host accepting USB keyboards and mice and converting their
+signals into [PS/2](https://en.wikipedia.org/wiki/PS/2_port)
+compatible signals as used by many retro computing FPGA cores to
+interface to keyboards and mice. See [Pacman on Tang Nano
+9k](https://github.com/harbaum/Pacman-TangNano9k/tree/main/m0sdock_usb_joystick)
+for details how to compile and upload code like this to the M0S Dock.
+
+A LED on the M0S Dock will light up, when a HID device is detected (e.g. a keyboard,
+mouse or joystick). Keyboard signals will be sent via IO10 (CLK) and IO11 (DATA) and
+mouse signals will be sent via IO12 (CLK) and IO13 (DATA). Furthermore GND and +5V have to
+be connected to the Tang Nano 20k to power the M0S Dock and its attached USB devices.
+
+See a demo video [here](https://youtube.com/shorts/jjps1x1NjhE?si=LUqlXd3iTG0hus1-).
+
+This has been tested with several wireless keyboard/touchpad combo devices incl.
+the Rii X1 and the Rapoo E2710.
