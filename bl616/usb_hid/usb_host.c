@@ -117,7 +117,7 @@ void kbd_parse(unsigned char *buffer, int nbytes) {
       // key released?
       if(last_report[2+i]) ps2_kbd_tx(0, last_report[2+i]);      
       // key pressed?
-      if(hid_info->buffer[2+i]) ps2_kbd_tx(1, buffer[2+i]);
+      if(buffer[2+i])      ps2_kbd_tx(1, buffer[2+i]);
     }    
   }
   
