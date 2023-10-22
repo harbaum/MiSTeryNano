@@ -41,7 +41,7 @@ for visual inspection.
 ## ram_tb
 
 [Ram_tb](ram_tb) simulates ram and rom interfacing to the CPU and the
-GSTMCU chipset. It comes with some [test code}(ram_tb/ram_test.s)
+GSTMCU chipset. It comes with some [test code](ram_tb/ram_test.s)
 which on the real device [displays some test
 pattern](https://www.youtube.com/shorts/qndojsbH9jw). A stable test
 image means that RAM and ROM are both working reliably.
