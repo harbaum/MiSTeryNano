@@ -3,6 +3,7 @@
 #include "usbh_core.h"
 #include "board.h"
 #include "bflb_gpio.h"
+#include "usb_config.h"
 
 struct bflb_device_s *gpio;
 
@@ -11,9 +12,10 @@ extern void usbh_class_test(void);
 int main(void)
 {
     board_init();
-
-    // init on-board LEDs
     gpio = bflb_device_get_by_name("gpio");
+
+#ifdef M0S_DOCK
+    // init on-board LEDs
     bflb_gpio_init(gpio, GPIO_PIN_27, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_0);
     bflb_gpio_init(gpio, GPIO_PIN_28, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_0);
 
@@ -40,6 +42,19 @@ int main(void)
     bflb_gpio_set(gpio, GPIO_PIN_15);
     bflb_gpio_set(gpio, GPIO_PIN_16);
     bflb_gpio_set(gpio, GPIO_PIN_17);   
+#else
+    // init SPI/PS2 pins
+    bflb_gpio_init(gpio, GPIO_PIN_0, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_0);
+    bflb_gpio_init(gpio, GPIO_PIN_1, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_0);
+    bflb_gpio_init(gpio, GPIO_PIN_2, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_0);
+    bflb_gpio_init(gpio, GPIO_PIN_3, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_0);
+
+    // all outputs high/inactive
+    bflb_gpio_set(gpio, GPIO_PIN_0);
+    bflb_gpio_set(gpio, GPIO_PIN_1);
+    bflb_gpio_set(gpio, GPIO_PIN_2);
+    bflb_gpio_set(gpio, GPIO_PIN_3);
+#endif
     
     printf("Starting usb host task...\r\n");
     usbh_initialize();

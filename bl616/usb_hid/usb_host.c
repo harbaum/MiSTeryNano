@@ -1,4 +1,7 @@
 // usb_host.c
+// https://github.com/mist-devel/mist-firmware/blob/master/usb/hid.c
+
+// Changes in cherryusb/class/hid usbh_hid_connect, accept if hid report read fails
 
 #include "usbh_core.h"
 #include "usbh_hid.h"
@@ -28,22 +31,31 @@ extern struct bflb_device_s *gpio;
 #define DEV_MOUSE 1
 
 void ps2_tx_bit(int dev, char bit) {
-  static const int clk[]  = { GPIO_PIN_11, GPIO_PIN_13 };
-  static const int data[] = { GPIO_PIN_10, GPIO_PIN_12 };
+  /*                             KBD         MOUSE    */
+#ifdef M0S_DOCK
+  // M0S Dock
+  static const int clk[]  = { GPIO_PIN_10, GPIO_PIN_12 };
+  static const int data[] = { GPIO_PIN_11, GPIO_PIN_13 };
+#else
+  #warning "Building for on-board BL616!"
+  // on-board BL616
+  static const int clk[]  = { GPIO_PIN_1, GPIO_PIN_2 };
+  static const int data[] = { GPIO_PIN_0, GPIO_PIN_3 };
+#endif
   
   // intended clock is ~14kHz
   
   // set data bit
-  if(bit) bflb_gpio_set(gpio, clk[dev]);
-  else    bflb_gpio_reset(gpio, clk[dev]);
+  if(bit) bflb_gpio_set(gpio, data[dev]);
+  else    bflb_gpio_reset(gpio, data[dev]);
   bflb_mtimer_delay_us(10);
     
   // clock low
-  bflb_gpio_reset(gpio, data[dev]);
+  bflb_gpio_reset(gpio, clk[dev]);
   bflb_mtimer_delay_us(30);
   
   // clock high
-  bflb_gpio_set(gpio, data[dev]);
+  bflb_gpio_set(gpio, clk[dev]);
   bflb_mtimer_delay_us(30);
 }
 
@@ -299,14 +311,20 @@ static void usbh_hid_thread(void *argument)
 
 void usbh_hid_run(struct usbh_hid *hid_class) {
   printf("HID run\r\n");
+  //usbh_hid_update();
   // LED 1 on
+#ifdef M0S_DOCK
   bflb_gpio_reset(gpio, GPIO_PIN_27);
+#endif
 }
 
 void usbh_hid_stop(struct usbh_hid *hid_class) {
   printf("HID stop\r\n");
+  //usbh_hid_update();
   // LED 1 off
+#ifdef M0S_DOCK
   bflb_gpio_set(gpio, GPIO_PIN_27);
+#endif
 }
 
 void usbh_class_test(void) {
