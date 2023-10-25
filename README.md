@@ -41,11 +41,19 @@ Nano 20k which will allow to implement the missing features.
 
 ## Getting started
 
+In order to use the MiSTeryNano the following things are needed:
+
+  * [Tang Nano 20k FPGA board](https://wiki.sipeed.com/nano20k) to run the MiSTeryNano core
+  * [M0S Dock](https://wiki.sipeed.com/hardware/en/maixzero/m0s/m0s.html) to connect USB keyboard and mouse
+  * a breadboard to wire everything up
+  * some jumper wires
+  * a USB-C to USB-A adapter to connect regular USB devices to the M0S Dock
+
 MiSTeryNano has been developed and tested under Linux. Thus the following
 explanations expect a Linux system to be used. The installation consists
-of three steps:
+of four steps:
 
-### Installation of the core
+### Step 1: Installation of the core
 
 Use [openFPGAloader](https://github.com/trabucayre/openFPGALoader) to install the MiSTeryNano core named [```atarist.fs```](https://github.com/harbaum/MiSTeryNano/releases) on your Tang Nano 20k:
 
@@ -74,7 +82,7 @@ Writing: [==================================================] 100.00%
 Done
 ```
 
-### Installation of the TOS image
+### Step 2: Installation of the TOS image(s)
 
 Most TOS images should be supported by now. This has been tested with
 US TOS 1.00 (60 Hz NTSC video) and german TOS 1.04 and TOS 2.06 (both
@@ -118,7 +126,14 @@ $ openFPGALoader --external-flash -o 1310720 tos206de.img
 This TOS image is always use when STE mode is selected (see the
 configuration section below)
 
-### Installation of a floppy disk image
+### Step 3: Installation of the HID USB firmware
+
+Keyboard and mouse are connected via USB and a [M0S Dock](https://wiki.sipeed.com/hardware/en/maixzero/m0s/m0s.html). This needs to be equipped with
+a matching [HID USB firmware](bl616).
+
+At this point mouse and keyboard should be working.
+
+### Step 4: Installation of a floppy disk image
 
 Since releae 0.9.0 MiSTeryNano supports reading floppy disk images from
 a FAT formatted SD card. This has only been tested with 16 and 32 GB cards.
