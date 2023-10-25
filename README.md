@@ -34,10 +34,24 @@ The MiSTeryNano is a work in progress. Current features are:
   * Support for hard disk images
   * Floppy disk write support
 
-Currently the FPGA on the Tang Nano 20k is around 87% full and this setup
+Currently the FPGA on the Tang Nano 20k is around 90% full and this setup
 is considered to be mostly complete with respect to the FPGA itself.
 Further development will focus on the BL616 microcontroller of the Tang
 Nano 20k which will allow to implement the missing features.
+
+## Videos
+
+These videos primarily document the progress during development:
+
+  * [MiSTeryNano #1: Is the Tang Nano 20k the cheapest and smallest Atari ST?](https://www.youtube.com/shorts/qndojsbH9jw)
+  * [MiSTeryNano #2: Booting TOS 1.04 for the first time](https://www.youtube.com/shorts/yLxXRR_04UE)
+  * [MiSTeryNano #3: We got a rainbow!](https://www.youtube.com/shorts/9wFxQvKtOY8)
+  * [MiSTeryNano #4: Drives and Blitter](https://www.youtube.com/shorts/FfL01D0Zg0o)
+  * [MiSTeryNano #5: Playing Atari ST Frontier](https://www.youtube.com/shorts/xJHF-LlaHFo)
+  * [MiSTeryNano #6: B.I.G. DEMO](https://www.youtube.com/shorts/EXPfdhlpuFI)
+  * [MiSTeryNano #7: Tang Nano 20k running Atari ST Oxyd2](https://www.youtube.com/shorts/Ud1P1vE5j84)
+  * [MiSTeryNano #8: Atari ST with USB keyboard and touchpad](https://www.youtube.com/shorts/jjps1x1NjhE)
+  * [MiSTeryNano #9: Tang Nano 20k as USB host](https://www.youtube.com/shorts/bP5gK3nmv-o)
 
 ## Getting started
 
