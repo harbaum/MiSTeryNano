@@ -21,7 +21,8 @@ The MiSTeryNano is a work in progress. Current features are:
   * Supports most TOS
     * Tested with german TOS 1.04, german TOS 2.06 and US TOS 1.00
   * Full IKBD implementation
-    * Mouse via IO pins of Tang Nano
+    * Mapped to USB via BL616 MCU
+    * Mouse and keyboard via USB
     * Joystick via IO pins of Tang Nano
   * Floppy disk image stored on regular FAT formatted SD card
     * Tested with several 4, 16 an d 32 GB cards
@@ -29,7 +30,6 @@ The MiSTeryNano is a work in progress. Current features are:
 
 ## Missing features
 
-  * Support for keyboards
   * Support for floppy drive B
   * Support for hard disk images
   * Floppy disk write support
