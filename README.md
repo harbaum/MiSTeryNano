@@ -149,15 +149,14 @@ on screen display is not open.
 
 ### Configuration
 
-The MiSTeryNano currently implements some basic mouse control via
-five digital direction inputs on the Tang Nano 20k which need to be
-switched to GND.
+Since version 1.1.0 MiSTeryNano uses a [BL616
+controller](https://github.com/harbaum/MiSTeryNano/tree/main/bl616)
+for mouse and keyboard connectivity. This BL616 can either be an
+externally connected M0S Dock or the internal BL616 of the Tang Nano
+20k. In the this case the ```PS2_INT``` configuration 
+has to be selected.
 
-![MiSTeryNano wiring](images/wiring.png)
+A digital DB9 joystick can be attached directly to the board.
 
-Alternally a [Blackberry
-Trackball](https://www.sparkfun.com/products/retired/13169) can be
-used on the same pins. In this case the ```TRACKB``` config switch
-needs to be closed.
+![MiSTeryNano wiring](images/wiring_ps2.png)
 
-![MiSTeryNano trackball](images/trackball.png)

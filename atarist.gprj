@@ -91,6 +91,7 @@
 	<File path="./src/ikbd/hd63701/HD63701.v" type="file.verilog" enable="1"/>
 	<File path="./src/ikbd/rom/MCU_BIROM.v" type="file.verilog" enable="1"/>
 	<File path="./src/ikbd/rom/ikbd.hex" type="file.other" enable="1"/>
+        <File path="./src/ikbd/ps2.sv" type="file.verilog" enable="1"/>
 
 	<File path="./src/misc/sdcmd_ctrl.v" type="file.verilog" enable="1"/>
 	<File path="./src/misc/sd_reader.v" type="file.verilog" enable="1"/>

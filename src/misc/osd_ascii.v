@@ -232,7 +232,7 @@ always @(posedge clk) begin
       hcntL <= hcnt;
       hcnt <= 0;
    end else
-     hcnt <= hcnt + 13'd1;
+     hcnt <= hcnt + 12'd1;
    
    if(hs && !hsD) begin
       // ---- vsync processing -----
