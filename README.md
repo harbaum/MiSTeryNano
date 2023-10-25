@@ -49,6 +49,8 @@ In order to use the MiSTeryNano the following things are needed:
   * some jumper wires
   * a USB-C to USB-A adapter to connect regular USB devices to the M0S Dock
 
+![MiSTeryNano breadboard](images/misterynano_bb.jpeg)
+
 MiSTeryNano has been developed and tested under Linux. Thus the following
 explanations expect a Linux system to be used. The installation consists
 of four steps:
