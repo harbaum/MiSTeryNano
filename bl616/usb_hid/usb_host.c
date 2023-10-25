@@ -1,7 +1,4 @@
 // usb_host.c
-// https://github.com/mist-devel/mist-firmware/blob/master/usb/hid.c
-
-// Changes in cherryusb/class/hid usbh_hid_connect, accept if hid report read fails
 
 #include "usbh_core.h"
 #include "usbh_hid.h"
@@ -150,10 +147,11 @@ void mouse_parse(signed char *buffer, int nbytes) {
   if(buffer[2] < 0) b0 |= 0x10;      // negative x
   if(buffer[1] < 0) b0 |= 0x20;      // negative y
 
+  // always send imps four byte package
   ps2_tx_byte(DEV_MOUSE, b0);
   ps2_tx_byte(DEV_MOUSE, buffer[2]);
   ps2_tx_byte(DEV_MOUSE, buffer[1]);
-  ps2_tx_byte(DEV_MOUSE, 0x00);       // z-axis
+  ps2_tx_byte(DEV_MOUSE, 0x00);      // z-axis is unused
 }
 
 void usbh_hid_callback(void *arg, int nbytes) {
@@ -194,13 +192,9 @@ void usbh_hid_callback(void *arg, int nbytes) {
       if(hid_info->report.type == REPORT_TYPE_MOUSE)
 	mouse_parse((signed char*)buffer, nbytes);
     }
-  } else
-    USB_LOG_RAW("no data\r\n");
-    
-  // TODO: submit at rate specified by endpoint 
-  
-  // re-submit urb for next request
-  //  usbh_submit_urb(&hid_info->intin_urb);
+  }
+  //  else
+  //    USB_LOG_RAW("no data\r\n");
 }  
 
 static void usbh_hid_update(void) {
@@ -213,15 +207,6 @@ static void usbh_hid_update(void) {
     if(hid_info[i].class && hid_info[i].state == STATE_NONE) {
       printf("NEW %d\r\n", i);
 
-      // class struct:
-      // struct usbh_hubport *hport;
-      //
-      // uint8_t report_desc[128];
-      // uint8_t intf; /* interface number */
-      // uint8_t minor;
-      // usbh_pipe_t intin;  /* INTR IN endpoint */
-      // usbh_pipe_t intout; /* INTR OUT endpoint */
-
       printf("Interval: %d\r\n", hid_info[i].class->hport->config.intf[i].altsetting[0].ep[0].ep_desc.bInterval);
 	 
       printf("Interface %d\r\n", hid_info[i].class->intf);
@@ -229,21 +214,10 @@ static void usbh_hid_update(void) {
       printf("  subclass %d\r\n", hid_info[i].class->hport->config.intf[i].altsetting[0].intf_desc.bInterfaceSubClass);
       printf("  protocol %d\r\n", hid_info[i].class->hport->config.intf[i].altsetting[0].intf_desc.bInterfaceProtocol);
 	
-      // cherryusb does not store the descriptor length. So try to figure it out
-      // It's probably safe to assume that the hid report ends with an "end collection" (c0)
-      int len = 128;
-      while(len>0 && hid_info[i].class->report_desc[len-1] != HID_MAIN_ITEM_ENDCOLLECTION_PREFIX) len--;
-
-      if(!len) {
-	printf("no valid report descriptor\r\n");
-	hid_info[i].state = STATE_FAILED;
-	return;	
-      }
-      
       // parse report descriptor ...
-      printf("report descriptor: %p, len=%d\r\n", hid_info[i].class->report_desc, len);
+      printf("report descriptor: %p\r\n", hid_info[i].class->report_desc);
       
-      if(!parse_report_descriptor(hid_info[i].class->report_desc, len, &hid_info[i].report)) {
+      if(!parse_report_descriptor(hid_info[i].class->report_desc, 128, &hid_info[i].report)) {
 	hid_info[i].state = STATE_FAILED;   // parsing failed, don't use
 	return;
       }
