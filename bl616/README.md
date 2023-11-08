@@ -75,7 +75,24 @@ BL_SDK_BASE=<where you downloaded the sdk>/bouffalo_sdk/ make CHIP=bl616 COMX=/d
 
 After successful download you need to unplug the device again and reinsert it *without* the BOOT button pressed to boot into the newly installed firmware.
 
-## USB HID on M0S Dock
+## MiSTeryNano Firmware
+
+The [misterynano_fw](misterynano_fw) contains the BL616 code for the MiSTeryNano.
+It connects the BL616 to the FPGA via a SPI connection and uses these to send
+keyboard and mouse events into the FPGA core as well control commands for the
+on-screen-display (OSD).
+
+The MiSTeryNano Firmware is being used with MiSTeryNano V1.2.0 and later.
+
+## USB HID
+
+The [usb_hid](usb_hid) has been used up to version 1.1.0 of MiSTeryNano. It provided
+PS2 like interfaces for keyboard and mouse. Later version switch to a SPI interface
+for keyboard and mouse and also include more functionality including OSD control.
+The [usb_hid](usb_hid) is here for reference and since other projects may have a use
+for a simple and cheap USB/PS2 conversion.
+
+### USB HID on M0S Dock
 
 The [usb_hid](usb_hid) code lets the
 [M0S Dock](https://wiki.sipeed.com/hardware/en/maixzero/m0s/m0s.html)
@@ -94,7 +111,7 @@ See a demo video [here](https://youtube.com/shorts/jjps1x1NjhE?si=LUqlXd3iTG0hus
 This has been tested with several wireless keyboard/touchpad combo devices incl.
 the Rii X1 and the Rapoo E2710.
 
-## USB HID with the internal BL616 MCU of the Tang Nano 20k
+### USB HID with the internal BL616 MCU of the Tang Nano 20k
 
 While it's recommanded to use an external M0S Dock it's also possible to repurpose
 the internal BL616 MCU to handle mouse and keyboard.
