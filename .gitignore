@@ -4,3 +4,4 @@ impl/temp/
 impl/pnr/
 *.gprj.user
 *.vcd
+build/
