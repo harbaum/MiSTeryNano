@@ -29,7 +29,7 @@ module top(
   output [3:0]	O_sdram_dqm, // 32/4
 
   // generic IO, used for mouse/joystick/...
-  input [9:0]	io,
+  inout [9:0]	io,
   // config inputs
   input [3:0]	cfg,
 
@@ -187,6 +187,7 @@ wire [5:0] mbtb_joy0 = { !io[0], !io[1], mouse_x[1], mouse_x[0], mouse_y[1], mou
 // joystick fire button is shared with right mouse button
 // wire [4:0] joy1 = { !io[0], !io[7], !io[6], !io[9], !io[8] };
 `else
+`ifdef PS2
 // in PS2/USB mode the joystick uses the inputs that were formerly
 // used for the mouse. This may also be replaces by USB joysticks
 wire [4:0] joy1 = { !io[0], !io[2], !io[1], !io[4], !io[3] };
@@ -260,6 +261,79 @@ ps2 ps2 (
     .joy_port_toggle() // F11  
 );
 `endif
+`endif
+
+// ----------------- SPI input parser ----------------------
+
+wire spi_io_dout;
+assign io[9:6] = { 3'bzzz, spi_io_dout };
+
+wire spi_io_din = io[7];
+wire spi_io_ss = io[8];
+wire spi_io_clk = io[9];
+
+wire       mcu_hid_strobe;
+wire       mcu_osd_strobe;
+wire       mcu_start;
+wire [7:0] mcu_data_out;  
+   
+mcu_spi mcu (
+        .clk(clk_32),
+        .reset(!pll_lock),
+
+        .spi_io_ss(spi_io_ss),
+        .spi_io_clk(spi_io_clk),
+        .spi_io_din(spi_io_din),
+        .spi_io_dout(spi_io_dout),
+
+        .mcu_hid_strobe(mcu_hid_strobe),
+        .mcu_osd_strobe(mcu_osd_strobe),
+        .mcu_start(mcu_start),
+        .mcu_dout(mcu_data_out)
+        );
+
+// in HID mode the joystick uses the inputs that were formerly
+// used for the mouse. This may also be replaced by USB joysticks
+wire [4:0] joy1 = { !io[0], !io[2], !io[1], !io[4], !io[3] };
+
+// The keyboard matrix is maintained inside HID
+wire [7:0] keyboard[14:0];
+
+wire [14:0] keyboard_matrix_out;
+wire [7:0] keyboard_matrix_in =
+	      (!keyboard_matrix_out[0]?keyboard[0]:8'hff)&
+	      (!keyboard_matrix_out[1]?keyboard[1]:8'hff)&
+	      (!keyboard_matrix_out[2]?keyboard[2]:8'hff)&
+	      (!keyboard_matrix_out[3]?keyboard[3]:8'hff)&
+	      (!keyboard_matrix_out[4]?keyboard[4]:8'hff)&
+	      (!keyboard_matrix_out[5]?keyboard[5]:8'hff)&
+	      (!keyboard_matrix_out[6]?keyboard[6]:8'hff)&
+	      (!keyboard_matrix_out[7]?keyboard[7]:8'hff)&
+	      (!keyboard_matrix_out[8]?keyboard[8]:8'hff)&
+	      (!keyboard_matrix_out[9]?keyboard[9]:8'hff)&
+	      (!keyboard_matrix_out[10]?keyboard[10]:8'hff)&
+	      (!keyboard_matrix_out[11]?keyboard[11]:8'hff)&
+	      (!keyboard_matrix_out[12]?keyboard[12]:8'hff)&
+	      (!keyboard_matrix_out[13]?keyboard[13]:8'hff)&
+	      (!keyboard_matrix_out[14]?keyboard[14]:8'hff);
+
+wire [5:0] joy0;
+
+// decode SPI/MCU data received for human input devices (HID) and
+// convert into ST compatible mouse and keyboard signals
+hid hid (
+        .clk(clk_32),
+        .reset(!pll_lock),
+
+         // interface to receive user data from MCU (mouse, kbd, ...)
+        .data_in_strobe(mcu_hid_strobe),
+        .data_in_start(mcu_start),
+        .data_in(mcu_data_out),
+
+        .mouse(joy0),
+        .keyboard(keyboard)
+         );   
+
 
 // signals to wire the floppy controller to the sd card
 wire [1:0]  sd_rd;   // fdc requests sector read
@@ -355,6 +429,10 @@ video video (
          .osd_dir_len(osd_dir_len),
          .osd_file_selected(osd_file_selected),
          .osd_file(osd_file),
+
+         .mcu_start(mcu_start),
+         .mcu_osd_strobe(mcu_osd_strobe),
+         .mcu_data(mcu_data_out),
 	 
 	     .hs_in_n(st_hs_n),
 	     .vs_in_n(st_vs_n),

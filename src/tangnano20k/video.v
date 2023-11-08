@@ -25,6 +25,11 @@ module video (
           input [5:0]  osd_dir_len,   // up to 32 entries
           output [7:0] osd_file,
           output       osd_file_selected,
+
+          // (spi) interface from MCU
+          input        mcu_start,
+          input        mcu_osd_strobe,
+          input [7:0]  mcu_data,
 		 
 	      // hdmi/tdms
 	      output	   tmds_clk_n,
@@ -141,6 +146,30 @@ osd_ascii osd_ascii (
         .b_out(osd_b)
 );   
   
+wire [5:0] osd2_r;
+wire [5:0] osd2_g;
+wire [5:0] osd2_b;  
+   
+osd_u8g2 osd_u8g2 (
+        .clk(clk_pixel),
+        .reset(!pll_lock),
+
+        .data_in_strobe(mcu_osd_strobe),
+        .data_in_start(mcu_start),
+        .data_in(mcu_data),
+
+        .hs(sd_hs_n),
+        .vs(sd_vs_n),
+		     
+        .r_in(osd_r),
+        .g_in(osd_g),
+        .b_in(osd_b),
+		     
+        .r_out(osd2_r),
+        .g_out(osd2_g),
+        .b_out(osd2_b)
+);   
+
 wire [2:0] tmds;
 wire tmds_clock;
 
@@ -162,7 +191,7 @@ hdmi #(
 
   // Atari STE outputs 4 bits per color. Scandoubler outputs 6 bits (to be
   // able to implement dark scanlines) and HDMI expects 8 bits per color
-  .rgb( { osd_r, 2'b00, osd_g, 2'b00, osd_b, 2'b00 } )
+  .rgb( { osd2_r, 2'b00, osd2_g, 2'b00, osd2_b, 2'b00 } )
 );
 
 // differential output

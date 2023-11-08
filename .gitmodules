@@ -1,0 +1,3 @@
+[submodule "bl616/misterynano_fw/u8g2"]
+	path = bl616/misterynano_fw/u8g2
+	url = git@github.com:olikraus/u8g2.git
