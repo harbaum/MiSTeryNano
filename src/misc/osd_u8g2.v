@@ -19,6 +19,12 @@ module osd_u8g2 (
   input [5:0]  g_in,
   input [5:0]  b_in,
 
+  // values that can be configured by the user
+  output reg [1:0] system_chipset,
+  output reg system_memory,
+  output reg system_video,
+  output reg system_reset,
+
   output [5:0] r_out,
   output [5:0] g_out,
   output [5:0] b_out
@@ -87,17 +93,27 @@ reg data_addr_state;
 always @(posedge clk) begin
     if(reset) begin
         enabled <= 1'b0;
+
+        // OSD value defaults. These should be the same
+        // as what the BL616 assumes the defaults are
+        system_chipset = 2'b0;
+        system_memory = 1'b0;
+        system_video = 1'b0;
     end else begin
 
       if(data_in_strobe) begin
         if(data_in_start) begin
             command <= data_in;
             data_addr_state <= 1'b1;
+            data_cnt <= 10'd0;
         end else begin
             data_addr_state <= 1'b0;
 
+            // OSD command 1: enabled (show) or disable (hide) OSD
             if((command == 8'd1) && data_addr_state)
                 enabled <= data_in[0];   // en/disable
+
+            // OSD command 2: display data for give tile
             if(command == 8'd2) begin
                 if(data_addr_state)
                     data_cnt <= { data_in[6:0], 3'b000 };
@@ -105,6 +121,27 @@ always @(posedge clk) begin
                     buffer[data_cnt] <= data_in;
                     data_cnt <= data_cnt + 10'd1;
                 end
+            end
+
+            // OSD command 3: config values set by user via OSD
+            if(command == 8'd3) begin
+                if(data_cnt == 10'd0) begin 
+                    // first byte must be "S"
+                    if(data_in == "S") data_cnt <= 10'd1;
+                    else               command  <= 8'h00;
+                end
+                    
+                // second byte can be any character 
+                if(data_cnt == 10'd1) data_cnt <= { 2'b00, data_in };
+
+                // Value "SC": chipset ST(0), MegaST(1) or STE(2)
+                if(data_cnt == { 2'b00, "C" }) system_chipset <= data_in[1:0];
+                // Value "SM": 4MB(0) or 8MB(1)
+                if(data_cnt == { 2'b00, "M" }) system_memory <= data_in[0];
+                // Value "SV": color(0) or monochrome(1)
+                if(data_cnt == { 2'b00, "V" }) system_video <= data_in[0];
+                // Value "SR": reset(1) or run(0)
+                if(data_cnt == { 2'b00, "R" }) system_reset <= data_in[0];
             end
         end
       end

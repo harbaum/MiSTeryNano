@@ -269,7 +269,7 @@ wire        fd_ready       = fd_any ? fdn_ready[fdn]       : 1'b0;
 wire  [6:0] fd_track       = fd_any ? fdn_track[fdn]       : 7'd0;
 wire  [5:0] fd_sector      = fd_any ? fdn_sector[fdn]      : 5'd0;
 wire        fd_sector_hdr  = fd_any ? fdn_sector_hdr[fdn]  : 1'b0;
-//wire      fd_sector_data = fd_any ? fdn_sector_data[fdn] : 1'b0;
+wire        fd_sector_data = fd_any ? fdn_sector_data[fdn] : 1'b0;
 wire        fd_dclk_en     = fd_any ? fdn_dclk[fdn]        : 1'b0;
 wire        fd_present     = fd_any ? fdn_present[fdn]     : 1'b0;
 wire        fd_writeprot   = fd_any ? img_wp[fdn]          : 1'b1;
@@ -399,6 +399,7 @@ always @(posedge clkcpu) begin
 	reg sector_not_found;
 	reg irq_at_index;
 	reg [1:0] data_transfer_state;
+        reg fd_sector_hdrD;   
 
 	sector_inc_strobe <= 1'b0;
 	track_inc_strobe <= 1'b0;
@@ -420,10 +421,12 @@ always @(posedge clkcpu) begin
 		irq_at_index <= 1'b0;
 		data_transfer_state <= 2'b00;
 		RNF <= 1'b0;
+	        fd_sector_hdrD <= 1'b0;   
 	end else if (clk8m_en) begin
 		sd_card_read <= 0;
 		sd_card_write <= 0;
 		data_transfer_start <= 1'b0;
+	        fd_sector_hdrD <= fd_sector_hdr;   
 
 		// disable step signal after 1 msec
 		if(step_pulse_cnt != 0) 
@@ -599,7 +602,7 @@ always @(posedge clkcpu) begin
 								// we are busy until the right sector header passes under 
 								// the head and the sd-card controller indicates the sector
 								// is in the fifo
-								if(fd_ready && fd_sector_hdr && (fd_sector == sector)) data_transfer_start <= 1'b1;
+								if(fd_ready && fd_sector_hdrD && !fd_sector_hdr && (fd_sector == sector)) data_transfer_start <= 1'b1;
 
 								if(data_transfer_done) begin
 									data_transfer_state <= 2'b00;
@@ -638,7 +641,7 @@ always @(posedge clkcpu) begin
                                     end
                                 2'b10: begin
                                     // CPU phase
-                                    if (fifo_cpuptr == 0 && fd_ready && fd_sector_hdr && (fd_sector == sector)) data_transfer_start <= 1'b1;
+                                    if (fifo_cpuptr == 0 && fd_ready && fd_sector_hdrD && !fd_sector_hdr && (fd_sector == sector)) data_transfer_start <= 1'b1;
                                     if (data_transfer_done) begin
                                         sd_card_write <= 1;
                                         data_transfer_state <= 2'b11;
@@ -685,8 +688,8 @@ always @(posedge clkcpu) begin
 
 					// read address
 					if(cmd[7:4] == 4'b1100) begin
-						// we are busy until the next setor header passes under the head
-						if(fd_ready && fd_sector_hdr)
+						// we are busy until the next setor header arrives under the head
+						if(fd_ready && !fd_sector_hdrD && fd_sector_hdr)
 							data_transfer_start <= 1'b1;
 
 						if(data_transfer_done) begin

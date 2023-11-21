@@ -1,7 +1,8 @@
 *~
-impl/gwsynthesis/
-impl/temp/
-impl/pnr/
-*.gprj.user
 *.vcd
 build/
+impl/gwsynthesis/**
+impl/temp/**
+impl/pnr/**
+!impl/pnr/device.cfg
+*.user

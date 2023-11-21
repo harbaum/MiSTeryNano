@@ -10,9 +10,10 @@ module hid (
 
   input		   data_in_strobe,
   input		   data_in_start,
-  input [7:0]  data_in,
+  input [7:0]      data_in,
+  output reg [7:0] data_out,
 
-  output [5:0] mouse,
+  output [5:0]     mouse,
   output reg [7:0] keyboard[14:0]
 );
 
@@ -53,6 +54,13 @@ always @(posedge clk) begin
         end else if(state != 4'd0) begin
             if(state != 4'd15) state <= state + 4'd1;
 	    
+            // status data?
+            if(device == 8'd0) begin
+                // return some dummy data for now ...
+                if(state == 4'd1) data_out <= 8'h5c;
+                if(state == 4'd2) data_out <= 8'h42;
+            end
+	   
             // keyboard data?
             if(device == 8'd1) begin
                 if(state == 4'd1) keyboard[data_in[3:0]][data_in[6:4]] <= data_in[7]; 

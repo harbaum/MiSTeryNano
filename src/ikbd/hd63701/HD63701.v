@@ -35,7 +35,7 @@ wire [7:0] PO4;
 // Multiplex PO3 and PO4 onto external AD port in mode 7
 assign AD = (PO2I[7:5] == 3'b111)?{ PO4, PO3 }:ADI;  
    
-// Built-In Instruction ROM TODO: include mode (POI[7:5]) here
+// Built-In Instruction ROM TODO: include mode (POI[7:5]) here
 wire en_birom = (ADI[15:12]==4'b1111);			// $F000-$FFFF
 wire [7:0] biromd;
 MCU_BIROM irom( CLKx2, ADI[11:0], biromd );
@@ -202,9 +202,9 @@ assign en_io = (mcu_ad[15:3] == 13'h0);
 // only addresses 2 and 3 return data
 assign iod = 
 	     (mcu_ad==16'h0) ? DDR1 : 
-	     (mcu_ad==16'h1) ? {3'hF,DDR2} : 
+	     (mcu_ad==16'h1) ? {3'b111,DDR2} : 
 	     (mcu_ad==16'h2) ? PI1 : 
-	     (mcu_ad==16'h3) ? {3'hF,PI2}:
+	     (mcu_ad==16'h3) ? {3'b111,PI2}:
 	     (mcu_ad==16'h4) ? DDR3 : 
 	     (mcu_ad==16'h5) ? DDR4 : 
 	     (mcu_ad==16'h6) ? PI3 :

@@ -47,6 +47,7 @@ module atarist (
     // enable STE and extra 8MB ram
     input wire     ste,
     input wire     enable_extra_ram,
+    input wire     blitter_en,
 
 	// DRAM interface
 	output wire 	   ram_ras_n,
@@ -68,7 +69,6 @@ module atarist (
 );
 
 // STe always has a blitter
-wire       blitter_en = 1'b1; // ste;
 wire [7:0] acsi_enable = 8'b00000000;  
 
 // registered reset signals
@@ -364,7 +364,7 @@ wire        mcu_dtack_n_adj = mcu_dtack_n;
 fx68k fx68k (
 	.clk        ( clk_32     ),
 	.extReset   ( reset      ),
-	.pwrUp      ( reset      ),
+	.pwrUp      ( reset      ),  // porb?
 	.enPhi1     ( phi1       ),
 	.enPhi2     ( phi2       ),
 

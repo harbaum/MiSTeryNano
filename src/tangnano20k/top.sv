@@ -34,22 +34,22 @@ module top(
   input [3:0]	cfg,
 
   // SD card slot
-  output	   sd_clk,
-  inout		   sd_cmd,   // MOSI
-  inout	[3:0]  sd_dat,   // 0: MISO
+  output	sd_clk,
+  inout		sd_cmd, // MOSI
+  inout [3:0]	sd_dat, // 0: MISO
 	   
-  // SPI connection to BL616
-  // currently used for two PS2 like keyboard/mouse connections
-  input        spi_sclk, // in... 
-  input        spi_csn,  // in (io?)
-  input        spi_dir,  // out
-  input        spi_dat,  // in (io?)
+  // SPI connection to ob-board BL616. By default an external
+  // connection is used with a M0S Dock
+  input		spi_sclk, // in... 
+  input		spi_csn, // in (io?)
+  input		spi_dir, // out
+  input		spi_dat, // in (io?)
 
   // hdmi/tdms
-  output	   tmds_clk_n,
-  output	   tmds_clk_p,
-  output [2:0] tmds_d_n,
-  output [2:0] tmds_d_p
+  output	tmds_clk_n,
+  output	tmds_clk_p,
+  output [2:0]	tmds_d_n,
+  output [2:0]	tmds_d_p
 );
 
 wire [5:0] leds;      // control leds with positive logic
@@ -87,7 +87,7 @@ flash flash (
 
     // cpu expects ROM to start at $fc0000 and it is in fact is at $100000 in
     // ST mode and at $140000 in STE mode
-    .address( { 4'b0010, !cfg[3], rom_addr[17:1] } ),
+    .address( { 4'b0010, (osd_system_chipset >= 2'd2)?1'b1:1'b0, rom_addr[17:1] } ),
     .cs( !rom_n ),
     .dout(rom_dout),
 
@@ -108,6 +108,12 @@ wire [15:0] mdin;    // in from ram
 
 wire ram_ready;
 wire refresh;
+
+// address bit 4 is inverted in 8MB setup. This is done to make
+// sure the memory layout is different in 4MB and 8MB setup and
+// when being switched the ram contents appear invalid and ram is
+// retested by tos after a change of ram size
+wire [22:1] ram_a_s = { ram_a[22:5], ram_a[4]^osd_system_memory, ram_a[3:1] };
    
 sdram sdram (
         .clk(clk_32),
@@ -132,7 +138,7 @@ sdram sdram (
         .refresh(refresh),
         .din(mdout),                // data input from chipset/cpu
         .dout(mdin),
-        .addr(ram_a[22:1]),         // 22 bit word address
+        .addr(ram_a_s),             // 22 bit word address
         .ds( { cash_n, casl_n } ),  // upper/lower data strobe
         .cs( !ras_n && !ram_a[23] ),// cpu/chipset requests read/write
         .we( !we_n )                // cpu/chipset requests write
@@ -147,122 +153,6 @@ wire [3:0] st_b;
 wire [14:0] audio_l;
 wire [14:0] audio_r;
 
-// MOUSE_DIRECT implements the mouse as it was until incl. release 1.0.1
-// Since then mouse and keyboard are implemented via an external microcontroller
-// which acts as a USB host for MiSTeryNano
-`ifdef MOUSE_DIRECT
-// -------------------- simulate mouse from joystick signals ------------------------
-reg [32:0] mouse_emu_cnt;
-always @(posedge clk_32) begin
-    if(!pll_lock)
-        mouse_emu_cnt <= 32'd0;
-    else
-        mouse_emu_cnt <= mouse_emu_cnt + 32'd1;
-end
-
-wire mbit = mouse_emu_cnt[19];
-wire [5:0] mjoy_joy0 = { !io[0], !io[1], !io[3] & mbit, !io[2] & mbit, !io[5] & mbit, !io[4] & mbit };
-
-// -------------------- parse blackberry trackball signals ------------------------
-reg [7:0] ioD;
-
-reg [1:0] mouse_x;
-reg [1:0] mouse_y;
-
-always @(posedge clk_32) begin
-    ioD <= { ioD[6], io[2], ioD[4], io[3], ioD[2], io[4], ioD[0], io[5] };
-
-    if(ioD[7] != ioD[6])  mouse_x <= { !mouse_x[0],  mouse_x[1] };
-    if(ioD[5] != ioD[4])  mouse_x <= {  mouse_x[0], !mouse_x[1] };
-
-    if(ioD[3] != ioD[2])  mouse_y <= { !mouse_y[0],  mouse_y[1] };
-    if(ioD[1] != ioD[0])  mouse_y <= {  mouse_y[0], !mouse_y[1] };
-end
-
-wire [5:0] mbtb_joy0 = { !io[0], !io[1], mouse_x[1], mouse_x[0], mouse_y[1], mouse_y[0] };
-
-// cfg[1] selects between "joystick mouse" and "blackberry trackball"
-// wire [5:0] joy0 = cfg[1]?mjoy_joy0:mbtb_joy0;  // TODO: or mouse_atari into this
-
-// joystick fire button is shared with right mouse button
-// wire [4:0] joy1 = { !io[0], !io[7], !io[6], !io[9], !io[8] };
-`else
-`ifdef PS2
-// in PS2/USB mode the joystick uses the inputs that were formerly
-// used for the mouse. This may also be replaces by USB joysticks
-wire [4:0] joy1 = { !io[0], !io[2], !io[1], !io[4], !io[3] };
-
-wire [7:0] keyboard_matrix[14:0];
-wire [5:0] mouse_atari;
-wire [5:0] joy0 = mouse_atari;
-
-wire [14:0] keyboard_matrix_out;
-wire [7:0] keyboard_matrix_in =
-	      (!keyboard_matrix_out[0]?keyboard_matrix[0]:8'hff)&
-	      (!keyboard_matrix_out[1]?keyboard_matrix[1]:8'hff)&
-	      (!keyboard_matrix_out[2]?keyboard_matrix[2]:8'hff)&
-	      (!keyboard_matrix_out[3]?keyboard_matrix[3]:8'hff)&
-	      (!keyboard_matrix_out[4]?keyboard_matrix[4]:8'hff)&
-	      (!keyboard_matrix_out[5]?keyboard_matrix[5]:8'hff)&
-	      (!keyboard_matrix_out[6]?keyboard_matrix[6]:8'hff)&
-	      (!keyboard_matrix_out[7]?keyboard_matrix[7]:8'hff)&
-	      (!keyboard_matrix_out[8]?keyboard_matrix[8]:8'hff)&
-	      (!keyboard_matrix_out[9]?keyboard_matrix[9]:8'hff)&
-	      (!keyboard_matrix_out[10]?keyboard_matrix[10]:8'hff)&
-	      (!keyboard_matrix_out[11]?keyboard_matrix[11]:8'hff)&
-	      (!keyboard_matrix_out[12]?keyboard_matrix[12]:8'hff)&
-	      (!keyboard_matrix_out[13]?keyboard_matrix[13]:8'hff)&
-	      (!keyboard_matrix_out[14]?keyboard_matrix[14]:8'hff);
-
-// --------------- PS/2 decoder for mouse and keyboard -------------------
-
-// include spi_xxx pins as they come from the internal BL616 controller
-wire ps2_kbd_clk    = cfg[1]?io[6]:spi_sclk;
-wire ps2_kbd_data   = cfg[1]?io[7]:spi_csn;
-wire ps2_mouse_clk  = cfg[1]?io[8]:spi_dir;
-wire ps2_mouse_data = cfg[1]?io[9]:spi_dat;
-
-// ps2 state machine is supposed to run at 2 Mhz
-reg [3:0] ps2_clk_cnt;
-wire ps2_ena = ps2_clk_cnt == 4'd0;
-always @(posedge clk_32)
-    ps2_clk_cnt <= ps2_clk_cnt + 4'd1;
-
-// filter potentially noisy ps2 clocks
-reg kbd_clk, mouse_clk;
-always @(posedge clk_32) begin
-    reg [7:0] kbd_clk_shift;
-    reg [7:0] mouse_clk_shift;
-
-    if(ps2_ena) begin
-        kbd_clk_shift <= { kbd_clk_shift[6:0], ps2_kbd_clk };
-        if(kbd_clk_shift == 8'h00) kbd_clk <= 1'b0;
-        if(kbd_clk_shift == 8'hff) kbd_clk <= 1'b1;
-
-        mouse_clk_shift <= { mouse_clk_shift[6:0], ps2_mouse_clk };
-        if(mouse_clk_shift == 8'h00) mouse_clk <= 1'b0;
-        if(mouse_clk_shift == 8'hff) mouse_clk <= 1'b1;
-    end
-end
-
-ps2 ps2 (
-    .clk(clk_32),
-    .ena_2m(ps2_ena),
-    .reset(reset_btn || !pll_lock),
-	    
-    .kbd_clk(kbd_clk),
-    .kbd_data(ps2_kbd_data),
-    .matrix(keyboard_matrix),
-	    
-    .mouse_clk(mouse_clk),
-    .mouse_data(ps2_mouse_data),
-    .mouse_atari(mouse_atari),
-
-    .joy_port_toggle() // F11  
-);
-`endif
-`endif
-
 // ----------------- SPI input parser ----------------------
 
 wire spi_io_dout;
@@ -274,8 +164,14 @@ wire spi_io_clk = io[9];
 
 wire       mcu_hid_strobe;
 wire       mcu_osd_strobe;
+wire       mcu_sdc_strobe;
 wire       mcu_start;
+
 wire [7:0] mcu_data_out;  
+
+wire [7:0] hid_data_out;  
+wire [7:0] osd_data_out = 8'h55;
+wire [7:0] sdc_data_out;
    
 mcu_spi mcu (
         .clk(clk_32),
@@ -288,12 +184,18 @@ mcu_spi mcu (
 
         .mcu_hid_strobe(mcu_hid_strobe),
         .mcu_osd_strobe(mcu_osd_strobe),
+        .mcu_sdc_strobe(mcu_sdc_strobe),
         .mcu_start(mcu_start),
-        .mcu_dout(mcu_data_out)
+        .mcu_dout(mcu_data_out),
+        .mcu_hid_din(hid_data_out),
+        .mcu_osd_din(osd_data_out),
+        .mcu_sdc_din(sdc_data_out)
         );
 
+// joy0 is usually used for the mouse, joy1 for the joystick
 // in HID mode the joystick uses the inputs that were formerly
 // used for the mouse. This may also be replaced by USB joysticks
+wire [5:0] joy0;
 wire [4:0] joy1 = { !io[0], !io[2], !io[1], !io[4], !io[3] };
 
 // The keyboard matrix is maintained inside HID
@@ -317,8 +219,6 @@ wire [7:0] keyboard_matrix_in =
 	      (!keyboard_matrix_out[13]?keyboard[13]:8'hff)&
 	      (!keyboard_matrix_out[14]?keyboard[14]:8'hff);
 
-wire [5:0] joy0;
-
 // decode SPI/MCU data received for human input devices (HID) and
 // convert into ST compatible mouse and keyboard signals
 hid hid (
@@ -329,6 +229,7 @@ hid hid (
         .data_in_strobe(mcu_hid_strobe),
         .data_in_start(mcu_start),
         .data_in(mcu_data_out),
+        .data_out(hid_data_out),
 
         .mouse(joy0),
         .keyboard(keyboard)
@@ -345,11 +246,15 @@ wire	    sd_busy, sd_done;
 wire [31:0] sd_img_size;
 wire [1:0]  sd_img_mounted;
 
-wire reset_btn;
+// values set by user via OSD
+wire [1:0] osd_system_chipset;
+wire osd_system_memory;
+wire osd_system_video;
+wire osd_system_reset;
 
 atarist atarist (
     .clk_32(clk_32),
-    .resb(!reset_btn && pll_lock && ram_ready && flash_ready && sd_ready),       // user reset button
+    .resb(!osd_system_reset && !reset && pll_lock && ram_ready && flash_ready && sd_ready),       // user reset button
     .porb(pll_lock),
 
     // video output
@@ -360,7 +265,7 @@ atarist atarist (
     .r(st_r),
     .g(st_g),
     .b(st_b),
-    .mono_detect(cfg[0]),    // mono=0, color=1
+    .mono_detect(!osd_system_video),    // mono=0, color=1
 
     .keyboard_matrix_out(keyboard_matrix_out),
     .keyboard_matrix_in(keyboard_matrix_in),
@@ -392,8 +297,9 @@ atarist atarist (
     .rom_addr(rom_addr),
     .rom_data_out(rom_dout),
 
-    .ste(!cfg[3]),                 // enable STE mode if cfg[3] is tied to GND
-    .enable_extra_ram(!cfg[2]),    // enable extra ram if cfg[2] is tied to gnd
+    .blitter_en(osd_system_chipset >= 2'd1),   // MegaST (1) or STE (2)
+    .ste(osd_system_chipset >= 2'd2),          // STE (2)
+    .enable_extra_ram(osd_system_memory),      // enable extra ram
 
     // interface to sdram
     .ram_ras_n(ras_n),
@@ -408,31 +314,20 @@ atarist atarist (
     .leds(leds[1:0])
   );
 
-wire [7:0] osd_dir_row;
-wire [3:0] osd_dir_col;
-wire [7:0] osd_dir_chr;
-wire [5:0] osd_dir_len;
-wire [7:0] osd_file;
-wire osd_file_selected;
-
 video video (
 	     .clk(clk),
 	     .clk_32(clk_32),
 	     .pll_lock(pll_lock_hdmi),
 
-         // interface to show directory on OSD
-         .osd_btn_in({user,reset}),
-         .osd_btn_out(reset_btn),
-         .osd_dir_row(osd_dir_row),
-         .osd_dir_col(osd_dir_col),
-         .osd_dir_chr(osd_dir_chr),
-         .osd_dir_len(osd_dir_len),
-         .osd_file_selected(osd_file_selected),
-         .osd_file(osd_file),
-
          .mcu_start(mcu_start),
          .mcu_osd_strobe(mcu_osd_strobe),
          .mcu_data(mcu_data_out),
+
+         // values that can be configure by the user via osd
+         .osd_system_chipset(osd_system_chipset),
+         .osd_system_memory(osd_system_memory),
+         .osd_system_video(osd_system_video),
+         .osd_system_reset(osd_system_reset),
 	 
 	     .hs_in_n(st_hs_n),
 	     .vs_in_n(st_vs_n),
@@ -453,11 +348,12 @@ video video (
    
 // -------------------------- SD card -------------------------------
 
-assign leds[5:2] = sd_card_stat;
+assign leds[5:2] = { 2'b00, sd_rd };
 
 assign sd_dat = 4'b111z;   // drive unused data lines high and configure dat[0] for input
 
-// card_stat == 8 means card is initialized. Wait up to 2 seconds for this before
+// Give MCU some time to open a default disk image before booting the core
+// image_size != 0 means card is initialized. Wait up to 2 seconds for this before
 // booting the ST
 reg [31:0] sd_wait;
 reg sd_ready;
@@ -467,8 +363,8 @@ always @(posedge clk_32) begin
         sd_ready <= 1'b0;
     end else begin
         if(!sd_ready) begin
-            // ready once card stat reaches 8
-            if(sd_card_stat == 4'd8)
+            // ready once image size is != 0
+            if(sd_img_size != 31'd0)
                 sd_ready <= 1'b1;
 
             // or after 2 seconds
@@ -480,39 +376,34 @@ always @(posedge clk_32) begin
     end
 end
 
-wire [3:0] sd_card_stat;
-wire [1:0] sd_card_type;
-
-sd_fat_reader #(
+sd_card #(
     .CLK_DIV(3'd1)                    // for 32 Mhz clock
-) sd_fat_reader (
+) sd_card (
     .rstn(pll_lock),                  // rstn active-low, 1:working, 0:reset
     .clk(clk_32),                     // clock
-
-    .dir_entries_used(osd_dir_len),
-    .dir_row(osd_dir_row),
-    .dir_col(osd_dir_col),
-    .dir_chr(osd_dir_chr),
-    .file_index(osd_file),
-    .file_selected(osd_file_selected),
-
+  
     // SD card signals
     .sdclk(sd_clk),
     .sdcmd(sd_cmd),
     .sddat0(sd_dat[0]),
 
-    // show card status
-    .card_stat(sd_card_stat),         // show the sdcard initialize status
-    .card_type(sd_card_type),         // 0=UNKNOWN    , 1=SDv1    , 2=SDv2  , 3=SDHCv2
+    // mcu interface
+    .data_strobe(mcu_sdc_strobe),
+    .data_start(mcu_start),
+    .data_in(mcu_data_out),
+    .data_out(sdc_data_out),
 
-    .file_len(sd_img_size),           // length of image file
-    .file_ready(sd_img_mounted),
+    // output file/image information. Image size is e.g. used by fdc to 
+    // translate between sector/track/side and lba sector
+    .image_size(sd_img_size),           // length of image file
+    .image_mounted(sd_img_mounted),
 
     // user read sector command interface (sync with clk)
     .rstart(sd_rd[0]), 
     .rsector(sd_lba),
     .rbusy(sd_busy),
     .rdone(sd_done),
+
     // sector data output interface (sync with clk)
     .outen(sd_rd_byte_strobe), // when outen=1, a byte of sector content is read out from outbyte
     .outaddr(sd_byte_index),   // outaddr from 0 to 511, because the sector size is 512

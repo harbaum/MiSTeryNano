@@ -157,9 +157,10 @@ end
 
 assign sector = current_sector;
 
-localparam SECTOR_STATE_GAP  = 2'd0;
-localparam SECTOR_STATE_HDR  = 2'd1;
-localparam SECTOR_STATE_DATA = 2'd2;
+localparam SECTOR_STATE_IDLE  = 2'd0;
+localparam SECTOR_STATE_GAP   = 2'd1;
+localparam SECTOR_STATE_HDR   = 2'd2;
+localparam SECTOR_STATE_DATA  = 2'd3;
 
 // we simulate an interleave of 1
 reg [5:0] start_sector = 6'd1;
@@ -169,20 +170,31 @@ reg [9:0] sec_byte_cnt;  // counting bytes within sectors
 reg [5:0] current_sector = 6'd1;
   
 always @(posedge clk) begin
+        // start after first index pules
+   
 	if (!inserted) begin
-		sec_state <= SECTOR_STATE_GAP;     // track starts with gap
-		current_sector <= start_sector;    // track starts with sector 1
+	        sec_state <= SECTOR_STATE_IDLE;    // idle, wait for first index pulse
+
+	         // This is actually not correct. We should instead calculate the current
+	         // sector under the head and start delivering sector data once the floppy
+	         // has become ready instead of waiting for the next index. Older versions
+	         // were simply starting to deliver sector 1 once the disk was inserted. That's
+	         // also not correct and worse, would result in incomplete sectors to be
+	         // reported as the next index pulse could come anytime and would reset the
+	         // sector and byte counters even in the middle of a sector.
+	   
 	end else if (byte_clk_en) begin
 		if(index_pulse_start) begin
 			sec_byte_cnt <= sector_gap_len-1'd1;
 			sec_state <= SECTOR_STATE_GAP;     // track starts with gap
 			current_sector <= start_sector;    // track starts with sector 1
 		end else begin
+		    if(sec_state != SECTOR_STATE_IDLE) begin
 			if(sec_byte_cnt == 0) begin
 				case(sec_state)
 				SECTOR_STATE_GAP: begin
-					sec_state <= SECTOR_STATE_HDR;
-					sec_byte_cnt <= SECTOR_HDR_LEN[9:0]-1'd1;
+				        sec_state <= SECTOR_STATE_HDR;
+				        sec_byte_cnt <= SECTOR_HDR_LEN[9:0]-1'd1;
 				end
 	   
 				SECTOR_STATE_HDR: begin
@@ -205,6 +217,7 @@ always @(posedge clk) begin
 				endcase
 			end else
 				sec_byte_cnt <= sec_byte_cnt - 10'd1;
+		    end
 		end
 	end
 end
@@ -227,11 +240,11 @@ always @(posedge clk) begin
    if (byte_clk_en) begin
 		index_pulse_start <= 1'b0;
 
-		if(byte_cnt == (DISK_BPT - 1'd1)) begin
+		if(byte_cnt == (DISK_BPT - 15'd1)) begin
 			byte_cnt <= 0;
 			index_pulse_start <= 1'b1;
 		end else
-			byte_cnt <= byte_cnt + 1'd1;
+			byte_cnt <= byte_cnt + 15'd1;
 	end
 end
 

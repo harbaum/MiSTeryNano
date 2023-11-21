@@ -14,10 +14,14 @@ module mcu_spi (
   input        spi_io_din,
   output reg   spi_io_dout,
 
-  // byte interface to core
+  // byte interface to the various core components
   output       mcu_hid_strobe, // byte strobe for HID target  
   output       mcu_osd_strobe, // byte strobe for OSD target
+  output       mcu_sdc_strobe, // byte strobe for SD card target
   output       mcu_start,
+  input  [7:0] mcu_hid_din,
+  input  [7:0] mcu_osd_din,
+  input  [7:0] mcu_sdc_din,
   output [7:0] mcu_dout
 );
    
@@ -67,6 +71,7 @@ reg spi_in_strobe;
 reg [7:0] spi_target;
 assign mcu_hid_strobe = spi_in_strobe && spi_target == 8'd1;
 assign mcu_osd_strobe = spi_in_strobe && spi_target == 8'd2; 
+assign mcu_sdc_strobe = spi_in_strobe && spi_target == 8'd3; 
 
 reg [7:0] spi_in_data;
 assign mcu_start = spi_in_cnt == 2;  
@@ -98,12 +103,18 @@ always @(posedge clk) begin
      spi_in_strobe <= 1'b0;
 end
 
+wire [7:0] in_byte = 
+	   (spi_target == 8'd1)?mcu_hid_din:
+	   (spi_target == 8'd2)?mcu_osd_din:
+	   (spi_target == 8'd3)?mcu_sdc_din:
+	   8'h00;   
+   
 // setup data on rising edge of spi clock
 always @(posedge spi_io_clk or posedge spi_io_ss) begin
     if(spi_io_ss) begin
         // ...
     end else begin
-        spi_io_dout <= spi_cnt[3];
+       spi_io_dout <= in_byte[~spi_cnt[2:0]];
     end
 end
 

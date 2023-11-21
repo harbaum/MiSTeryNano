@@ -16,20 +16,16 @@ module video (
           input [15:0] audio_l,
           input [15:0] audio_r,
 
-          // interface to show directory on OSD
-          input [1:0]  osd_btn_in,
-          output       osd_btn_out,
-          output [7:0] osd_dir_row,
-          output [3:0] osd_dir_col,
-          input [7:0]  osd_dir_chr,
-          input [5:0]  osd_dir_len,   // up to 32 entries
-          output [7:0] osd_file,
-          output       osd_file_selected,
-
           // (spi) interface from MCU
           input        mcu_start,
           input        mcu_osd_strobe,
           input [7:0]  mcu_data,
+
+          // values that can be configure by the user via osd
+          output [1:0] osd_system_chipset,
+          output osd_system_memory,
+          output osd_system_video,
+          output osd_system_reset,
 		 
 	      // hdmi/tdms
 	      output	   tmds_clk_n,
@@ -119,37 +115,6 @@ wire [5:0] osd_r;
 wire [5:0] osd_g;
 wire [5:0] osd_b;  
    
-osd_ascii osd_ascii (
-        .clk(clk_pixel),
-        .reset(!pll_lock),
-
-        // directory listing interface
-        .btn_in(osd_btn_in),
-        .btn_out(osd_btn_out),
-        .dir_row(osd_dir_row),
-        .dir_col(osd_dir_col),
-        .dir_chr(osd_dir_chr),
-        .dir_len(osd_dir_len),
-        .file_selected(osd_file_selected),
-        .file_index(osd_file),
-
-        // scandoubler video interface
-        .hs(sd_hs_n),
-        .vs(sd_vs_n),
-		     
-        .r_in(sd_r),
-        .g_in(sd_g),
-        .b_in(sd_b),
-		     
-        .r_out(osd_r),
-        .g_out(osd_g),
-        .b_out(osd_b)
-);   
-  
-wire [5:0] osd2_r;
-wire [5:0] osd2_g;
-wire [5:0] osd2_b;  
-   
 osd_u8g2 osd_u8g2 (
         .clk(clk_pixel),
         .reset(!pll_lock),
@@ -161,13 +126,18 @@ osd_u8g2 osd_u8g2 (
         .hs(sd_hs_n),
         .vs(sd_vs_n),
 		     
-        .r_in(osd_r),
-        .g_in(osd_g),
-        .b_in(osd_b),
+        .r_in(sd_r),
+        .g_in(sd_g),
+        .b_in(sd_b),
 		     
-        .r_out(osd2_r),
-        .g_out(osd2_g),
-        .b_out(osd2_b)
+        .system_chipset(osd_system_chipset),
+        .system_memory(osd_system_memory),
+        .system_video(osd_system_video),
+        .system_reset(osd_system_reset),
+
+        .r_out(osd_r),
+        .g_out(osd_g),
+        .b_out(osd_b)
 );   
 
 wire [2:0] tmds;
@@ -191,7 +161,7 @@ hdmi #(
 
   // Atari STE outputs 4 bits per color. Scandoubler outputs 6 bits (to be
   // able to implement dark scanlines) and HDMI expects 8 bits per color
-  .rgb( { osd2_r, 2'b00, osd2_g, 2'b00, osd2_b, 2'b00 } )
+  .rgb( { osd_r, 2'b00, osd_g, 2'b00, osd_b, 2'b00 } )
 );
 
 // differential output
