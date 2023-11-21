@@ -7,6 +7,11 @@
 #include "verilated.h"
 #include "verilated_vcd_c.h"
 
+#include <ff.h>
+#include <diskio.h>
+
+FATFS fs;
+
 static Vfloppy_tb *tb;
 static VerilatedVcdC *trace;
 static double simulation_time;
@@ -143,14 +148,162 @@ void hexdump(void *data, int size) {
   }
 }
 
-void read_sector(int no) {
-  // and read a sector
-  printf("READ_SECTOR\n");
-  cpu_write(1, 0);     // track 0
-  cpu_write(2, no);     // sector 3
+// mcu interface
+// output       mcu_strobe, // byte strobe for sc card target  
+// output       mcu_start,
+// input  [7:0] mcu_din,
+// output [7:0] mcu_dout
+
+// the Atari ST/fdc will request sectors. This request is to
+// be sent to the MCU which in return will request the actual read
+
+unsigned char mcu_write_byte(unsigned char byte, char start) {
+  tb->mcu_dout = byte;
+  if(start) tb->mcu_start = 1;
+  tb->mcu_strobe = 1;
+  run(1);
+  tb->mcu_strobe = 0;
+  run(1);
+  tb->mcu_start = 0;
+  return tb->mcu_din;
+}
+
+unsigned char mcu_read_byte(void) {
+  tb->mcu_dout = 0x00;
+  tb->mcu_strobe = 1;
+  run(1);
+  tb->mcu_strobe = 0;
+  run(1);
+  return tb->mcu_din;  
+}
+
+
+static LBA_t clst2sect(DWORD clst) {
+  clst -= 2; /* Cluster number is origin from 2 */
+  if (clst >= fs.n_fatent - 2)   return 0;
+  return fs.database + (LBA_t)fs.csize * clst;
+}
+
+FIL fil;
+#define SZ_TBL 16   // 64 bytes
+DWORD lktbl[SZ_TBL];
+
+void fs_prepare(char *name) {
+  if(f_open(&fil, name, FA_OPEN_EXISTING | FA_READ) != 0) {
+    printf("file open failed\n");
+    return;
+  } else {
+    printf("file opened, cl=%d(%d)\n", fil.obj.sclust, clst2sect(fil.obj.sclust));
+    
+    // try to determine files cluster chain    
+    printf("cl @%d = %d, sec=%d\n", fil.fptr, fil.clust, fil.sect);
+
+    // create cluster map (link table)
+    for(int i=0;i<SZ_TBL;i++) lktbl[i] = -42;
+
+    fil.cltbl = lktbl;
+    lktbl[0] = SZ_TBL;
+
+    if(f_lseek(&fil, CREATE_LINKMAP)) {
+      printf("Link table creation failed\n");
+      fil.cltbl = NULL;
+    } else {
+      printf("File clusters = %d\n", fil.obj.objsize / 512 / fs.csize);
+
+      // dump the table
+      for(int i=0;i<SZ_TBL && lktbl[i];i++)
+	printf("%d: %d\n", i, lktbl[i]);
+    }
+  }
+}
+
+void fs_readdir(void) {
+  // test read sd cards root
+  DIR dir;
+  FILINFO fno;
+
+  f_opendir(&dir, "/sd");
+  do {
+    f_readdir(&dir, &fno);
+    if(fno.fname[0] != 0 && !(fno.fattrib & (AM_HID|AM_SYS)) )
+      printf("%s %s, len=%d\n", (fno.fattrib & AM_DIR) ? "dir: ":"file:", fno.fname, fno.fsize);
+  } while(fno.fname[0] != 0);
+
+  f_closedir(&dir);
+}
+
+// the MCU handles the underlying SD card file system and thus
+// needs a way to directly access the SD cards contents
+void mcu_read_sector(unsigned long sector, unsigned char *buffer) {
+  mcu_write_byte(0x03, 1);
+
+  for(int i=0;i<4;i++)
+    mcu_write_byte((sector >> 8*(3-i))&0xff, 0);
+
+  // wait for data to arrive
+  while(mcu_read_byte());
+
+  // further reads will return the sector data
+  for(int i=0;i<512;i++)
+    buffer[i] = mcu_read_byte(); 
+  
+  // hexdump(buffer, 512);  
+}
+
+void mcu_poll(void) {
+  // MCU requests sd card status
+  unsigned char status = mcu_write_byte(0x01, 1);
+  // push in one more byte
+  //  unsigned char status = mcu_read_byte();
+  printf("STATUS = %02x\n", status);
+  char *type[] = { "UNKNOWN", "SDv1", "SDv2", "SDHCv2" };
+
+  printf("  card status: %d\n", (status >> 4)&15);
+  printf("  card type: %s\n", type[(status >> 2)&3]);
+
+  unsigned long sector = 0;
+  for(int i=0;i<4;i++)
+    sector = (sector << 8) | mcu_read_byte();
+
+  if(status & 1) {
+    run(100);
+
+    if(!fil.flag) return;
+    
+    // simulate MCU figuring out which sector to use
+  
+    // translate sector into a cluster number inside image
+    f_lseek(&fil, (sector+1)*512);
+
+    // and add sector offset within cluster    
+    unsigned long dsector = clst2sect(fil.clust) + sector%fs.csize;
+    
+    printf("request sector %lu = %lu\n", sector, dsector);
+
+    // in return request core to load sector + 100
+    unsigned char status = mcu_write_byte(0x02, 1);
+    
+    for(int i=0;i<4;i++)
+      mcu_write_byte((dsector >> 8*(3-i))&0xff, 0);    
+  }
+}
+
+void read_sector(int track, int sec) {
+  // this poll should return no request to load a sector
+  mcu_poll();
+  
+  // fdc read a sector
+  printf("FDC: READ_SECTOR %d/%d\n", track, sec);
+  cpu_write(1, track); // track
+  cpu_write(2, sec);   // sector
   cpu_write(3, 0x00);  // data 0 ?
   cpu_write(0, 0x88);  // read sector, spinup
 
+  wait_ns(1000);
+
+  // this poll should see a request and handle it
+  mcu_poll();
+  
 #if 1
   // reading data should generate 512 drq's until a irq is generated
   int i = 0;
@@ -166,10 +319,82 @@ void read_sector(int no) {
   // read status to clear interrupt
   printf("READ_SECTOR done, read %d bytes, status = %x\n", i, cpu_read(0));
   
-  hexdump(buffer, i);  
+  hexdump(buffer, i);
+#else
+  run(100);
 #endif
 }
+
+int MSC_disk_status() {
+  // printf("MSC_disk_status()\n");
+  return 0;
+}
+
+int MSC_disk_initialize() {
+  // printf("MSC_disk_initialize()\n");
+  return 0;
+}
+
+int MSC_disk_read(BYTE *buff, LBA_t sector, UINT count) {
+  //  printf("MSC_disk_read(%p,%d,%d)\n", buff, sector, count);  
+  mcu_read_sector(sector, buff);
+  return 0;
+}
+
+int MSC_disk_write(const BYTE *buff, LBA_t sector, UINT count) {
+  printf("MSC_disk_write(%p,%d,%d)\n", buff, sector, count);  
+  return 0;
+}
+
+int MSC_disk_ioctl(BYTE cmd, void *buff) {
+  printf("MSC_disk_ioctl(%d,%p)\r\n", cmd, buff);
   
+  switch (cmd) {
+    // Get R/W sector size (WORD)
+  case GET_SECTOR_SIZE:
+    break;
+    
+    // Get erase block size in unit of sector (DWORD)
+  case GET_BLOCK_SIZE:
+    break;
+    
+  case GET_SECTOR_COUNT:
+    break;
+    
+  case CTRL_SYNC:
+    break;
+    
+  default:
+    break;
+  }
+
+  return 0;
+}
+
+DSTATUS Translate_Result_Code(int result) { return result; }
+
+int fs_init() {
+  FRESULT res_msc;
+
+  FATFS_DiskioDriverTypeDef MSC_DiskioDriver = { NULL };
+  MSC_DiskioDriver.disk_status = MSC_disk_status;
+  MSC_DiskioDriver.disk_initialize = MSC_disk_initialize;
+  MSC_DiskioDriver.disk_write = MSC_disk_write;
+  MSC_DiskioDriver.disk_read = MSC_disk_read;
+  MSC_DiskioDriver.disk_ioctl = MSC_disk_ioctl;
+  MSC_DiskioDriver.error_code_parsing = Translate_Result_Code;
+  
+  disk_driver_callback_init(DEV_SD, &MSC_DiskioDriver);
+  
+  res_msc = f_mount(&fs, "/sd", 1);
+  if (res_msc != FR_OK) {
+    printf("mount fail,res:%d\n", res_msc);
+    return -1;
+  }
+
+  return 0;
+}
+
 int main(int argc, char **argv) {
   // Initialize Verilators variables
   Verilated::commandArgs(argc, argv);
@@ -191,12 +416,21 @@ int main(int argc, char **argv) {
   tb->cpu_rw = 1;
   tb->cpu_din = 0;
 
-  //   tb->sdcmd_in = 0;
+  tb->mcu_dout = 0;
+  tb->mcu_start = 0;
+  tb->mcu_strobe = 0;
+
   run(10);
   tb->reset = 1;
 
   wait_ms(10);
   
+  fs_init();
+
+  // this demo expects a file named "disk_a.st" to be present
+  // inside the sd card image on root level
+  fs_prepare("/sd/disk_a.st");
+
 #if 1
   printf("RESTORE\n");
   cpu_write(0, 0x0b);  // Restore, Motor on, 6ms  
@@ -205,40 +439,12 @@ int main(int argc, char **argv) {
 
   wait_ms(40);
 
-  read_sector(3);
-  
+  read_sector(0, 3);
+
   wait_ms(10);
-
-  // list directory
-  printf("files: %d\n", tb->osd_dir_entries_used);
-  for(int i=0;i<tb->osd_dir_entries_used;i++) {
-    printf("%d: ", i);
-    tb->osd_dir_row = i;
-    for(int c=0;c<16;c++) {
-      tb->osd_dir_col = c;
-      tick(0); tick(1);
-      printf("%c", tb->osd_dir_chr);
-    }
-    printf("\n");
-  }  
-
-  if(tb->osd_dir_entries_used >= 3) {
   
-    // open disk 2
-    tb->osd_file_index = 2;
-    tb->osd_file_selected = 1;
-    tick(0); tick(1);
-    tb->osd_file_selected = 0;
-    
-    wait_ms(10);  
-  
-    read_sector(3);
-    
-    wait_ms(10);  
-  }
-    
 #else
-  run(1000000);
+  run(10000);
 #endif
 
   
