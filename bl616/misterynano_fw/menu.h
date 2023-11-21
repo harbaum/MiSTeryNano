@@ -17,7 +17,12 @@ typedef struct {
   mui_t ui;
 } menu_t;
 
+#ifndef SDL
 menu_t *menu_init(spi_t *spi);
+#else
+menu_t *menu_init(u8g2_t *u8g2, mui_t *ui);
+#endif
+
 void menu_do(menu_t *, int);
 
 #endif // MENU_H

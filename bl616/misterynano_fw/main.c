@@ -19,10 +19,20 @@ struct bflb_device_s *gpio;
 
 #include "usb.h"
 #include "menu.h"
+#include "sdc.h"
 
 // queue to forward key press events from USB to OSD
 QueueHandle_t xQueue = NULL;
 
+static void sdc_task(void *parms) {
+  spi_t *spi = (spi_t*)parms;
+
+  while(1) {
+    sdc_poll();
+    vTaskDelay(10);
+  }
+}
+  
 // OSD task gets a callback which it calls whenever the OSD
 // opems or closes to inform the USB layer about the OSD state
 static void osd_task(void *parms) {
@@ -48,6 +58,7 @@ static void osd_task(void *parms) {
     
 int main(void) {
     TaskHandle_t osd_handle;
+    TaskHandle_t sdc_handle;
     
     board_init();
     gpio = bflb_device_get_by_name("gpio");
@@ -104,6 +115,10 @@ int main(void) {
     
     // start a thread for the on screen display    
     xTaskCreate(osd_task, (char *)"osd_task", 512, spi, configMAX_PRIORITIES-3, &osd_handle);
+
+    // create another task to frequently poll the FPGA via SPI for e.g.
+    // floppy disk requests
+    xTaskCreate(sdc_task, (char *)"sdc_task", 512, spi, configMAX_PRIORITIES-3, &sdc_handle);
     
     vTaskStartScheduler();
 

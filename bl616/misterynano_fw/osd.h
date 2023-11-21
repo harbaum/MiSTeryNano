@@ -12,10 +12,10 @@ typedef struct {
   spi_t *spi;
   u8g2_t u8g2;
   uint8_t buf[128*8];  // screen buffer
-
 } osd_t;
 
 osd_t *osd_init(spi_t *);
 void osd_enable(osd_t *, char);
+void osd_emit(osd_t *, char [2], uint8_t);
 
 #endif // OSD_H

@@ -84,8 +84,8 @@ void spi_begin(spi_t *spi) {
   bflb_gpio_reset(gpio, GPIO_PIN_12);
 }
 
-void spi_tx_u08(spi_t *spi, unsigned char b) {
-  bflb_spi_poll_send(spi->dev, b);
+unsigned char spi_tx_u08(spi_t *spi, unsigned char b) {
+  return bflb_spi_poll_send(spi->dev, b);
 }
 
 void spi_end(spi_t *spi) {

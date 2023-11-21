@@ -11,7 +11,11 @@
 
 #include "menu.h"    // for event codes
 
+// queue to send messages to OSD thread
 extern QueueHandle_t xQueue;
+
+// queue to send messages from interrupt callback to local thread
+static QueueHandle_t iQueue;
 
 #define MAX_REPORT_SIZE 8
 
@@ -41,19 +45,13 @@ static struct usb_config {
   
 USB_NOCACHE_RAM_SECTION USB_MEM_ALIGNX uint8_t hid_buffer[CONFIG_USBHOST_MAX_HID_CLASS][MAX_REPORT_SIZE];
 
-#define DEV_KBD   0
-#define DEV_MOUSE 1
-
 #include "atari_st.h"
 
 void kbd_tx(struct usb_config *usb, unsigned char byte) {
   printf("KBD: %02x\r\n", byte);
-  
-  spi_begin(usb->spi);
-  spi_tx_u08(usb->spi, SPI_TARGET_HID);
-  spi_tx_u08(usb->spi, SPI_HID_KEYBOARD);
-  spi_tx_u08(usb->spi, byte);
-  spi_end(usb->spi);  
+
+  unsigned char kbd_cmd[4] = { SPI_HID_KEYBOARD, byte, 0, 0 };
+  xQueueSendToBackFromISR(iQueue, kbd_cmd,  ( TickType_t ) 0);
 }
 
 void kbd_parse(struct usb_config *usb, unsigned char *buffer, int nbytes) {
@@ -66,12 +64,14 @@ void kbd_parse(struct usb_config *usb, unsigned char *buffer, int nbytes) {
   // check if modifier have changed
   if((buffer[0] != last_report[0]) && !usb_config.osd_is_visible) {
     for(int i=0;i<8;i++) {
-      // modifier released?
-      if((last_report[0] & (1<<i)) && !(buffer[0] & (1<<i)))
-	kbd_tx(usb, 0x80 | modifier_atarist[i]);
-      // modifier pressed?
-      if(!(last_report[0] & (1<<i)) && (buffer[0] & (1<<i)))
-	kbd_tx(usb, modifier_atarist[i]);
+      if(modifier_atarist[i]) {      
+	// modifier released?
+	if((last_report[0] & (1<<i)) && !(buffer[0] & (1<<i)))
+	  kbd_tx(usb, 0x80 | modifier_atarist[i]);
+	// modifier pressed?
+	if(!(last_report[0] & (1<<i)) && (buffer[0] & (1<<i)))
+	  kbd_tx(usb, modifier_atarist[i]);
+      }
     }
   }
 
@@ -125,14 +125,8 @@ void mouse_parse(struct usb_config *usb, signed char *buffer, int nbytes) {
 
   printf("MOUSE: %02x %d %d\r\n", buffer[0], buffer[1], buffer[2]);
   
-  // send mouse movement information to the core
-  spi_begin(usb->spi);
-  spi_tx_u08(usb->spi, SPI_TARGET_HID);
-  spi_tx_u08(usb->spi, SPI_HID_MOUSE);
-  spi_tx_u08(usb->spi, buffer[0]);
-  spi_tx_u08(usb->spi, buffer[1]);
-  spi_tx_u08(usb->spi, buffer[2]);
-  spi_end(usb->spi);
+  unsigned char mouse_cmd[4] = { SPI_HID_MOUSE, buffer[0], buffer[1], buffer[2] };
+  xQueueSendToBackFromISR(iQueue, mouse_cmd,  ( TickType_t ) 0);
 }
 
 void usbh_hid_callback(void *arg, int nbytes) {
@@ -236,12 +230,44 @@ static void usbh_hid_thread(void *argument) {
   int ret;
 
   struct usb_config *usb = (struct usb_config *)argument;
-  
-  while (1) {
-    usbh_hid_update(usb);
-    
-    usb_osal_msleep(10);
 
+  // request status (currently only dummy data, will return 0x5c, 0x42)
+  spi_begin(usb->spi);
+  spi_tx_u08(usb->spi, SPI_TARGET_HID);
+  spi_tx_u08(usb->spi, SPI_HID_STATUS);
+  spi_tx_u08(usb->spi, 0x00);
+  printf("HID status #0: %02x\r\n", spi_tx_u08(usb->spi, 0x00));
+  printf("HID status #1: %02x\r\n", spi_tx_u08(usb->spi, 0x00));
+  spi_end(usb->spi);
+
+  // queue to receive messages from ISR/callback, 10 entries of 4 bytes each
+  iQueue = xQueueCreate(10, 4);
+
+  while (1) {
+    unsigned char cmd[4];
+    
+    usbh_hid_update(usb);
+
+    // TODO: reduce the wait time, so a stream of USB data won't block the loop
+    // int ms = pdTICKS_TO_MS(xTaskGetTickCount());
+  
+    // read from queue with 10ms timeout and forward HID commands via spi to core
+    while(xQueueReceive( iQueue, cmd, pdMS_TO_TICKS(10))) {
+      spi_begin(usb->spi);
+      spi_tx_u08(usb->spi, SPI_TARGET_HID);
+      spi_tx_u08(usb->spi, cmd[0]);
+      spi_tx_u08(usb->spi, cmd[1]);
+
+      // mouse has two more bytes to send
+      if(cmd[0] == SPI_HID_MOUSE) {
+	spi_tx_u08(usb->spi, cmd[2]);
+	spi_tx_u08(usb->spi, cmd[3]);
+      }
+    
+      spi_end(usb->spi);      
+    }
+    // usb_osal_msleep(10);
+      
     for(int i=0;i<CONFIG_USBHOST_MAX_HID_CLASS;i++) {
       if(usb->hid_info[i].state == STATE_DETECTED) {
 	printf("NEW device %d\r\n", i);

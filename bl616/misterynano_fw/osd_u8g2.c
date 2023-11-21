@@ -8,6 +8,7 @@
 #include "spi.h"
 #include "osd.h"
 #include "menu.h"
+#include "sdc.h"
 
 static const u8x8_display_info_t u8x8_mn_128x64_info =
   { 0, 1, 0, 0, 0, 0, 0, 0, 4000000UL, 1, 0, 0, 0, 16, 8, 0, 0, 128, 64 };
@@ -51,7 +52,7 @@ uint8_t u8x8_d_mn_128x64(u8x8_t *u8g2, uint8_t msg, uint8_t arg_int, void *arg_p
       
 	/* send data */
 	spi_tx_u08(spi, SPI_TARGET_OSD);
-	spi_tx_u08(spi, 0x02);           // command byte data
+	spi_tx_u08(spi, SPI_OSD_WRITE);           // command byte data
 	spi_tx_u08(spi, ((y/8)<<4)+x/8); // tile address
 
 	for(int i=0;i<c*8;i++)
@@ -94,8 +95,20 @@ void osd_enable(osd_t *osd, char en) {
   // show/hide OSD
   spi_begin(osd->spi);  
   spi_tx_u08(osd->spi, SPI_TARGET_OSD);
-  spi_tx_u08(osd->spi, 0x01);  // enable/disable command
+  spi_tx_u08(osd->spi, SPI_OSD_ENABLE);  // enable/disable command
   spi_tx_u08(osd->spi, en);    // enable
+  spi_end(osd->spi);  
+}
+
+void osd_emit(osd_t *osd, char id[2], uint8_t value) {
+  printf("OSD emit %c%c = %d\r\n", id[0], id[1], value);
+  
+  spi_begin(osd->spi);  
+  spi_tx_u08(osd->spi, SPI_TARGET_OSD);
+  spi_tx_u08(osd->spi, SPI_OSD_SET);  // send value command
+  spi_tx_u08(osd->spi, id[0]); // value id hi
+  spi_tx_u08(osd->spi, id[1]); // value id low
+  spi_tx_u08(osd->spi, value); // value itself
   spi_end(osd->spi);  
 }
 
@@ -105,6 +118,8 @@ osd_t *osd_init(spi_t *spi) {
 
   osd.spi = spi;
 
+  sdc_init(spi);
+  
   osd.spi->dev->user_data = osd.buf;
   u8x8_Setup_mn_128x64(u8g2_GetU8x8(&osd.u8g2));
   u8g2_SetupBuffer(&osd.u8g2, osd.buf, 8, u8g2_ll_hvline_vertical_top_lsb, &u8g2_cb_r0);
