@@ -67,11 +67,16 @@ usb 2-1.7.3.3: Manufacturer: Bouffalo
 cdc_acm 2-1.7.3.3:1.0: ttyACM3: USB ACM device
 ```
 
-Once it shows up that way it can be flashed:
+Once it shows up that way it can be flashed. If you have built the firmware yourself and have
+the SDK installed you can simply enter the following command:
 
 ```
 BL_SDK_BASE=<where you downloaded the sdk>/bouffalo_sdk/ make CHIP=bl616 COMX=/dev/ttyACM3 flash
 ```
+
+If you have downloaded the firmware from the [release page](https://github.com/harbaum/MiSTeryNano/releases)
+you can use the graphical [BLFlashCube too](https://github.com/bouffalolab/bouffalo_sdk/tree/master/tools/bflb_tools/bouffalo_flash_cube)
+tool usinfg the ```misterynano_fw_bl616_cfg.ini``` file.
 
 After successful download you need to unplug the device again and reinsert it *without* the BOOT button pressed to boot into the newly installed firmware.
 

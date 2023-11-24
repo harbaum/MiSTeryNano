@@ -136,13 +136,40 @@ $ openFPGALoader --external-flash -o 1310720 tos206de.img
 
 This TOS image is always use when STE mode is selected.
 
-### Step 3: Installation of the HID USB firmware
+### Step 3: Installation of the MCU firmware
 
-Keyboard and mouse are connected via USB and a [M0S Dock](https://wiki.sipeed.com/hardware/en/maixzero/m0s/m0s.html). This needs to be equipped with
-a matching [HID USB firmware](bl616).
+Release V1.2.0 of MiSTeryNano expects a [M0S
+Dock](https://wiki.sipeed.com/hardware/en/maixzero/m0s/m0s.html) to be
+used for USB connectivity and system control. The
+```misterynano_fw_bl616_cfg.ini``` and ```misterynano_fw_bl616.bin```
+files from the [release
+page](https://github.com/harbaum/MiSTeryNano/releases) contain the
+firmware for the M0S Dock.
 
-At this point mouse and keyboard should be working. Use the F12 key to open the
-on-screen-display (OSD) to control the core.
+Use the graphical [BLFlashCube
+too](https://github.com/bouffalolab/bouffalo_sdk/tree/master/tools/bflb_tools/bouffalo_flash_cube)
+to flash the firmware onto the M0S Dock using these steps:
+
+  * Unconnect the M0S from USB
+  * Press the button labeled "BOOT" and keep it pressed
+  * Connect the M0S to the PCs USB
+  * Release the boot button (the M0S/BL616 will now be in "update" mode)
+  * Open the bouffalo_flash_cube
+  * Select ```misterynano_fw_bl616_cfg.ini``` as the config file using the Browse button
+  * Select the correct COM port under "Port/SN"
+  * Hit download, wait for completion
+  * Unplug the M0S from USB and connect it to the Tang Nano 20k as depicted below
+
+A USB keyboard and mouse can now be connected to the [M0S
+Dock](https://wiki.sipeed.com/hardware/en/maixzero/m0s/m0s.html). Besides
+the power LED on the M0S, two further LEDs should light up to indicate
+that a keyboard and a mouse have been detected.
+
+At this point mouse and keyboard should be working and you should be
+able to use the F12 key to open the on-screen-display (OSD) to control
+the core.
+
+Look [here](bl616) for more info about the firmware.
 
 ### Step 4: Installation of a floppy disk image
 
