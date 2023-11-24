@@ -20,7 +20,7 @@
 #define SPI_SDC_STATUS   1   // get sd card status
 #define SPI_SDC_READ     2   // trigger core read
 #define SPI_SDC_MCU_READ 3   // read sector into MCU (e.g. for dir listing)
-#define SPI_SDC_INSERTED 4   // inform core that some disk image has been insered
+#define SPI_SDC_INSERTED 4   // inform core that some disk image has been inserted
 
 typedef struct {
 #ifndef SDL
