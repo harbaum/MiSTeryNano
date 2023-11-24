@@ -1,5 +1,15 @@
 # Differences of previous versions
 
+## PS/2 and configuration in version 1.1.0
+
+Version 1.1.0 implemented a PS/2 like connection to send the keyboard
+and mouse data from the BL616 MCU into the FPGA.  All configuration
+was done via connections on the board.
+
+![MiSTeryNano wiring](images/wiring_ps2.png)
+
+Since version 1.2.0 configuration is done via the OSD.
+
 ## Mouse/trackball up to version 1.0.1
 
 The MiSTeryNano up to 1.0.1 implemented some basic mouse control via

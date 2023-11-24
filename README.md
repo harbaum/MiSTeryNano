@@ -24,20 +24,13 @@ The MiSTeryNano is a work in progress. Current features are:
     * Mapped to USB via BL616 MCU
     * Mouse and keyboard via USB
     * Joystick via IO pins of Tang Nano
-  * Floppy disk image stored on regular FAT formatted SD card
-    * Tested with several 4, 16 an d 32 GB cards
-    * Up to 32 .ST disk images selectable via on-screen-display
+  * Floppy disk image stored on regular FAT/exFAT formatted SD card
 
 ## Missing features
 
   * Support for floppy drive B
   * Support for hard disk images
   * Floppy disk write support
-
-Currently the FPGA on the Tang Nano 20k is around 90% full and this setup
-is considered to be mostly complete with respect to the FPGA itself.
-Further development will focus on the BL616 microcontroller of the Tang
-Nano 20k which will allow to implement the missing features.
 
 ## Videos
 
@@ -53,6 +46,7 @@ These videos primarily document the progress during development:
   * [MiSTeryNano #8: Atari ST with USB keyboard and touchpad](https://www.youtube.com/shorts/jjps1x1NjhE)
   * [MiSTeryNano #9: Tang Nano 20k as USB host](https://www.youtube.com/shorts/bP5gK3nmv-o)
   * [MiSTeryNano #10: New OSD for the FPGA Atari ST](https://www.youtube.com/shorts/zsHYcolqtpc)
+  * [MiSTeryNano #11: Advanced SD card for FPGA Atari ST](https://www.youtube.com/shorts/NP1EnRj4Fk0)
 
 ## Getting started
 
@@ -75,7 +69,7 @@ of four steps:
 Use [openFPGAloader](https://github.com/trabucayre/openFPGALoader) to install the MiSTeryNano core named [```atarist.fs```](https://github.com/harbaum/MiSTeryNano/releases) on your Tang Nano 20k:
 
 ```
-$ openFPGALoader -f impl/pnr/atarist.fs 
+$ openFPGALoader -f atarist.fs 
 write to flash
 Jtag frequency : requested 6.00MHz   -> real 6.00MHz  
 Parse file Parse ../atarist/impl/pnr/atarist.fs: 
@@ -109,7 +103,7 @@ This needs to be flashed into the flash ROM of the Tang Nano 20k at
 1MB offset:
 
 ```
-$ openFPGALoader --external-flash -o 1048576 tos162de.img
+$ openFPGALoader --external-flash -o 1048576 tos104de.img
 write to flash
 Jtag frequency : requested 6.00MHz   -> real 6.00MHz  
 Parse file DONE
@@ -140,28 +134,25 @@ location:
 $ openFPGALoader --external-flash -o 1310720 tos206de.img
 ```
 
-This TOS image is always use when STE mode is selected (see the
-configuration section below)
+This TOS image is always use when STE mode is selected.
 
 ### Step 3: Installation of the HID USB firmware
 
 Keyboard and mouse are connected via USB and a [M0S Dock](https://wiki.sipeed.com/hardware/en/maixzero/m0s/m0s.html). This needs to be equipped with
 a matching [HID USB firmware](bl616).
 
-At this point mouse and keyboard should be working.
+At this point mouse and keyboard should be working. Use the F12 key to open the
+on-screen-display (OSD) to control the core.
 
 ### Step 4: Installation of a floppy disk image
 
 Since releae 0.9.0 MiSTeryNano supports reading floppy disk images from
-a FAT formatted SD card. This has only been tested with 16 and 32 GB cards.
-Especially smaller cards may not work if the FAT file system uses less
-then 8 sectors per cluster.
+a FAT formatted SD card.
 
 At least a file named [```DISK_A.ST```](sim/floppy_tb/disk_a.st) needs to be placed in the root
 directory of the SD card. This file is by default used as a disk image
-for floppy drive A. Further .ST disk images can be placed in the root
-directory of the SD card. Up to 32 disk images can be handled by the
-core at the moment.
+for floppy drive A. Further .ST disk images can be placed on the card
+using subdirectories if needed.
 
 The SD card is to be inserted into the slot on the bottom side of the
 Tang Nano 20k inconveniently placed right below the USB connector.
@@ -169,26 +160,18 @@ The MiSTeryNano will automatically load a file named [```DISK_A.ST```](sim/flopp
 
 #### Changing the floppy disk image
 
-You can use the buttons on the left and right of the USB-C connector
-on the Tang Nano to change disk images. Button S1 will open the
-on screen display. Short presses on S1 will step through the installed
-images. Pressing S2 will insert the current image into floppy drive A.
-A long press on S1 will close the on screen display without changing the
-installed disk images.
-
-Button S2 will also act as a reset button for the Atari ST when the
-on screen display is not open.
+You can use the on-screen-display (OSD) to change disk images. The F12
+key will open the on screen display.
 
 ### Configuration
 
-Since version 1.1.0 MiSTeryNano uses a [BL616
-controller](https://github.com/harbaum/MiSTeryNano/tree/main/bl616)
-for mouse and keyboard connectivity. This BL616 can either be an
-externally connected M0S Dock or the internal BL616 of the Tang Nano
-20k. In the this case the ```PS2_INT``` configuration 
-has to be selected.
+Since version 1.2.0 MiSTeryNano the [M0S/BL616
+MCU](https://github.com/harbaum/MiSTeryNano/tree/main/bl616)
+controls not only the USB keyboard and mouse. It also
+controls the OSD and the SD card and is being used for all
+configurations as well. 
 
 A digital DB9 joystick can be attached directly to the board.
 
-![MiSTeryNano wiring](images/wiring_ps2.png)
+![MiSTeryNano wiring](images/wiring_spi.png)
 
