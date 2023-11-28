@@ -1,386 +1,513 @@
 /*
-  menu.c - MiSTeryNano menu based in u8g2/MUI
+  menu.c - MiSTeryNano menu based in u8g2
 */
   
 #include <stdio.h>
-
-#include "menu.h"
-
-// a global OSD pointer as mui has no userdata or the like
-osd_t *osd = NULL;
-
-void menu_do(menu_t *menu, int event) {
-  if(event) {
-    if(event == MENU_EVENT_DOWN)   mui_NextField(&menu->ui);
-    if(event == MENU_EVENT_UP)     mui_PrevField(&menu->ui);
-    if(event == MENU_EVENT_SELECT) mui_SendSelect(&menu->ui);
-    if(event == MENU_EVENT_SHOW)   osd_enable(menu->osd, OSD_VISIBLE);
-    if(event == MENU_EVENT_HIDE)   osd_enable(menu->osd, OSD_INVISIBLE);
-  }
-  
-  u8g2_SetFontRefHeightExtendedText(&menu->osd->u8g2);
-  u8g2_FirstPage(&menu->osd->u8g2);
-  do
-    mui_Draw(&menu->ui);
-  while( u8g2_NextPage(&menu->osd->u8g2) );
-}
-
-/* ------------------ MUI ----------------------- */
-
-uint8_t mui_style_helv_r_08(mui_t *ui, uint8_t msg) {
-  if(msg == MUIF_MSG_DRAW)
-    u8g2_SetFont(mui_get_U8g2(ui), u8g2_font_helvR08_tr);  // _te is with some unicode
-  
-  return 0;
-}
-
-uint8_t mui_style_helv_b_08(mui_t *ui, uint8_t msg) {
-  if(msg == MUIF_MSG_DRAW)
-    u8g2_SetFont(mui_get_U8g2(ui), u8g2_font_helvB08_tr);
-  
-  return 0;
-}
-
-uint8_t mui_hrule(mui_t *ui, uint8_t msg)
-{
-  u8g2_t *u8g2 = mui_get_U8g2(ui);
-  if(msg == MUIF_MSG_DRAW)
-    u8g2_DrawHLine(u8g2, 0, mui_get_y(ui), u8g2_GetDisplayWidth(u8g2));
-  
-  return 0;
-}
-
-/*
-  global variables which form the communication gateway between the user interface and the rest of the code
-*/
-
-uint8_t system_chipset = 0;  // ST/MegaST/STE
-uint8_t system_memory  = 0;  // 4MB/8MB
-uint8_t system_video   = 0;  // COL/MONO
-uint8_t fs             = 0;  // file selection
-
-#define CURRENT_FORM_ID(ui)  (ui->current_form_fds[1])
+#include <stdlib.h>
+#include <string.h>
+#include <ff.h>
 
 #include "sdc.h"
+#include "menu.h"
 
-// taken from XBM bitmaps
-static const unsigned char folder_icon[] = { 0x70,0x8e,0xff,0x81,0x81,0x81,0x81,0x7e };
-static const unsigned char up_icon[] =     { 0x04,0x0e,0x1f,0x0e,0xfe,0xfe,0xfe,0x00 };
+// this is the u8g2_font_helvR08_te with any trailing
+// spaces removed
+#include "font_helvR08_te.c"
 
-uint8_t file_selection(mui_t *ui, uint8_t msg) {
-  static sdc_dir_t *dir = NULL;
+#define MENU2U8G2(a)  (&(a->osd->u8g2))
 
-  // load directory on form start for first file entry
-  if ( msg == MUIF_MSG_FORM_START ) {
-    if( !ui->arg ) {
-      dir = sdc_readdir(NULL);
-      
-      ui->form_scroll_total = dir->len;
-      ui->form_scroll_top = 0;
+char *disk_a = NULL;
 
-      ui->form_scroll_visible = 1;
-    } else
-      ui->form_scroll_visible++;
-  }
-
-  // at this point dir must be valid
-  sdc_dir_entry_t *entry = &(dir->files[ui->form_scroll_top+ui->arg]);
-  
-  if ( msg == MUIF_MSG_CURSOR_SELECT ) {      
-    if(entry->is_dir) {
-      dir = sdc_readdir(entry->name);
-      
-      ui->form_scroll_total = dir->len;
-      ui->form_scroll_top = 0;
-
-      // go to first entry of newly opened subdir
-      int scroll_up = ui->form_scroll_top+ui->arg;
-      for(int i=0;i<scroll_up;i++) mui_PrevField(ui);
-      
-      return 0;
-    } else {
-      // request insertion of this image
-      sdc_image_open(entry->name);
-      
-      // return to parent form, second entry
-      // printf("PRE = %d\n", ui->last_form_id);
-      
-      mui_GotoForm(ui, 0, 2);
-      return 0;
-    }
-  }
-
-  if ( msg == MUIF_MSG_DRAW ) {
-    char str[32];
-    static const int icon_skip = 10;
-
-    // check if we are supposed to draw an entry which arg is higher
-    // then the number file entries. This means that there are less
-    // files then entries on screen
-    if(ui->form_scroll_top+ui->arg >= dir->len)
-      return 1;
-
-    strncpy(str, entry->name, sizeof(str));
-    str[sizeof(str)-1] = 0;   // terminate possibly truncated string
-
-    int width = u8g2_GetDisplayWidth(mui_get_U8g2(ui)) - 2*mui_get_x(ui);
-    
-    // properly ellipsize string
-    int dotlen = u8g2_GetUTF8Width(mui_get_U8g2(ui), "...");
-    if(u8g2_GetUTF8Width(mui_get_U8g2(ui), str) > width-icon_skip) {
-      while(u8g2_GetUTF8Width(mui_get_U8g2(ui), str) > width-icon_skip-dotlen) str[strlen(str)-1] = 0;
-      if(strlen(str) < sizeof(str)-4) strcat(str, "...");
-    }
-
-    // draw folder icon in front of directories
-    if(entry->is_dir)
-	u8g2_DrawXBM(mui_get_U8g2(ui), mui_get_x(ui), mui_get_y(ui)-8,
-		     8, 8, strcmp(entry->name, "..")?folder_icon:up_icon);
-    
-    u8g2_DrawUTF8(mui_get_U8g2(ui), mui_get_x(ui) + icon_skip, mui_get_y(ui), str);
-    if(ui->dflags & 1)
-      u8g2_DrawButtonFrame(mui_get_U8g2(ui), mui_get_x(ui), mui_get_y(ui), U8G2_BTN_INV, width, 1, 1);
-  }
-
-  // prev and next events are eaten (retval 1), so we can scroll through
-  // the file list while keeping focus on the same line
-  if ( msg == MUIF_MSG_EVENT_PREV || msg == MUIF_MSG_EVENT_NEXT) {
-    // check if we need scrolling at all or if all files fit on screen
-    if(ui->form_scroll_visible >= dir->len) {
-
-      // if we are on the last used entry and there are unused ones ahead, then
-      // skip these
-      if( (msg == MUIF_MSG_EVENT_NEXT )&&( ui->form_scroll_visible > dir->len)) {
-	if( ui->arg == dir->len - 1) {
-	  extern void mui_next_field(mui_t *ui);
-	  for(int i=0;i<ui->form_scroll_visible - dir->len;i++) mui_next_field(ui);
-	}
-      }
-
-      // if we are on the first entry and there are unused ones at the end, then
-      // skip these
-      if( (msg == MUIF_MSG_EVENT_PREV )&&( ui->form_scroll_visible > dir->len)) {
-	if( ui->arg == 0) {
-	  // there is no mui_prev_field(ui), so we use mui_next_field(ui)
-	  extern void mui_next_field(mui_t *ui);
-	  for(int i=0;i<dir->len;i++) mui_next_field(ui);
-	}
-      }
-      return 0;
-    }
-    
-    // check if we'd leave the menu at top
-    if(ui->arg == 0 && msg == MUIF_MSG_EVENT_PREV && ui->form_scroll_top == 0)
-      ui->form_scroll_top = ui->form_scroll_total - ui->form_scroll_visible;
-    
-    // check if we'd leave the menu at bottom
-    if(ui->arg == ui->form_scroll_visible-1 && msg == MUIF_MSG_EVENT_NEXT &&
-       ui->form_scroll_top == ui->form_scroll_total - ui->form_scroll_visible)
-      ui->form_scroll_top = 0;
-      
-    // scrolling only happens on the middle entry
-    if(ui->arg == (ui->form_scroll_visible-1)/2) {
-      if( msg == MUIF_MSG_EVENT_PREV && ui->form_scroll_top > 0) {
-	ui->form_scroll_top--;
-	return 1;
-      }
-    }
-      
-    if(ui->arg == ui->form_scroll_visible/2) {      
-      if( msg == MUIF_MSG_EVENT_NEXT && ui->form_scroll_top <
-	  ui->form_scroll_total - ui->form_scroll_visible) {
-	ui->form_scroll_top++;
-	return 1;
-      }
-    }
-  }
-
-  return 0;
-}
-
-/*
-  System: SC,SM,SV
- */
-
-uint8_t btn_goto(mui_t *ui, uint8_t msg) {
-  // the form to go to is stored in arg. There are special forms with arg >= 128
-  if((msg == MUIF_MSG_CURSOR_SELECT) && (ui->arg >= 128)) {
-
-    if(ui->arg == 255) {       // send reset
-      osd_emit(osd, "SR", 1);  // activate reset signal
-      osd_emit(osd, "SR", 0);  // de-activate reset signal
-    }
-
-    // hiding the OSD here won't work as the USB side needs to know about this
-    // as well ....
-    
-    // osd_enable(osd, OSD_INVISIBLE);   // hide OSD
-    // mui_GotoForm(ui, 0, 0);           // return to main form
-    return 0;
-  }
-  
-  return mui_u8g2_btn_goto_w1_pi(ui, msg);
-}
-
-// used for "ok" and "cancel" buttons
-uint8_t btn_dialog(mui_t *ui, uint8_t msg) {
-  static uint8_t form = 0xff;
-  static uint8_t backup[3];
-  
-  // if a cancel button is to be drawn, then the forms values have to be backed up,
-  // to allow to restore them on cancel
-  if(ui->id1 == 'C' && msg == MUIF_MSG_DRAW && form != CURRENT_FORM_ID(ui)) {
-    form = CURRENT_FORM_ID(ui);    
-    printf("prepare cancel of form %d\n", form);
-
-    if(form == 10) {
-      backup[0] = system_chipset;
-      backup[1] = system_memory;
-      backup[2] = system_video;
-    }
-  }
-
-  // ok/cancel has been selcted
-  if(msg == MUIF_MSG_CURSOR_SELECT) {
-    if(CURRENT_FORM_ID(ui) == 10 && ui->id1 == 'C') printf("system form canceled\n");
-    if(CURRENT_FORM_ID(ui) == 10 && ui->id1 == 'O') printf("system form ok\n");
-    
-    if(ui->id1 == 'C') {
-      // restore old values
-
-      if(CURRENT_FORM_ID(ui) == 10) {
-	system_chipset = backup[0];
-	system_memory = backup[1];
-	system_video = backup[2];
-      }
-    }
-    
-    if(ui->id1 == 'O') {
-      // transmit new values to fpga
-      // ...
-
-      if(CURRENT_FORM_ID(ui) == 11) {
-	printf("disk a: ok\r\n");
-      }
-	
-      if(CURRENT_FORM_ID(ui) == 10) {
-	osd_emit(osd, "SC", system_chipset);
-	osd_emit(osd, "SM", system_memory);
-	osd_emit(osd, "SV", system_video);
-
-	// send reset if chipset or memory has changed
-	if(system_chipset != backup[0] || system_memory != backup[1]) {      
-	  osd_emit(osd, "SR", 1);
-	  osd_emit(osd, "SR", 0);
-	}
-      }
-    }
-    
-    form = 0xff;
-  }
-  
-  return mui_u8g2_btn_goto_wm_fi(ui, msg);
-}
-
-muif_t muif_list[] MUI_PROGMEM = {
-  /* normal text style */
-  MUIF_STYLE(0, mui_style_helv_r_08),
-  
-  /* bold text style */
-  MUIF_STYLE(1, mui_style_helv_b_08),
-
-  /* horizontal line (hrule) */
-  MUIF_RO("HR", mui_hrule),
-
-  // System variables
-  MUIF_VARIABLE("SC", &system_chipset, mui_u8g2_u8_opt_line_wa_mse_pi),
-  MUIF_VARIABLE("SM",  &system_memory, mui_u8g2_u8_opt_line_wa_mse_pi),
-  MUIF_VARIABLE("SV",   &system_video, mui_u8g2_u8_opt_line_wa_mse_pi),
-
-  // file selection
-  MUIF_VARIABLE("FS",   &fs, file_selection),
-
-  /* Goto Form Button where the width is equal to the size of the text, spaces can be used to extend the size */
-  //MUIF("G1",MUIF_CFLAG_IS_CURSOR_SELECTABLE,0,mui_u8g2_btn_goto_wm_fi),
-  MUIF_BUTTON("GO", btn_dialog),
-  MUIF_BUTTON("GC", btn_dialog),
-  MUIF_BUTTON("G1", mui_u8g2_btn_goto_wm_fi),
-  
-  /* MUI_GOTO uses the fixed ".G" id and is intended for goto buttons. This is a full display width style button */  
-  MUIF_GOTO(btn_goto),
-  
-  /* MUI_LABEL uses the fixed ".L" id and is used to place read only text on a form */
-  //MUIF(".L",0,0,mui_u8g2_draw_text),
-  MUIF_LABEL(mui_u8g2_draw_text),
+// variable ids must match the ones in the menu string
+menu_variable_t variables[] = {
+  { 'C', { 2 }},              // default chipset = STE
+  { 'M', { 0 }},              // default memory = 4MB
+  { 'V', { 0 }},              // default video = color
+  { 'S', { 0 }},              // default scanlines = none
+  { 'A', { 1 }},              // default volume = 33%
+  //  { 'D', { .ptr=&disk_a }},   // default disk is initialized separately
+  { '\0',{ 0 }}
 };
 
-fds_t fds[] = 
+#define MENU_FORM_FSEL           -1
 
-// --- form 0: main menu
-MUI_FORM(0)
-MUI_STYLE(1)
-MUI_LABEL(5,10, "MiSTeryNano")
-MUI_XY("HR", 0,13)
-MUI_STYLE(0)
-MUI_GOTO(5,25,10, "System")
-  // MUI_GOTO(5,37,1, "Storage")
-MUI_GOTO(5,37,11, "Disk A:")
-MUI_GOTO(5,49,255, "Reset")
+#define MENU_ENTRY_INDEX_ID       0
+#define MENU_ENTRY_INDEX_LABEL    1
+#define MENU_ENTRY_INDEX_FORM     2
+#define MENU_ENTRY_INDEX_OPTIONS  2
+#define MENU_ENTRY_INDEX_VARIABLE 3
 
-// --- form 1: Storage handling
-MUI_FORM(1)
-MUI_STYLE(1)
-MUI_LABEL(5,10, "Storage")
-MUI_XY("HR", 0,13)
-MUI_STYLE(0)
-MUI_GOTO(5,25,12, "SD card")
-MUI_GOTO(5,37,11, "Disk A:")
-MUI_GOTO(5,49,11, "Disk B:")
-MUI_GOTO(5,61,0, "Back...")
+static const char main_form[] =
+  "MiSTeryNano,;"                       // main form has no parent
+  // --------
+  "S,System,1;"                         // System submenu is form 1
+  "F,Disk A:,0;"                        // fileselector for Disk A:
+  "F,Disk B:,1;"                        // fileselector for Disk B:
+  "B,Reset,R;";                         // system reset
 
-/* form 10: system setup dialog */
-MUI_FORM(10)
-MUI_STYLE(1)
-MUI_LABEL(5,8, "System") MUI_XY("HR", 0,11) MUI_STYLE(0)
+static const char system_form[] =
+  "System,0;"                           // parent form is 0
+  // --------
+  "L,Chipset:,ST|Mega ST|STE,C;"        // selection stored in variable "SC"
+  "L,Memory:,4MB|8MB,M;"                // ...
+  "L,Video:,Color|Mono,V;"
+  "L,Scanlines:,None|25%|50%|75%,S;"
+  "L,Volume:,Mute|33%|66%|100%,A;"
+  "B,Cold Boot,B;";                      // system reset with memory reset
+//  "B,Save settings,S;";
 
-MUI_LABEL(5,22, "Chipset:") MUI_XYAT("SC", 60, 22, 60, "ST|MegaST|STE")
-MUI_LABEL(5,34, "Memory:")  MUI_XYAT("SM", 60, 34, 60, "4MB|8MB")
-MUI_LABEL(5,46, "Video:")   MUI_XYAT("SV", 60, 46, 60, "Color|Mono")
+static const char *forms[] = {
+  main_form,
+  system_form
+};
 
-MUI_XYAT("GO", 32, 60, 0, "   Ok   ")
-MUI_XYAT("GC", 90, 60, 0, " Cancel ")
-  
-/* form 11: disk file selection */
-MUI_FORM(11)
-MUI_STYLE(1)
-MUI_LABEL(0,8, "Disk A:") MUI_XY("HR", 0,11) MUI_STYLE(0)
+static void menu_goto_form(menu_t *menu, int form) {
+  menu->form = form;
+  menu->entry = 1;
+  menu->entries = -1;
+  menu->offset = 0;
+}
 
-MUI_XYA("FS", 0, 22, 0)
-MUI_XYA("FS", 0, 34, 1)
-MUI_XYA("FS", 0, 46, 2)
-MUI_XYA("FS", 0, 58, 3)
-;
+static void menu_settings_load(menu_t *menu) {
+  FIL fil;
+
+  if(f_open(&fil, "/sd/atarist.ini", FA_OPEN_EXISTING | FA_READ) == FR_OK) {    
+    char buffer[8];
+
+    printf("Settings file open\r\n");
+    while(f_gets(buffer, sizeof(buffer), &fil) != NULL) {
+      int value = atoi(buffer+1);
+      printf("Setting %c:%d\r\n", buffer[0], value);
+
+      for(int i=0;menu->vars[i].id;i++)
+	if(menu->vars[i].id == buffer[0])
+	  menu->vars[i].value = value;
+    }
+    f_close(&fil);
+  }
+}
+
+#if 0
+static void menu_settings_save(menu_t *menu) {
+  unsigned char buffer[512];
+  unsigned char *p = buffer;
+  for(int i=0;menu->vars[i].id;i++) {
+    *p++ = menu->vars[i].id;
+    *p++ = menu->vars[i].value;
+  }
+
+  // append NUL id as end marker
+  *p++ = 0;
+
+  // saving does not work, yet, as there is no SD card write support by now
+}
+#endif
 
 #ifndef SDL
 menu_t *menu_init(spi_t *spi)
 #else
-  menu_t *menu_init(u8g2_t *u8g2, mui_t *ui)
+menu_t *menu_init(u8g2_t *u8g2)
 #endif
 {
   static menu_t menu;
-  
+
+  menu.forms = forms;
+  menu.vars = variables;
+  menu_goto_form(&menu, 0); // first form selected at start
+      
 #ifndef SDL
   menu.osd = osd_init(spi);
 #else
   static osd_t losd;
-  menu.ui = *ui;
   menu.osd = &losd;
   menu.osd->u8g2 = *u8g2;
 #endif
+
+  // try to restore variables from eeprom
+  menu_settings_load(&menu);  
   
-  osd = menu.osd;
-  mui_Init(&menu.ui, &menu.osd->u8g2, fds, muif_list, sizeof(muif_list)/sizeof(muif_t));
-  mui_GotoForm(&menu.ui, 0, 0);
+  // send initial values for all variables
+  for(int i=0;menu.vars[i].id;i++)
+    osd_emit(menu.osd, menu.vars[i].id, menu.vars[i].value);
+
+  // and cold reset the core, just in case ...
+  // TODO: keep core in reset until MCU releases it!
+  osd_emit(menu.osd, 'R', 3);
+  osd_emit(menu.osd, 'R', 0);
   
   return &menu;
 }
+
+// find first occurence of any char in chrs within str
+const char *strchrs(const char *str, char *chrs) {
+  while(*str) {
+    for(int i=0;i<strlen(chrs);i++)
+      if(*str == chrs[i]) return str;
+    str++;
+  }
+  return NULL;
+}
+
+// get the n'th substring in colon separated string
+static char *menu_get_str(menu_t *menu, const char *s, int n) {
+  while(n--) s = strchr(s, ',')+1;   // skip n substrings
+
+  const char *sub = strchrs(s, ";,");
+  if(!sub)
+    strcpy(menu->buffer, s);
+  else {
+    strncpy(menu->buffer, s, sub-s);  // copy characters
+    menu->buffer[sub-s] = '\0';       // terminate string
+  }
+    
+  return menu->buffer;
+}
+
+// get the n'th char in colon separated string
+static char menu_get_chr(menu_t *menu, const char *s, int n) {
+  while(n--) s = strchr(s, ',')+1;   // skip n substrings
+  return s[0];
+}
+
+// get the n'th substring in | separated string in a colon string
+static char *menu_get_substr(menu_t *menu, const char *s, int n, int m) {
+  while(n--) s = strchr(s, ',')+1;   // skip n substrings
+  while(m--) s = strchr(s, '|')+1;   // skip m subsubstrings
+
+  const char *sub = strchrs(s, ";,|");
+  strncpy(menu->buffer, s, sub-s);  // copy characters
+  menu->buffer[sub-s] = '\0';       // terminate string
+
+  return menu->buffer;
+}
+  
+static int menu_get_int(menu_t *menu, const char *s, int n) {
+  char *str = menu_get_str(menu, s, n);
+  return atoi(str);
+}
+
+static int menu_variable_get(menu_t *menu, const char *s) {
+  char id = menu_get_chr(menu, s, MENU_ENTRY_INDEX_VARIABLE);
+
+  for(int i=0;menu->vars[i].id;i++)
+    if(menu->vars[i].id == id)
+      return menu->vars[i].value;    
+
+  return -1;
+}
+
+static void menu_variable_set(menu_t *menu, const char *s, int val) {
+  char id = menu_get_chr(menu, s, MENU_ENTRY_INDEX_VARIABLE);
+  
+  for(int i=0;menu->vars[i].id;i++) {
+    if(menu->vars[i].id == id) {
+      menu->vars[i].value = val;
+
+      // also set this in the core
+      osd_emit(menu->osd, id, val);
+
+      // trigger cold reset if memory or chipset have been changed a
+      // video change will also trigger a reset, but that's handled by
+      // the ST itself
+      if((id == 'C') || (id == 'M') ) {
+	osd_emit(menu->osd, 'R', 3);
+	osd_emit(menu->osd, 'R', 0);
+      }
+    }
+  }
+}
+  
+static int menu_get_options(menu_t *menu, const char *s, int n) {
+  // get possible number of values
+  int num = 1;
+  char *v = menu_get_str(menu, s, n);
+  while((v = strchr(v, '|'))) { v++; num++; }
+  return num;
+}
+
+// various 8x8 icons
+const static unsigned char icn_right_bits[]  = { 0x00,0x04,0x0c,0x1c,0x3c,0x1c,0x0c,0x04 };
+const static unsigned char icn_left_bits[]   = { 0x00,0x20,0x30,0x38,0x3c,0x38,0x30,0x20 };
+const static unsigned char icn_floppy_bits[] = { 0xff,0x81,0x83,0x81,0xbd,0xad,0x6d,0x3f };
+
+// Draw menu title. Submenu titles are selectable and can be used to return to the
+// parent menu.
+static void menu_draw_title(menu_t *menu, const char *s) {
+  int x = 1;
+
+  // draw left arrow for submenus
+  if(menu->form) {
+    u8g2_DrawXBM(MENU2U8G2(menu), 0, 1, 8, 8, icn_left_bits);    
+    x = 8;
+  }
+
+  // draw title in bold and seperator line
+  u8g2_SetFont(MENU2U8G2(menu), u8g2_font_helvB08_tr);
+  u8g2_DrawStr(MENU2U8G2(menu), x, 9, menu_get_str(menu, s, 0));
+  u8g2_DrawHLine(MENU2U8G2(menu), 0, 13, u8g2_GetDisplayWidth(MENU2U8G2(menu)));
+
+  if(x > 0 && menu->entry == 0)
+    u8g2_DrawButtonFrame(MENU2U8G2(menu), 0, 9, U8G2_BTN_INV, u8g2_GetDisplayWidth(MENU2U8G2(menu)), 1, 1);
+  
+  // draw the rest with normal font
+  u8g2_SetFont(MENU2U8G2(menu), font_helvR08_te);
+}
+
+static void menu_draw_entry(menu_t *menu, int y, const char *s) {
+  char *buf = menu_get_str(menu, s, MENU_ENTRY_INDEX_LABEL);
+
+  int ypos = 13 + 12 * y;
+  int width = u8g2_GetDisplayWidth(MENU2U8G2(menu));
+
+  // all menu entries are a plain text
+  u8g2_DrawStr(MENU2U8G2(menu), 1, ypos, buf);
+    
+  // prepare highlight
+  int hl_x = 0;
+  int hl_w = width;
+  
+  // handle second string for 'L'ist entries
+  if(s[0] == 'L') {
+    // get variable
+    int value = menu_variable_get(menu, s);
+    
+    buf = menu_get_substr(menu, s, MENU_ENTRY_INDEX_OPTIONS, value);
+    u8g2_DrawStr(MENU2U8G2(menu), width/2, ypos, buf);
+    
+    hl_x = width/2;
+    hl_w = width/2;
+  }
+  
+  // some entries have a small arrow to the right    
+  if(s[0] == 'S') u8g2_DrawXBM(MENU2U8G2(menu), hl_w-8, ypos-8, 8, 8, icn_right_bits);    
+  if(s[0] == 'F') u8g2_DrawXBM(MENU2U8G2(menu), hl_w-9, ypos-8, 8, 8, icn_floppy_bits);    
+  
+  if(y+menu->offset == menu->entry)
+    u8g2_DrawButtonFrame(MENU2U8G2(menu), hl_x, ypos, U8G2_BTN_INV, hl_w, 1, 1);
+}
+
+static void menu_fileselector(menu_t *menu, int state) {
+  static const unsigned char folder_icon[] = { 0x70,0x8e,0xff,0x81,0x81,0x81,0x81,0x7e };
+  static const unsigned char up_icon[] =     { 0x04,0x0e,0x1f,0x0e,0xfe,0xfe,0xfe,0x00 };
+  
+  static sdc_dir_t *dir = NULL;
+  const static char *s;
+  static int parent;
+  static int drive;
+  
+  if(state == 0) {
+    // init
+    s = menu->forms[menu->form];
+    for(int i=0;i<menu->entry;i++) s = strchr(s, ';')+1;
+    
+    // scan files
+    dir = sdc_readdir(NULL);
+    menu->entry = 1;               // start by highlighting first file entry
+    menu->entries = dir->len + 1;  // incl. title
+    menu->offset = 0;
+    parent = menu->form;
+    drive = menu_get_int(menu, s, 2);    
+    
+  } else if(state == 1) {
+    // draw
+    menu_draw_title(menu, menu_get_str(menu, s, MENU_ENTRY_INDEX_LABEL));
+
+    // draw up to four files
+    for(int i=0;i<((dir->len<4)?dir->len:4);i++) {
+      char str[32];
+      static const int icon_skip = 10;
+      int y =  13 + 12 * (i+1);
+      sdc_dir_entry_t *entry = &(dir->files[i+menu->offset]);
+
+      strncpy(str, entry->name, sizeof(str));
+      str[sizeof(str)-1] = 0;   // terminate possibly truncated string
+
+      int width = u8g2_GetDisplayWidth(MENU2U8G2(menu));
+    
+      // properly ellipsize string
+      int dotlen = u8g2_GetStrWidth(MENU2U8G2(menu), "...");
+      if(u8g2_GetStrWidth(MENU2U8G2(menu), str) > width-icon_skip) {
+	while(u8g2_GetStrWidth(MENU2U8G2(menu), str) > width-icon_skip-dotlen) str[strlen(str)-1] = 0;
+	if(strlen(str) < sizeof(str)-4) strcat(str, "...");
+      }
+      u8g2_DrawStr(MENU2U8G2(menu), icon_skip, y, str);      
+
+      // draw folder icon in front of directories
+      if(entry->is_dir)
+        u8g2_DrawXBM(MENU2U8G2(menu), 1, y-8, 8, 8, strcmp(entry->name, "..")?folder_icon:up_icon);
+
+      if(menu->entry == i+menu->offset+1)
+	u8g2_DrawButtonFrame(MENU2U8G2(menu), 0, y, U8G2_BTN_INV, width, 1, 1);   
+    }
+  } else if(state == 4) {
+
+    if(!menu->entry) 
+      menu_goto_form(menu, parent);
+    else {
+      sdc_dir_entry_t *entry = &(dir->files[menu->entry - 1]);
+
+      if(entry->is_dir) {
+	dir = sdc_readdir(entry->name);
+	menu->entry = 1;               // start by highlighting first file entry
+	menu->entries = dir->len + 1;  // incl. title
+	menu->offset = 0;
+      } else {
+	// request insertion of this image
+	sdc_image_open(drive, entry->name);	
+	menu_goto_form(menu, parent);
+      }
+    }
+  }   
+}
+
+static void menu_draw_form(menu_t *menu, const char *s) {
+  u8g2_ClearBuffer(MENU2U8G2(menu));
+
+  // regular entry?
+  if(menu->form >= 0) {
+    // count menu entries if not done yet
+    if(menu->entries < 0) {
+      menu->entries = 0;
+
+      for(const char *p = s;*p && strchr(p, ';');p=strchr(p, ';')+1)
+	menu->entries++;
+    }
+
+    // -------- draw title -----------
+    menu_draw_title(menu, s);
+    s = strchr(s, ';')+1;
+
+    // ------- draw menu entries ------
+
+    // skip 'offset' entries
+    for(int i=0;i<menu->offset;i++)
+      s = strchr(s, ';')+1;      // skip to next entry
+    
+    // walk over menu string
+    int y = 1;
+    while(*s) {
+      menu_draw_entry(menu, y++, s);    
+      s = strchr(s, ';')+1;      // skip to next entry
+    }
+  } else if(menu->form == MENU_FORM_FSEL)
+    menu_fileselector(menu, 1);
+  
+  u8g2_SendBuffer(MENU2U8G2(menu));
+}
+
+static void menu_select(menu_t *menu) {
+  if(menu->form == MENU_FORM_FSEL) {
+    menu_fileselector(menu, 4);
+    return;
+  }
+    
+  const char *s = menu->forms[menu->form];
+  // skip to current entry (incl. title)
+  for(int i=0;i<menu->entry;i++) s = strchr(s, ';')+1;
+  
+  printf("Selected: %s\r\n", s);
+
+  // if the title was selected, then goto parent form
+  if(!menu->entry) {
+    menu_goto_form(menu, menu_get_int(menu, s, 1));
+    return;
+  }
+  
+  switch(*s) {
+  case 'F':
+    menu_fileselector(menu, 0);   // init
+    menu->form = MENU_FORM_FSEL;
+    menu->entry = 1;
+    break;
+    
+  case 'S':
+    menu_goto_form(menu, menu_get_int(menu, s, MENU_ENTRY_INDEX_FORM));
+    break;
+
+  case 'L': {
+    int value = menu_variable_get(menu, s) + 1;
+    int max_value = menu_get_options(menu, s, MENU_ENTRY_INDEX_OPTIONS)-1;
+    if(value > max_value) value = 0;    
+    menu_variable_set(menu, s, value);
+  } break;
+
+  case 'B': {
+    char id = menu_get_chr(menu, s, 2);
+    
+    //    if(id == 'S')
+    //      menu_settings_save(menu);
+
+    // normal reset
+    if(id == 'R') {    
+      osd_emit(menu->osd, 'R', 1);
+      osd_emit(menu->osd, 'R', 0);
+    }
+
+    // cold boot
+    if(id == 'B') {    
+      osd_emit(menu->osd, 'R', 3);
+      osd_emit(menu->osd, 'R', 0);
+    }
+  } break;
+	
+  default:
+    printf("unknown %c\r\n", *s);    
+  }
+}
+
+static int menu_entry_is_usable(menu_t *menu) {
+  // check the current entry in the menu is actually selectable
+  // (currently only the title of the start form is not)
+
+  // not start form? -> ok
+  if(menu->form) return 1;
+
+  return (menu->entry == 0)?0:1;
+}
+
+static void menu_entry_go(menu_t *menu, int step) {
+  do {
+    menu->entry += step;
+    
+    if(menu->entry < 0) menu->entry = menu->entries-1;
+    if(menu->entry >= menu->entries) menu->entry = 0;
+
+    // scrolling needed?
+    if(step == 1) {
+      if(menu->entries <= 5)                   menu->offset = 0;
+      else {
+	if(menu->entry <= 3)                   menu->offset = 0;
+	else if(menu->entry < menu->entries-2) menu->offset = menu->entry - 3;
+	else                                   menu->offset = menu->entries-5;
+      }
+    }
+
+    if(step == -1) {
+      if(menu->entries <= 5)                   menu->offset = 0;
+      else {
+	if(menu->entry <= 2)                   menu->offset = 0;
+	else if(menu->entry < menu->entries-3) menu->offset = menu->entry - 2;
+	else                                   menu->offset = menu->entries-5;
+      }
+    }
+    
+    // give file selector a chance to adjust scroll
+    if(menu->form == MENU_FORM_FSEL)
+      menu_fileselector(menu, (step>0)?2:3);
+    
+  } while(!menu_entry_is_usable(menu));
+}
+
+void menu_do(menu_t *menu, int event) {
+  if(event)  {
+    if(event == MENU_EVENT_SHOW)   osd_enable(menu->osd, OSD_VISIBLE);
+    if(event == MENU_EVENT_HIDE)   osd_enable(menu->osd, OSD_INVISIBLE);
+    
+    if(event == MENU_EVENT_UP)     menu_entry_go(menu, -1);
+    if(event == MENU_EVENT_DOWN)   menu_entry_go(menu,  1);
+
+    if(event == MENU_EVENT_SELECT) menu_select(menu);
+  }  
+  menu_draw_form(menu, menu->forms[menu->form]);
+}
+

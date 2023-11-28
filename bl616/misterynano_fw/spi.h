@@ -10,6 +10,7 @@
 #define SPI_HID_STATUS   0
 #define SPI_HID_KEYBOARD 1
 #define SPI_HID_MOUSE    2
+#define SPI_HID_JOYSTICK 3
 
 #define SPI_TARGET_OSD   2   // on-screen-display
 #define SPI_OSD_ENABLE   1
@@ -20,7 +21,7 @@
 #define SPI_SDC_STATUS   1   // get sd card status
 #define SPI_SDC_READ     2   // trigger core read
 #define SPI_SDC_MCU_READ 3   // read sector into MCU (e.g. for dir listing)
-#define SPI_SDC_INSERTED 4   // inform core that some disk image has been inserted
+#define SPI_SDC_INSERTED 4   // inform core that some disk image has been insered
 
 typedef struct {
 #ifndef SDL

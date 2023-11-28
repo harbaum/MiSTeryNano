@@ -15,9 +15,8 @@ typedef struct {
 } sdc_dir_t;
 
 int sdc_init(spi_t *spi);
-int sdc_image_open(char *name);
+int sdc_image_open(int drive, char *name);
 sdc_dir_t *sdc_readdir(char *name);
 int sdc_poll(void);
-int sdc_image_inserted(unsigned long size);
 
 #endif // SDC_H

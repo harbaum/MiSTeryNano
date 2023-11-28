@@ -252,7 +252,8 @@ void mcu_read_sector(unsigned long sector, unsigned char *buffer) {
 
 void mcu_poll(void) {
   // MCU requests sd card status
-  unsigned char status = mcu_write_byte(0x01, 1);
+  unsigned char status = mcu_write_byte(0x01, 1);  
+  unsigned char request = mcu_write_byte(0, 0); 
   // push in one more byte
   //  unsigned char status = mcu_read_byte();
   printf("STATUS = %02x\n", status);
@@ -265,7 +266,7 @@ void mcu_poll(void) {
   for(int i=0;i<4;i++)
     sector = (sector << 8) | mcu_read_byte();
 
-  if(status & 1) {
+  if(request & 1) {
     run(100);
 
     if(!fil.flag) return;
@@ -282,9 +283,9 @@ void mcu_poll(void) {
 
     // in return request core to load sector + 100
     unsigned char status = mcu_write_byte(0x02, 1);
-    
-    for(int i=0;i<4;i++)
-      mcu_write_byte((dsector >> 8*(3-i))&0xff, 0);    
+
+    // write sector number to load
+    for(int i=0;i<4;i++) mcu_write_byte((dsector >> 8*(3-i))&0xff, 0);    
   }
 }
 
@@ -439,9 +440,10 @@ int main(int argc, char **argv) {
 
   wait_ms(40);
 
-  read_sector(0, 3);
+  read_sector(0, 3);  
+  read_sector(0, 4);
 
-  wait_ms(10);
+  wait_ms(20);
   
 #else
   run(10000);

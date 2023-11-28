@@ -109,12 +109,26 @@ wire [15:0] mdin;    // in from ram
 wire ram_ready;
 wire refresh;
 
-// address bit 4 is inverted in 8MB setup. This is done to make
-// sure the memory layout is different in 4MB and 8MB setup and
-// when being switched the ram contents appear invalid and ram is
-// retested by tos after a change of ram size
-wire [22:1] ram_a_s = { ram_a[22:5], ram_a[4]^osd_system_memory, ram_a[3:1] };
-   
+// osd_system_reset[1] indicates whether a coldboot is requested. This
+// can either be triggered imlicitely by the user changing hardweare
+// specs (ST vs. STE or RAM size) or explicitely via an OSD menu entry.
+// A cold boot means that the ram contents becomoe invalid. We achieve this
+// by scrambling the RAM address space a little bit on every rising edge
+// of osd_system_reset[1] 
+reg [1:0] ram_scramble;
+always @(posedge clk_32) begin
+    reg cb_D;
+    cb_D <= osd_system_reset[1];
+
+    if(osd_system_reset[1] && !cb_D)
+        ram_scramble <= ram_scramble + 2'd1;
+end
+
+// RAM is scrambled by xor'ing adress lines 3 and 4 with the scramble bits
+wire [22:1] ram_a_s = { ram_a[22:5], 
+    ram_a[4:3] ^ ram_scramble, 
+    ram_a[2:1] };
+
 sdram sdram (
         .clk(clk_32),
         .reset_n(pll_lock),
@@ -192,11 +206,11 @@ mcu_spi mcu (
         .mcu_sdc_din(sdc_data_out)
         );
 
-// joy0 is usually used for the mouse, joy1 for the joystick
-// in HID mode the joystick uses the inputs that were formerly
-// used for the mouse. This may also be replaced by USB joysticks
+// joy0 is usually used for the mouse, joy1 for the joystick. The
+// joystick can either be driven from the external MCU or via FPGA IO pins
 wire [5:0] joy0;
-wire [4:0] joy1 = { !io[0], !io[2], !io[1], !io[4], !io[3] };
+wire [4:0] hid_joy1;
+wire [4:0] joy1 = hid_joy1 | { !io[0], !io[2], !io[1], !io[4], !io[3] };
 
 // The keyboard matrix is maintained inside HID
 wire [7:0] keyboard[14:0];
@@ -232,7 +246,8 @@ hid hid (
         .data_out(hid_data_out),
 
         .mouse(joy0),
-        .keyboard(keyboard)
+        .keyboard(keyboard),
+        .joystick(hid_joy1)
          );   
 
 
@@ -250,11 +265,11 @@ wire [1:0]  sd_img_mounted;
 wire [1:0] osd_system_chipset;
 wire osd_system_memory;
 wire osd_system_video;
-wire osd_system_reset;
+wire [1:0] osd_system_reset;
 
 atarist atarist (
     .clk_32(clk_32),
-    .resb(!osd_system_reset && !reset && pll_lock && ram_ready && flash_ready && sd_ready),       // user reset button
+    .resb(!osd_system_reset[0] && !reset && pll_lock && ram_ready && flash_ready && sd_ready),       // user reset button
     .porb(pll_lock),
 
     // video output
@@ -399,7 +414,7 @@ sd_card #(
     .image_mounted(sd_img_mounted),
 
     // user read sector command interface (sync with clk)
-    .rstart(sd_rd[0]), 
+    .rstart(sd_rd), 
     .rsector(sd_lba),
     .rbusy(sd_busy),
     .rdone(sd_done),

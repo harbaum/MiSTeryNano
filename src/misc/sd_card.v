@@ -32,8 +32,8 @@ module sd_card # (
     // sd card. Now this goes to the MCU via the MCU interface as the MCU translates sector
     // numbers from those the core tries to use to physical ones inside the file system
     // of the sd card
-    input	     rstart, 
-    input [31:0]     rsector,
+    input [1:0]  rstart, 
+    input [31:0] rsector,
     output	     rbusy,
     output	     rdone,
 
@@ -49,6 +49,8 @@ wire [1:0] card_type;  // 0=UNKNOWN    , 1=SDv1    , 2=SDv2  , 3=SDHCv2
 reg [7:0] command;
 reg [3:0] byte_cnt;  
 
+reg [7:0] image_target; 
+
 reg	  lstart;   
 reg [31:0] lsector;  
 
@@ -57,11 +59,18 @@ reg 	   mcu_tx_data;
 reg [8:0]  mcu_tx_cnt;  
 reg [7:0] buffer [512];  
 
+// Keep track of current sector destination. We cannot use the command
+// directly as the MCU may alter this during sector transfer
+reg read_to_mcu;
+
 always @(posedge clk) begin
-   if(command == 8'd3 && louten)
+   if(read_to_mcu && louten)
      buffer[outaddr] <= outbyte;   
 end
-   
+
+// register the rising edge of rstart and clear it once
+// it has been reported to the MCU
+
 always @(posedge clk) begin
    if(!rstn) begin
       byte_cnt <= 4'd15;
@@ -72,18 +81,25 @@ always @(posedge clk) begin
    end else begin
       // done from sd reader acknowledges/clears start
       if(rdone) lstart <= 1'b0;
-      
+
       if(data_strobe) begin
         if(data_start) begin
 	    command <= data_in;
+
+        // differentiate between the two reads
+        if(data_in == 8'd2 || data_in == 8'd3)
+            read_to_mcu <= (data_in == 8'd3);
+
 	    byte_cnt <= 4'd0;	    
-	    data_out <= { card_stat, card_type, 1'b0, rstart };
+	    data_out <= { card_stat, card_type, rbusy, 1'b0 };
 	 end else begin
 	    if(command == 8'd1) begin
-	       if(byte_cnt == 4'd0) data_out <= rsector[31:24];
-	       if(byte_cnt == 4'd1) data_out <= rsector[23:16];
-	       if(byte_cnt == 4'd2) data_out <= rsector[15: 8];
-	       if(byte_cnt == 4'd3) data_out <= rsector[ 7: 0];
+            // request byte
+	       if(byte_cnt == 4'd0) data_out <= { 6'b00000, rstart };
+	       if(byte_cnt == 4'd1) data_out <= rsector[31:24];
+	       if(byte_cnt == 4'd2) data_out <= rsector[23:16];
+	       if(byte_cnt == 4'd3) data_out <= rsector[15: 8];
+	       if(byte_cnt == 4'd4) data_out <= rsector[ 7: 0];
 	    end
 
 	    if(command == 8'd2 || command == 8'd3) begin
@@ -123,12 +139,14 @@ always @(posedge clk) begin
 	    if(command == 8'd4) begin
 	       // MCU reports that some image has been inserted. If the image size
 	       // is 0, then no image is inserted
-	       if(byte_cnt == 4'd0) image_size[31:24] <= data_in;
-	       if(byte_cnt == 4'd1) image_size[23:16] <= data_in;
-	       if(byte_cnt == 4'd2) image_size[15:8]  <= data_in;
-	       if(byte_cnt == 4'd3) begin 
+	       if(byte_cnt == 4'd0) image_target <= data_in;
+	       if(byte_cnt == 4'd1) image_size[31:24] <= data_in;
+	       if(byte_cnt == 4'd2) image_size[23:16] <= data_in;
+	       if(byte_cnt == 4'd3) image_size[15:8]  <= data_in;
+	       if(byte_cnt == 4'd4) begin 
 		  image_size[7:0]   <= data_in;
-		  image_mounted[0] <= (image_size[31:8] != 24'd0 || data_in != 8'd0)?1'b1:1'b0;
+            if(image_target <= 8'd1)
+                image_mounted[image_target] <= (image_size[31:8] != 24'd0 || data_in != 8'd0)?1'b1:1'b0;            
 	       end
 	    end
 	    
@@ -140,7 +158,7 @@ end
 
 // only export outen if the resulting data is for the core
 wire louten;  
-assign outen = (command == 2'd2)?louten:1'b0;   
+assign outen = read_to_mcu?1'b0:louten;   
    
 sd_reader #(.CLK_DIV(CLK_DIV), .SIMULATE(SIMULATE)) sd_reader (
    // rstn active-low, 1:working, 0:reset

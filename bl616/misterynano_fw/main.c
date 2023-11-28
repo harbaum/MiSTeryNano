@@ -8,11 +8,6 @@
 
 #include "usb_config.h"
 
-// #include "bflb_ef_ctrl.h"
-// efuse_dev = bflb_device_get_by_name("ef_ctrl");
-//bflb_ef_ctrl_write_direct(efuse_dev, EFUSE_DATA_START_ADDR, (uint32_t *)efuse_data_write, EFUSE_DATA_LEN, 1);
-//bflb_ef_ctrl_read_direct(efuse_dev, EFUSE_DATA_START_ADDR, (uint32_t *)efuse_data_read, EFUSE_DATA_LEN, 1);
-
 struct bflb_device_s *gpio;
 
 #include <stdio.h>
@@ -25,16 +20,14 @@ struct bflb_device_s *gpio;
 QueueHandle_t xQueue = NULL;
 
 static void sdc_task(void *parms) {
-  spi_t *spi = (spi_t*)parms;
-
   while(1) {
     sdc_poll();
-    vTaskDelay(10);
+    // this delay needs to be rather short to ensure that the
+    // MCU responds fast enough to sector requests by the core
+    vTaskDelay(pdMS_TO_TICKS(1));
   }
 }
   
-// OSD task gets a callback which it calls whenever the OSD
-// opems or closes to inform the USB layer about the OSD state
 static void osd_task(void *parms) {
   menu_t *menu;
 
@@ -52,7 +45,8 @@ static void osd_task(void *parms) {
     xQueueReceive( xQueue, &cmd, 0xffffffffUL);
     menu_do(menu, cmd);
 
-    printf("BTN %d\r\n", bflb_gpio_read(gpio, GPIO_PIN_2));
+    // test poll the UPDATE button
+    // printf("BTN %d\r\n", bflb_gpio_read(gpio, GPIO_PIN_2));
   }
 }
     
@@ -114,11 +108,11 @@ int main(void) {
     //    printf("SET: %02x\r\n", *(unsigned char*)0x20010800);
     
     // start a thread for the on screen display    
-    xTaskCreate(osd_task, (char *)"osd_task", 512, spi, configMAX_PRIORITIES-3, &osd_handle);
+    xTaskCreate(osd_task, (char *)"osd_task", 4096, spi, configMAX_PRIORITIES-3, &osd_handle);
 
     // create another task to frequently poll the FPGA via SPI for e.g.
     // floppy disk requests
-    xTaskCreate(sdc_task, (char *)"sdc_task", 512, spi, configMAX_PRIORITIES-3, &sdc_handle);
+    xTaskCreate(sdc_task, (char *)"sdc_task", 4096, spi, configMAX_PRIORITIES-3, &sdc_handle);
     
     vTaskStartScheduler();
 

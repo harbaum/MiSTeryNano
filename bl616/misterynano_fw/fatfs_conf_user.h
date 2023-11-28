@@ -51,7 +51,7 @@ All configuration items must be included in the file */
 #define FF_USE_FORWARD 0
 /* This option switches f_forward() function. (0:Disable or 1:Enable) */
 
-#define FF_USE_STRFUNC 0
+#define FF_USE_STRFUNC 1
 #define FF_PRINT_LLI   1
 #define FF_PRINT_FLOAT 1
 #define FF_STRF_ENCODE 3

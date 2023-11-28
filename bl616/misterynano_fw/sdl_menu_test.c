@@ -4,14 +4,21 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include "mui.h"
-#include "mui_u8g2.h"
 #include "ff.h"
 #include "diskio.h"
+
 #include "menu.h"
 
+/* TODO
+   - font fix
+   - usb message from cb 
+   - long filename scroll
+   - config
+     - scanlines
+     - volume
+ */
+
 u8g2_t u8g2;
-mui_t ui;
 
 static FATFS fs;
 static FIL fil;
@@ -172,7 +179,7 @@ sdc_dir_t *sdc_readdir(char *name) {
 
 void osd_enable(osd_t *, char) { }
 
-void osd_emit(osd_t *, char id[2], uint8_t v) {
+void osd_emit(osd_t *, const char id[2], uint8_t v) {
   printf("EMIT %c%c=%d\n", id[0], id[1], v);
 }
 
@@ -183,17 +190,12 @@ static LBA_t clst2sect(DWORD clst) {
 }
 
 int main(void) {
-  u8g2_SetupBuffer_SDL_128x64_4(&u8g2, &u8g2_cb_r0);
+  u8g2_SetupBuffer_SDL_128x64(&u8g2, &u8g2_cb_r0);
   u8x8_InitDisplay(u8g2_GetU8x8(&u8g2));
-  u8x8_SetPowerSave(u8g2_GetU8x8(&u8g2), 0);  
-  
-  u8x8_ConnectBitmapToU8x8(u8g2_GetU8x8(&u8g2));		/* connect to bitmap */
-  
-  u8g2_SetFontMode(&u8g2, 1);
 
   fs_init();
 
-  menu_t *menu = menu_init(&u8g2, &ui);
+  menu_t *menu = menu_init(&u8g2);
   menu_do(menu, 0);
 
   int k = -1;
@@ -203,6 +205,8 @@ int main(void) {
     if(k >= 0) {
       // printf("K = %d\n", k);
       int event = 0;
+      if ( k == 276 ) event = MENU_EVENT_LEFT;
+      if ( k == 275 ) event = MENU_EVENT_RIGHT;
       if ( k == 274 ) event = MENU_EVENT_DOWN;
       if ( k == 273 ) event = MENU_EVENT_UP;
       if ( k == ' ' ) event = MENU_EVENT_SELECT;

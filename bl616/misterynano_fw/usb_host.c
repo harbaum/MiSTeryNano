@@ -104,7 +104,8 @@ void kbd_parse(struct usb_config *usb, unsigned char *buffer, int nbytes) {
 	    // check if cursor up/down or space has been pressed
 	    if(buffer[2+i] == 0x51) msg = MENU_EVENT_DOWN;      
 	    if(buffer[2+i] == 0x52) msg = MENU_EVENT_UP;
-	    if(buffer[2+i] == 0x2c) msg = MENU_EVENT_SELECT;
+	    if((buffer[2+i] == 0x2c) || (buffer[2+i] == 0x28))
+	      msg = MENU_EVENT_SELECT;
 	  }
 	}
 	  
@@ -129,6 +130,20 @@ void mouse_parse(struct usb_config *usb, signed char *buffer, int nbytes) {
   xQueueSendToBackFromISR(iQueue, mouse_cmd,  ( TickType_t ) 0);
 }
 
+void rii_joy_parse(struct usb_config *usb, unsigned char *buffer) {
+  unsigned char b = 0;
+  if(buffer[0] == 0xcd && buffer[1] == 0x00) b = 0x10;      // cd == play/pause  -> center
+  if(buffer[0] == 0xe9 && buffer[1] == 0x00) b = 0x08;      // e9 == V+          -> up
+  if(buffer[0] == 0xea && buffer[1] == 0x00) b = 0x04;      // ea == V-          -> down
+  if(buffer[0] == 0xb6 && buffer[1] == 0x00) b = 0x02;      // b6 == skip prev   -> left
+  if(buffer[0] == 0xb5 && buffer[1] == 0x00) b = 0x01;      // b5 == skip next   -> right
+
+  printf("RII Joy: %02x\r\n", b);
+  
+  unsigned char rii_joy_cmd[4] = { SPI_HID_JOYSTICK, b };  
+  xQueueSendToBackFromISR(iQueue, rii_joy_cmd,  ( TickType_t ) 0);  
+}
+
 void usbh_hid_callback(void *arg, int nbytes) {
   struct hid_info_S *hid_info = (struct hid_info_S *)arg;
 
@@ -150,7 +165,18 @@ void usbh_hid_callback(void *arg, int nbytes) {
     USB_LOG_RAW("\r\n");
     
     // parse reply
-    
+
+    // the following is a hack for the Rii keyboard/touch combos to use the
+    // left top multimedia pad as a joystick. These special keys are sent
+    // via the mouse/touchpad part
+    if(hid_info->report.report_id_present &&
+       hid_info->report.type == REPORT_TYPE_MOUSE &&
+       nbytes == 3 &&
+       hid_info->buffer[0] == 0x01) {
+      rii_joy_parse(hid_info->usb, hid_info->buffer+1);
+      return;
+    }
+      
     // check and skip report id if present
     unsigned char *buffer = hid_info->buffer;
     if(hid_info->report.report_id_present) {

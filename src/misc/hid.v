@@ -14,7 +14,8 @@ module hid (
   output reg [7:0] data_out,
 
   output [5:0]     mouse,
-  output reg [7:0] keyboard[14:0]
+  output reg [7:0] keyboard[14:0],
+  output reg [4:0] joystick
 );
 
 reg [1:0] mouse_btns;
@@ -71,6 +72,11 @@ always @(posedge clk) begin
                 if(state == 4'd1) mouse_btns <= data_in[1:0];
                 if(state == 4'd2) mouse_x_cnt <= mouse_x_cnt + data_in;
                 if(state == 4'd3) mouse_y_cnt <= mouse_y_cnt + data_in;
+            end
+
+            // digital joystick data?
+            if(device == 8'd3) begin
+                if(state == 4'd1) joystick <= data_in[4:0];
             end
         end
       end else begin // if (data_in_strobe)

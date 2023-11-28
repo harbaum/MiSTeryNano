@@ -23,7 +23,9 @@ module osd_u8g2 (
   output reg [1:0] system_chipset,
   output reg system_memory,
   output reg system_video,
-  output reg system_reset,
+  output reg [1:0] system_reset,
+  output reg [1:0] system_scanlines,
+  output reg [1:0] system_volume,
 
   output [5:0] r_out,
   output [5:0] g_out,
@@ -125,23 +127,21 @@ always @(posedge clk) begin
 
             // OSD command 3: config values set by user via OSD
             if(command == 8'd3) begin
-                if(data_cnt == 10'd0) begin 
-                    // first byte must be "S"
-                    if(data_in == "S") data_cnt <= 10'd1;
-                    else               command  <= 8'h00;
-                end
-                    
-                // second byte can be any character 
-                if(data_cnt == 10'd1) data_cnt <= { 2'b00, data_in };
+                // second byte can be any character which identifies the variable to set 
+                if(data_cnt == 10'd0) data_cnt <= { 2'b00, data_in };
 
-                // Value "SC": chipset ST(0), MegaST(1) or STE(2)
+                // Value "C": chipset ST(0), MegaST(1) or STE(2)
                 if(data_cnt == { 2'b00, "C" }) system_chipset <= data_in[1:0];
-                // Value "SM": 4MB(0) or 8MB(1)
+                // Value "M": 4MB(0) or 8MB(1)
                 if(data_cnt == { 2'b00, "M" }) system_memory <= data_in[0];
-                // Value "SV": color(0) or monochrome(1)
+                // Value "V": color(0) or monochrome(1)
                 if(data_cnt == { 2'b00, "V" }) system_video <= data_in[0];
-                // Value "SR": reset(1) or run(0)
-                if(data_cnt == { 2'b00, "R" }) system_reset <= data_in[0];
+                // Value "R": coldboot(3), reset(1) or run(0)
+                if(data_cnt == { 2'b00, "R" }) system_reset <= data_in[1:0];
+                // Value "S": scanlines none(0), 25%(1), 50%(2) or 75%(3)
+                if(data_cnt == { 2'b00, "S" }) system_scanlines <= data_in[1:0];
+                // Value "A": volume mute(0), 33%(1), 66%(2) or 100%(3)
+                if(data_cnt == { 2'b00, "A" }) system_volume <= data_in[1:0];
             end
         end
       end

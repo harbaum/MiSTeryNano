@@ -12,7 +12,7 @@
 static spi_t *spi;
 
 static FATFS fs;
-static FIL fil;
+static FIL fil[2];
 
 static DWORD *lktbl = NULL;
 
@@ -52,6 +52,19 @@ static void hexdump(void *data, int size) {
 }
 
 int sdc_read_sector(unsigned long sector, unsigned char *buffer) {
+  // check if sd card is still busy as it may
+  // be reading a sector for the core. Forcing a MCU read
+  // may change the data direction from core to mcu while
+  // the core is still reading
+  unsigned char status;
+  do {
+    sdc_spi_begin(spi);  
+    spi_tx_u08(spi, SPI_SDC_STATUS);
+    status = spi_tx_u08(spi, 0);
+    spi_end(spi);  
+    printf("SD status = %x\r\n", status);
+  } while(status & 0x02);   // card busy?
+  
   sdc_spi_begin(spi);  
   spi_tx_u08(spi, SPI_SDC_MCU_READ);
   spi_tx_u08(spi, (sector >> 24) & 0xff);
@@ -114,7 +127,22 @@ static int fs_init() {
   MSC_DiskioDriver.error_code_parsing = Translate_Result_Code;
   
   disk_driver_callback_init(DEV_SD, &MSC_DiskioDriver);
-  
+
+  // wait for SD card to become available
+  // TODO: Add timeout and display error in OSD
+  unsigned char status;
+  do {
+    sdc_spi_begin(spi);  
+    spi_tx_u08(spi, SPI_SDC_STATUS);
+    status = spi_tx_u08(spi, 0);
+    spi_end(spi);  
+  } while((status & 0xf0) != 0x80);
+
+  char *type[] = { "UNKNOWN", "SDv1", "SDv2", "SDHCv2" };
+  printf("SDC status: %02x\r\n", status);
+  printf("  card status: %d\r\n", (status >> 4)&15);
+  printf("  card type: %s\r\n", type[(status >> 2)&3]);
+
   res_msc = f_mount(&fs, CARD_MOUNTPOINT, 1);
   if (res_msc != FR_OK) {
     printf("mount fail,res:%d\r\n", res_msc);
@@ -133,33 +161,32 @@ int sdc_poll(void) {
   // read sd status
   sdc_spi_begin(spi);  
   spi_tx_u08(spi, SPI_SDC_STATUS);
-  unsigned char status = spi_tx_u08(spi, 0);
+  spi_tx_u08(spi, 0);
+  unsigned char request = spi_tx_u08(spi, 0);
   unsigned long rsector = 0;
   for(int i=0;i<4;i++) rsector = (rsector << 8) | spi_tx_u08(spi, 0); 
   spi_end(spi);
 
-#if 0
-  char *type[] = { "UNKNOWN", "SDv1", "SDv2", "SDHCv2" };
-  printf("SDC status: %02x\r\n", status);
-  printf("  card status: %d\r\n", (status >> 4)&15);
-  printf("  card type: %s\r\n", type[(status >> 2)&3]);
-#endif
+  int drive = 0;               // 0 = Drive A:
+  if(request == 2) drive = 1;  // 1 = Drive B:
   
-  if(status & 1) {
-    if(!fil.flag) {
-      // no file selected, nak to make core clear the interrupt
+  if(request & 3) {
+    if(!fil[drive].flag) {
+      // no file selected
+      // this should actually never happen as the core won't request
+      // data if it hasn't been told that an image is inserted
       return -1;
     }
     
     // ---- figure out which physical sector to use ----
   
     // translate sector into a cluster number inside image
-    f_lseek(&fil, (rsector+1)*512);
+    f_lseek(&fil[drive], (rsector+1)*512);
 
     // and add sector offset within cluster    
-    unsigned long dsector = clst2sect(fil.clust) + rsector%fs.csize;
+    unsigned long dsector = clst2sect(fil[drive].clust) + rsector%fs.csize;
     
-    printf("request sector %lu -> %lu\r\n", rsector, dsector);
+    printf("%c: sector %lu -> %lu\r\n", drive?'B':'A', rsector, dsector);
 
     // send sector number to core, so it can fetch the right
     // sector from it's local sd card
@@ -175,15 +202,16 @@ int sdc_poll(void) {
   return 0;
 }
 
-int sdc_image_inserted(unsigned long size) {
+static int sdc_image_inserted(char drive, unsigned long size) {
   // report the size of the inserted image to the core. This is needed
   // to guess sector/track/side information for floppy disk images, so the
   // core can translate from floppy disk to LBA
 
-  printf("Image inserted. Size = %d\r\n", size);
+  printf("%c: inserted. Size = %d\r\n", drive?'B':'A', size);
   
   sdc_spi_begin(spi);  
   spi_tx_u08(spi, SPI_SDC_INSERTED);
+  spi_tx_u08(spi, drive);   // 0 = Disk A:, 1 = Disk B:
   spi_tx_u08(spi, (size >> 24) & 0xff);
   spi_tx_u08(spi, (size >> 16) & 0xff);
   spi_tx_u08(spi, (size >> 8) & 0xff);
@@ -193,39 +221,39 @@ int sdc_image_inserted(unsigned long size) {
   return 0;
 }
 
-int sdc_image_open(char *name) {
+int sdc_image_open(int drive, char *name) {
   char fname[strlen(cwd) + strlen(name) + 2];
   strcpy(fname, cwd);
   strcat(fname, "/");
   strcat(fname, name);
 
   // tell core that the "disk" has been removed
-  sdc_image_inserted(0);
+  sdc_image_inserted(drive, 0);
 
   // close any previous image, especially free the link table
-  if(fil.cltbl) {
+  if(fil[drive].cltbl) {
     printf("freeing link table\r\n");
     free(lktbl);
     lktbl = NULL;
-    fil.cltbl = NULL;
+    fil[drive].cltbl = NULL;
   }
   
   printf("Mounting %s\r\n", fname);
 
-  if(f_open(&fil, fname, FA_OPEN_EXISTING | FA_READ) != 0) {
+  if(f_open(&fil[drive], fname, FA_OPEN_EXISTING | FA_READ) != 0) {
     printf("file open failed\r\n");
     return -1;
   } else {
-    printf("file opened, cl=%d(%d)\r\n", fil.obj.sclust, clst2sect(fil.obj.sclust));
+    printf("file opened, cl=%d(%d)\r\n", fil[drive].obj.sclust, clst2sect(fil[drive].obj.sclust));
     printf("File len = %d, spc = %d, clusters = %d\r\n",
-	   fil.obj.objsize, fs.csize, fil.obj.objsize / 512 / fs.csize);      
+	   fil[drive].obj.objsize, fs.csize, fil[drive].obj.objsize / 512 / fs.csize);      
     
     // try with a 16 entry link table
     lktbl = malloc(16 * sizeof(DWORD));    
-    fil.cltbl = lktbl;
+    fil[drive].cltbl = lktbl;
     lktbl[0] = 16;
     
-    if(f_lseek(&fil, CREATE_LINKMAP)) {
+    if(f_lseek(&fil[drive], CREATE_LINKMAP)) {
       // this isn't really a problem. But sector access will
       // be slower
       printf("Link table creation failed, required size: %d\r\n", lktbl[0]);
@@ -234,11 +262,11 @@ int sdc_image_open(char *name) {
       lktbl = realloc(lktbl, sizeof(DWORD) * lktbl[0]);
 
       // and retry link table creation
-      if(f_lseek(&fil, CREATE_LINKMAP)) {
+      if(f_lseek(&fil[drive], CREATE_LINKMAP)) {
 	printf("Link table creation finally failed, required size: %d\r\n", lktbl[0]);
 	free(lktbl);
 	lktbl = NULL;
-	fil.cltbl = NULL;
+	fil[drive].cltbl = NULL;
 
 	return -1;
       } else
@@ -247,16 +275,13 @@ int sdc_image_open(char *name) {
   }
 
   // image has successfully been opened, so report image size to core
-  sdc_image_inserted(fil.obj.objsize);
+  sdc_image_inserted(drive, fil[drive].obj.objsize);
   
   return 0;
 }
 
 sdc_dir_t *sdc_readdir(char *name) {
   static sdc_dir_t sdc_dir = { 0, NULL };
-
-  // set default path
-  if(!cwd) cwd = strdup(CARD_MOUNTPOINT);
 
   int dir_compare(const void *p1, const void *p2) {
     sdc_dir_entry_t *d1 = (sdc_dir_entry_t *)p1;
@@ -343,6 +368,13 @@ int sdc_init(spi_t *p_spi) {
   printf("---- SDC init ----\r\n");
 
   fs_init();
+
+  // set default path
+  if(!cwd) cwd = strdup(CARD_MOUNTPOINT);
+
+  // try to open default images
+  sdc_image_open(0, "disk_a.st");
+  sdc_image_open(1, "disk_b.st");
 
   sdc_poll();
   

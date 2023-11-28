@@ -21,11 +21,11 @@ module video (
           input        mcu_osd_strobe,
           input [7:0]  mcu_data,
 
-          // values that can be configure by the user via osd
+          // values that can be configure by the user via osd          
           output [1:0] osd_system_chipset,
           output osd_system_memory,
           output osd_system_video,
-          output osd_system_reset,
+          output [1:0] osd_system_reset,   // reset and coldboot flag
 		 
 	      // hdmi/tdms
 	      output	   tmds_clk_n,
@@ -81,6 +81,9 @@ video_analyzer video_analyzer (
    .vreset(vreset)  // reset signal
 );  
 
+wire [1:0] osd_system_scanlines;
+wire [1:0] osd_system_volume;
+   
 wire sd_hs_n, sd_vs_n; 
 wire [5:0] sd_r;
 wire [5:0] sd_g;
@@ -94,7 +97,7 @@ scandoubler #(10) scandoubler (
         .pixel_ena(),
 
         // scanlines (00-none 01-25% 10-50% 11-75%)
-        .scanlines(2'b00),
+        .scanlines(osd_system_scanlines),
 
         // shifter video interface
         .hs_in(hs_in_n),
@@ -114,7 +117,7 @@ scandoubler #(10) scandoubler (
 wire [5:0] osd_r;
 wire [5:0] osd_g;
 wire [5:0] osd_b;  
-   
+
 osd_u8g2 osd_u8g2 (
         .clk(clk_pixel),
         .reset(!pll_lock),
@@ -134,6 +137,8 @@ osd_u8g2 osd_u8g2 (
         .system_memory(osd_system_memory),
         .system_video(osd_system_video),
         .system_reset(osd_system_reset),
+        .system_scanlines(osd_system_scanlines),
+        .system_volume(osd_system_volume),
 
         .r_out(osd_r),
         .g_out(osd_g),
@@ -143,6 +148,19 @@ osd_u8g2 osd_u8g2 (
 wire [2:0] tmds;
 wire tmds_clock;
 
+// scale audio for valume by signed division
+wire [15:0] audio_vol_l = 
+    (osd_system_volume == 2'd0)?16'd0:
+    (osd_system_volume == 2'd1)?{ {2{audio_l[15]}}, audio_l[15:2] }:
+    (osd_system_volume == 2'd2)?{ audio_l[15], audio_l[15:1] }:
+    audio_l;
+
+wire [15:0] audio_vol_r = 
+    (osd_system_volume == 2'd0)?16'd0:
+    (osd_system_volume == 2'd1)?{ {2{audio_r[15]}}, audio_r[15:2] }:
+    (osd_system_volume == 2'd2)?{ audio_r[15], audio_r[15:1] }:
+    audio_r;
+
 hdmi #(
     .AUDIO_RATE(48000), .AUDIO_BIT_WIDTH(16),
     .VENDOR_NAME( { "MiSTle", 16'd0} ),
@@ -151,7 +169,7 @@ hdmi #(
   .clk_pixel_x5(clk_pixel_x5),
   .clk_pixel(clk_pixel),
   .clk_audio(clk_audio),
-  .audio_sample_word( { audio_l, audio_r } ),
+  .audio_sample_word( { audio_vol_l, audio_vol_r } ),
   .tmds(tmds),
   .tmds_clock(tmds_clock),
 

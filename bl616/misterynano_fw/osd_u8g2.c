@@ -100,16 +100,24 @@ void osd_enable(osd_t *osd, char en) {
   spi_end(osd->spi);  
 }
 
-void osd_emit(osd_t *osd, char id[2], uint8_t value) {
-  printf("OSD emit %c%c = %d\r\n", id[0], id[1], value);
+void osd_emit(osd_t *osd, char id, uint8_t value) {
+  printf("OSD emit %c = %d\r\n", id, value);
   
   spi_begin(osd->spi);  
   spi_tx_u08(osd->spi, SPI_TARGET_OSD);
   spi_tx_u08(osd->spi, SPI_OSD_SET);  // send value command
-  spi_tx_u08(osd->spi, id[0]); // value id hi
-  spi_tx_u08(osd->spi, id[1]); // value id low
+  spi_tx_u08(osd->spi, id);    // value id
   spi_tx_u08(osd->spi, value); // value itself
   spi_end(osd->spi);  
+}
+
+// TODO: reorg to make space for floppy b and acsi
+void osd_message(osd_t *osd, char *message) {
+  u8g2_SetFont(&(osd->u8g2), u8g2_font_6x10_tf);
+  u8g2_SetFontRefHeightAll(&(osd->u8g2));  	/* this will add some extra space for the text inside the buttons */
+  u8g2_UserInterfaceMessage(&(osd->u8g2), message, "Title2", "Title3", " Ok ");
+
+  osd_enable(osd, 1);
 }
 
 osd_t *osd_init(spi_t *spi) {

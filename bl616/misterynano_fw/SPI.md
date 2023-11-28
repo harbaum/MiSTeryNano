@@ -152,12 +152,13 @@ The SDC target supports the following commands:
 
 The ```SPI_SDC_STATUS``` is used to poll the SD card status. The first
 byte returned is a generic status byte indicating whether the card
-could be initialized and the card type (SDv1, SDv2, SDHC). The lower
-two bits are request bytes which are set by the core if it needs to
-read a sector. In the Atari ST core bit 0 indicates a request for
-floppy A: and bit 1 for floppy B: (currently only floppy A is
-implemented). The following four bytes contain the sector number the
-core wants to read.
+could be initialized and the card type (SDv1, SDv2, SDHC). Bit 1 of
+the status byte indicates whether the SD card is currenly busy reading
+or writing data. The second byte contains core requests. Currently the
+lower two bits are used by the core to request sector data. In the
+Atari ST core bit 0 indicates a request for floppy A: and bit 1 for
+floppy B:. The following four bytes contain the sector number the core
+wants to read.
 
 The ```SPI_SDC_READ``` requests the core to read a sector from SD card
 and use it for it's own purposes. The command is followed by four
@@ -179,10 +180,10 @@ data is not visible to the core. Instead it used by the MCU to display the
 contents of the SD card and to determine where data is stored inside the images
 files stored on the SD card.
 
-The ```SPI_SDC_INSERTED``` command and the following four data bytes
-are used to inform the core about the size of the selected disk
-image. This is needed to translate between the track/sector/side
+The ```SPI_SDC_INSERTED``` command and the following five data bytes
+are used to inform the core about drive and the size of the selected
+disk image. This is needed to translate between the track/sector/side
 values typically used when reading from floppy disk into sector
-offsets into the image file. A size of 0 indicates that no image
-is currently selected. The core should then behave as if e.g. no
-floppy disk is inserted.
+offsets into the image file. A size of 0 indicates that no image is
+currently selected. The core should then behave as if e.g. no floppy
+disk is inserted.

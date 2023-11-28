@@ -24,11 +24,12 @@ The MiSTeryNano is a work in progress. Current features are:
     * Mapped to USB via BL616 MCU
     * Mouse and keyboard via USB
     * Joystick via IO pins of Tang Nano
-  * Floppy disk image stored on regular FAT/exFAT formatted SD card
+  * Floppy disk images
+    * Read support for drive A: and drive B:
+    * Images stored on regular FAT/exFAT formatted SD card
 
 ## Missing features
 
-  * Support for floppy drive B
   * Support for hard disk images
   * Floppy disk write support
 
