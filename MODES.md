@@ -9,7 +9,7 @@ In order to be able to setup the MiSTeryNano on the Tang Nano 20k
 without an additional MCU and to be able to update it later, three
 fundamental operation modes are needed:
 
-  * Normal mode: The FPGA and the BL616 operate in "user mode"
+  * Normal mode:
     * The FPGA runs the Atari ST core
     * The BL616 runs the MiSTeryNano firmware
     * The Tang Nano 20k USB is connected to peripherals (keyboard, mouse)
@@ -24,18 +24,18 @@ fundamental operation modes are needed:
 
 ## Initial flashing
 
-In factory state the MCU on the Tang Nano 20k comes with a flasher firmware
-pre-installed and the device is bascially in "FPGA update mode". In this mode
-the FPGA can be flashed with the MiSTeryNano core like with any other core. In
-this mode the Tang Nano 20k identifies itself on USB to the PC as "20K's FRIEND".
+In factory state the MCU on the Tang Nano 20k comes with a flasher
+firmware pre-installed and the device is bascially permanently in
+"FPGA update mode". In this mode the FPGA can be flashed with the
+MiSTeryNano core like with any other core. In this mode the Tang Nano
+20k identifies itself on USB to the PC as "20K's FRIEND".
 
 To get into "MCU update mode" the UPDATE button on the Tang Nano 20k
 has to be pressed during power up. The FPGA will still boot normal and
 runs its core but the MCU will go into self-update-mode and can be
-flashed using the (tools from the bouffalo
-SDK)[https://github.com/bouffalolab/bouffalo_sdk/tree/master/tools/bflb_tools/bouffalo_flash_cube]. In
+flashed using the [tools from the bouffalo SDK](https://github.com/bouffalolab/bouffalo_sdk/tree/master/tools/bflb_tools/bouffalo_flash_cube). In
 this mode the Tang Nano 20k identifies itself on USB to the PC as
-"Bouffalo CDC DEMO".  This mode can be used to update the MCU with a
+"Bouffalo CDC DEMO". This mode can be used to update the MCU with a
 version of the MiSTeryNano firmware that is suited to run on the
 on-board BL616 MCU (in contrast to e.g. a version meant to run on an
 externally connected M0S Dock).
@@ -95,3 +95,16 @@ Once in "FPGA update mode" the Tang Nano 20k should show up as a USB
 device on the PC and it can be used to update the FPGA as usual. After the
 next power-cycle the MCU will return into "Normal mode".
 
+## Summary
+
+The tree operation modes of a MiSTeryNano installation can be reached
+using the UPDATE button on the Tang Nano 20k:
+
+  * Without the button pressed the MiSTeryNano will boot the FPGA
+    and the on-board BL616 MCU into the normal use mode.
+  * With the UPDATE button pressed during power-on the MCU will
+    go into update mode and the MCU can be flashed from a PC
+    via USB.
+  * The UPDATE button pressed ~1 second _after_ power on for
+    five further seconds the MCU will go into FPGA update mode
+    and the FPGA can be flashed from a PC via USB.
