@@ -39,17 +39,18 @@ sampled on the falling edge of clock.
 
 SPI communication is initiated by the MCU by driving CSN low.
 
-The basic SPI communication runs between [```spi.c```](spi.c) on the
-MCU side and [```mcu_spi.v```](../../src/misc/mcu_spi.v) on FPGA side.
+The basic SPI communication runs between [```spi.c```](bl616/misterynano_fw/spi.c) on the
+MCU side and [```mcu_spi.v```](src/misc/mcu_spi.v) on FPGA side.
 
 The first byte of each message identifies the target inside the FPGA
 the MCU wants to address. Currently implemented are:
 
 | value | name | description | MCU implementation | FPGA implementation |
 |-------|------|-------------|--------------------|---------------------|
-| 1     | HID  | Human Interface Devices, e.g. keyboard & mice | [```usb_host.c```](usb_host.c) | [```hid.v```](../../src/misc/hid.v) |
-| 2     | OSD  | On-Screen-Display | [```osd_u8g2.c```](osd_u8g2.c) | [```osd_u8g2.v```](../../src/misc/osd_u8g2.v) |
-| 3     | SDC  | SD Card   | [```sdc.c```](sdc.c) | [```sd_card.v```](../../src/misc/sd_card.v) |
+| 0     | SYS  | Generic system control | [```sysctrl.c```](bl616/misterynano_fw/sysctrl.c) | [```hid.v```](src/misc/hid.v) |
+| 1     | HID  | Human Interface Devices, e.g. keyboard & mice | [```usb_host.c```](bl616/misterynano_fw/susb_host.c) | [```hid.v```](src/misc/hid.v) |
+| 2     | OSD  | On-Screen-Display | [```osd_u8g2.c```](bl616/misterynano_fw/sosd_u8g2.c) | [```osd_u8g2.v```](src/misc/osd_u8g2.v) |
+| 3     | SDC  | SD Card   | [```sdc.c```](bl616/misterynano_fw/ssdc.c) | [```sd_card.v```](src/misc/sd_card.v) |
 
 Any data after the first target byte is being sent to the target
 inside the FPGA for further parsing. The communication inside the FPGA
@@ -66,19 +67,53 @@ four signals:
 The first byte transferred with ```start``` active (the second byte
 within each SPI message) usually is a command byte for the target.
 
+### SYS target
+
+The SYS (system control) target currently supports these commands:
+
+| value | name | description |
+|---------|-------------|-------------|
+| 0 | ```SPI_SYS_STATUS```   | Request status from FPGA |
+| 1 | ```SPI_SYS_LEDS``` | Send a LED status into the FPGA |
+| 2 | ```SPI_SYS_RGB``` | Send RGB color info into FPGA |
+| 3 | ```SPI_SYS_BTN``` | Request button state from FPGA |
+| 4 | ```SPI_SYS_SET``` | Set a variable in the FPGA |
+
+The ```SPI_SYS_STATUS``` command returns $5c and $42. This can be used to
+check if the FPGA has started up and has the right core installed.
+
+The ```SPI_SYS_LEDS``` command allows to control LEDs 4 and 5.
+
+The ```SPI_SYS_RGB``` command can be used to send a 24 bit (three bytes)
+RGB (red/green/blue) value into the core which it can e.g. use to drive
+the on-board ws2812 led.
+
+The ```SPI_SYS_BTN``` command will return the state of the two S0 and S1
+buttons on the Tang Nano 20k. This can e.g. be used to control the MCU
+via those buttons. The reply also contains latched values from startup
+indicating whether these buttons were pressed during power-up.
+
+The ```SPI_SYS_SET``` command has three data bytes. The first byte
+is the ASCII ID's of a variable to be set and the second byte is a 8 bit value. E.g.
+the Atari ST core supports the configuration of the chipset between three
+value (ST, Mega ST and STE) via the OSD. This setting is sent using the ID 'C'
+(for Chipset) with a value of 0 to 2. The use of these values is core
+specific.
+
 ### HID target
 
 The HID target currently supports three commands:
 
 | value | name | description |
 |---------|-------------|-------------|
-| 0 | ```SPI_HID_STATUS```   | Request status from FPGA. Currently returns 0x5c and 0x42 in bytes 4 and 5 |
+| 0 | ```SPI_HID_STATUS```   | Request status from FPGA |
 | 1 | ```SPI_HID_KEYBOARD``` | Send a keyboard data byte into the FPGA |
 | 2 | ```SPI_HID_MOUSE``` | Send a mouse data byte into the FPGA |
+| 3 | ```SPI_HID_JOYSTICK``` | Send a joystick data byte into the FPGA |
 
 The ```SPI_HID_STATUS``` message is currently unused. It will be used to report the
 HID requirements. This may e.g. include the keycode mapping required
-by the core.
+by the core. This currently returns 0x5c and 0x42 in bytes 4 and 5.
 
 The ```SPI_HID_KEYBOARD``` messages are core specific. Currently each message
 consists of one byte only containing the press/release status and the
@@ -91,6 +126,9 @@ control the OSD.
 The ```SPI_HID_MOUSE``` messages contains three data bytes. The first byte contains
 the state of the mouse buttons in the LSB and the second and third
 byte contain relative x and y movements.
+
+The ```SPI_HID_JOYSTICK``` messages contains a single data byte containing
+classic 5 bit digital joystick data.
 
 ### OSD target
 
@@ -108,7 +146,6 @@ The OSD target supports the following commands:
 |---------|-------------|-------------|
 | 1 | ```SPI_OSD_ENABLE```  | Show or hide the OSD |
 | 2 | ```SPI_OSD_WRITE``` | Send graphics data to the OSD |
-| 3 | ```SPI_OSD_SET``` | Set a variable from OSD |
 
 The ```SPI_OSD_ENABLE``` command has one data byte. The lowest bit of this
 indicates whether the OSD is to be shown (1) or hidden (0).
@@ -119,13 +156,6 @@ starts at. E.g. a offset of 100 indicates that writing should start at tile colu
 100 which is the 800th pixel column. Since the display is 128 pixels wide the
 800th column is the 32th pixel column in tile row 6 (6*128+32=800). This is exactly
 how the u8g2 library expects to address a display.
-
-The ```SPI_OSD_SET``` command has three data bytes. The first and second byte
-are ASCII ID's of a variable to be set and the third byte is a 8 bit value. E.g.
-the Atari ST core supports the configuration of the chipset between three
-value (ST, Mega ST and STE) via the OSD. This setting is sent using the ID 'SC'
-(for System Chipset) with a value of 0 to 2. The use of these values is core
-specific.
 
 ### SDC target
 
