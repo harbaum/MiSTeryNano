@@ -105,6 +105,6 @@ using the UPDATE button on the Tang Nano 20k:
   * With the UPDATE button pressed during power-on the MCU will
     go into update mode and the MCU can be flashed from a PC
     via USB.
-  * The UPDATE button pressed ~1 second _after_ power on for
+  * With the UPDATE button pressed ~1 second _after_ power on for
     five further seconds the MCU will go into FPGA update mode
     and the FPGA can be flashed from a PC via USB.
