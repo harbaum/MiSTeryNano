@@ -16,6 +16,5 @@ typedef struct {
 
 osd_t *osd_init(spi_t *);
 void osd_enable(osd_t *, char);
-void osd_emit(osd_t *, char, uint8_t);
 
 #endif // OSD_H

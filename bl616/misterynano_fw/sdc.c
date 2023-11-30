@@ -8,6 +8,7 @@
 #include <diskio.h>
 #include <ctype.h>
 #include <string.h>
+#include "sysctrl.h"
 
 static spi_t *spi;
 
@@ -131,13 +132,25 @@ static int fs_init() {
   // wait for SD card to become available
   // TODO: Add timeout and display error in OSD
   unsigned char status;
+  int timeout = 2000;
   do {
     sdc_spi_begin(spi);  
     spi_tx_u08(spi, SPI_SDC_STATUS);
     status = spi_tx_u08(spi, 0);
-    spi_end(spi);  
-  } while((status & 0xf0) != 0x80);
+    spi_end(spi);
+    if((status & 0xf0) != 0x80) {
+      timeout--;
+      vTaskDelay(pdMS_TO_TICKS(1));
+    }
+  } while(timeout && ((status & 0xf0) != 0x80));
 
+  // getting here with a timeout either means that there
+  // is no matching core on the FPGA or that there is no
+  // SD card inserted
+  
+  // switch rgb led to green
+  sys_set_rgb(spi, 0x004000);
+  
   char *type[] = { "UNKNOWN", "SDv1", "SDv2", "SDHCv2" };
   printf("SDC status: %02x\r\n", status);
   printf("  card status: %d\r\n", (status >> 4)&15);

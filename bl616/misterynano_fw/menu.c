@@ -9,6 +9,7 @@
 
 #include "sdc.h"
 #include "menu.h"
+#include "sysctrl.h"
 
 // this is the u8g2_font_helvR08_te with any trailing
 // spaces removed
@@ -128,12 +129,11 @@ menu_t *menu_init(u8g2_t *u8g2)
   
   // send initial values for all variables
   for(int i=0;menu.vars[i].id;i++)
-    osd_emit(menu.osd, menu.vars[i].id, menu.vars[i].value);
+    sys_set_val(menu.osd->spi, menu.vars[i].id, menu.vars[i].value);
 
   // and cold reset the core, just in case ...
-  // TODO: keep core in reset until MCU releases it!
-  osd_emit(menu.osd, 'R', 3);
-  osd_emit(menu.osd, 'R', 0);
+  sys_set_val(menu.osd->spi, 'R', 3);
+  sys_set_val(menu.osd->spi, 'R', 0);
   
   return &menu;
 }
@@ -204,14 +204,14 @@ static void menu_variable_set(menu_t *menu, const char *s, int val) {
       menu->vars[i].value = val;
 
       // also set this in the core
-      osd_emit(menu->osd, id, val);
+      sys_set_val(menu->osd->spi, id, val);
 
       // trigger cold reset if memory or chipset have been changed a
       // video change will also trigger a reset, but that's handled by
       // the ST itself
       if((id == 'C') || (id == 'M') ) {
-	osd_emit(menu->osd, 'R', 3);
-	osd_emit(menu->osd, 'R', 0);
+	sys_set_val(menu->osd->spi, 'R', 3);
+	sys_set_val(menu->osd->spi, 'R', 0);
       }
     }
   }
@@ -439,14 +439,14 @@ static void menu_select(menu_t *menu) {
 
     // normal reset
     if(id == 'R') {    
-      osd_emit(menu->osd, 'R', 1);
-      osd_emit(menu->osd, 'R', 0);
+      sys_set_val(menu->osd->spi, 'R', 1);
+      sys_set_val(menu->osd->spi, 'R', 0);
     }
 
     // cold boot
     if(id == 'B') {    
-      osd_emit(menu->osd, 'R', 3);
-      osd_emit(menu->osd, 'R', 0);
+      sys_set_val(menu->osd->spi, 'R', 3);
+      sys_set_val(menu->osd->spi, 'R', 0);
     }
   } break;
 	

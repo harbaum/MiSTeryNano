@@ -62,8 +62,6 @@ spi_t *spi_init(void) {
   spi.dev = bflb_device_get_by_name("spi0");
   bflb_spi_init(spi.dev, &spi_cfg);
   
-  // bflb_spi_txint_mask(spi0, false);
-  // bflb_spi_rxint_mask(spi0, false);
   bflb_spi_tcint_mask(spi.dev, false);
   bflb_irq_attach(spi.dev->irq_num, spi_isr, &spi);
   bflb_irq_enable(spi.dev->irq_num);

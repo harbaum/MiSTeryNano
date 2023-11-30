@@ -9,6 +9,7 @@
 #include "bflb_gpio.h"
 #include "hidparser.h"
 
+// #include "cfg.h"
 #include "menu.h"    // for event codes
 
 // queue to send messages to OSD thread
@@ -172,7 +173,7 @@ void usbh_hid_callback(void *arg, int nbytes) {
     if(hid_info->report.report_id_present &&
        hid_info->report.type == REPORT_TYPE_MOUSE &&
        nbytes == 3 &&
-       hid_info->buffer[0] == 0x01) {
+       hid_info->buffer[0] != hid_info->report.report_id) {
       rii_joy_parse(hid_info->usb, hid_info->buffer+1);
       return;
     }
@@ -233,7 +234,6 @@ static void usbh_hid_update(struct usb_config *usb) {
     }
   }
 
-#ifdef M0S_DOCK
   // check for number of mice and keyboards and update leds
   int mice = 0, keyboards = 0;  
   for(int i=0;i<CONFIG_USBHOST_MAX_HID_CLASS;i++) {
@@ -242,18 +242,22 @@ static void usbh_hid_update(struct usb_config *usb) {
       if(usb->hid_info[i].report.type == REPORT_TYPE_KEYBOARD) keyboards++;      
     }
   }
-  
-  if(mice)      bflb_gpio_reset(gpio, GPIO_PIN_27);
-  else          bflb_gpio_set(gpio, GPIO_PIN_27);
-  
-  if(keyboards) bflb_gpio_reset(gpio, GPIO_PIN_28);
-  else          bflb_gpio_set(gpio, GPIO_PIN_28);
-#endif 
-      
+
+  extern void set_led(int pin, int on);
+  set_led(GPIO_PIN_27, mice);
+  set_led(GPIO_PIN_28, keyboards);
+}
+
+static TaskHandle_t usb_handle;
+
+void usb_host_stop(void) {
+  vTaskDelete( usb_handle );
 }
 
 static void usbh_hid_thread(void *argument) {
   int ret;
+
+  printf("Starting usb host task...\r\n");
 
   struct usb_config *usb = (struct usb_config *)argument;
 
@@ -271,7 +275,7 @@ static void usbh_hid_thread(void *argument) {
 
   while (1) {
     unsigned char cmd[4];
-    
+
     usbh_hid_update(usb);
 
     // TODO: reduce the wait time, so a stream of USB data won't block the loop
@@ -343,10 +347,10 @@ void usbh_hid_stop(struct usbh_hid *hid_class) { }
 void usb_host(spi_t *spi) {
   printf("init usb hid host\r\n");
 
+  usbh_initialize();
+  
   usb_config.spi = spi;
   
-  usbh_initialize();
-
   // mark all HID info entries as unused
   for(int i=0;i<CONFIG_USBHOST_MAX_HID_CLASS;i++) {
     usb_config.hid_info[i].state = 0;
@@ -354,5 +358,5 @@ void usb_host(spi_t *spi) {
     usb_config.hid_info[i].usb = &usb_config;
   }
 
-  usb_osal_thread_create("usbh_hid", 2048, CONFIG_USBHOST_PSC_PRIO + 1, usbh_hid_thread, &usb_config);
+  xTaskCreate(usbh_hid_thread, (char *)"usb_task", 2048, &usb_config, configMAX_PRIORITIES-3, &usb_handle);
 }

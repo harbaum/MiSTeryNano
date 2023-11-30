@@ -6,9 +6,6 @@
 #ifndef CHERRYUSB_CONFIG_H
 #define CHERRYUSB_CONFIG_H
 
-// set to enabled compilation for M0S Dock, otherwise on-board
-#define M0S_DOCK
-
 /* ================ USB common Configuration ================ */
 
 #define CONFIG_USB_PRINTF(...) printf(__VA_ARGS__)
