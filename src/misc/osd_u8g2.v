@@ -19,14 +19,6 @@ module osd_u8g2 (
   input [5:0]  g_in,
   input [5:0]  b_in,
 
-  // values that can be configured by the user
-  output reg [1:0] system_chipset,
-  output reg system_memory,
-  output reg system_video,
-  output reg [1:0] system_reset,
-  output reg [1:0] system_scanlines,
-  output reg [1:0] system_volume,
-
   output [5:0] r_out,
   output [5:0] g_out,
   output [5:0] b_out
@@ -96,11 +88,6 @@ always @(posedge clk) begin
     if(reset) begin
         enabled <= 1'b0;
 
-        // OSD value defaults. These should be the same
-        // as what the BL616 assumes the defaults are
-        system_chipset = 2'b0;
-        system_memory = 1'b0;
-        system_video = 1'b0;
     end else begin
 
       if(data_in_strobe) begin
@@ -124,26 +111,7 @@ always @(posedge clk) begin
                     data_cnt <= data_cnt + 10'd1;
                 end
             end
-
-            // OSD command 3: config values set by user via OSD
-            if(command == 8'd3) begin
-                // second byte can be any character which identifies the variable to set 
-                if(data_cnt == 10'd0) data_cnt <= { 2'b00, data_in };
-
-                // Value "C": chipset ST(0), MegaST(1) or STE(2)
-                if(data_cnt == { 2'b00, "C" }) system_chipset <= data_in[1:0];
-                // Value "M": 4MB(0) or 8MB(1)
-                if(data_cnt == { 2'b00, "M" }) system_memory <= data_in[0];
-                // Value "V": color(0) or monochrome(1)
-                if(data_cnt == { 2'b00, "V" }) system_video <= data_in[0];
-                // Value "R": coldboot(3), reset(1) or run(0)
-                if(data_cnt == { 2'b00, "R" }) system_reset <= data_in[1:0];
-                // Value "S": scanlines none(0), 25%(1), 50%(2) or 75%(3)
-                if(data_cnt == { 2'b00, "S" }) system_scanlines <= data_in[1:0];
-                // Value "A": volume mute(0), 33%(1), 66%(2) or 100%(3)
-                if(data_cnt == { 2'b00, "A" }) system_volume <= data_in[1:0];
-            end
-        end
+         end
       end
    end
 end

@@ -45,10 +45,12 @@
         <File path="./src/misc/mcu_spi.v" type="file.verilog" enable="1"/>
         <File path="./src/misc/osd_u8g2.v" type="file.verilog" enable="1"/>
         <File path="./src/misc/hid.v" type="file.verilog" enable="1"/>
+        <File path="./src/misc/sysctrl.v" type="file.verilog" enable="1"/>
 	
         <File path="./src/tangnano20k/flash_dspi.v" type="file.verilog" enable="1"/>
         <File path="./src/tangnano20k/sdram.v" type="file.verilog" enable="1"/>
         <File path="./src/tangnano20k/video.v" type="file.verilog" enable="1"/>
+        <File path="./src/tangnano20k/ws2812.v" type="file.verilog" enable="1"/>
         <File path="./src/tangnano20k/gowin_rpll/flash_pll.v" type="file.verilog" enable="1"/>
         <File path="./src/tangnano20k/gowin_clkdiv/gowin_clkdiv.v" type="file.verilog" enable="1"/>
         <File path="./src/tangnano20k/gowin_rpll/pll_160m.v" type="file.verilog" enable="1"/>
@@ -63,9 +65,6 @@
         <File path="./src/atarist/ste_joypad.v" type="file.verilog" enable="1"/>
         <File path="./src/atarist/dma.v" type="file.verilog" enable="1"/>
         <File path="./src/atarist/acsi.v" type="file.verilog" enable="1"/>
-
-        <!-- <File path="./src/atarist/YM2149.sv" type="file.verilog" enable="1"/>
-             <File path="./src/atarist/vol_table_array.v" type="file.verilog" enable="1"/> -->
 
 	<File path="./src/jt49/jt49_bus.v" type="file.verilog" enable="1"/>
 	<File path="./src/jt49/jt49.v" type="file.verilog" enable="1"/>

@@ -15,10 +15,12 @@ module mcu_spi (
   output reg   spi_io_dout,
 
   // byte interface to the various core components
+  output       mcu_sys_strobe, // byte strobe for system control target  
   output       mcu_hid_strobe, // byte strobe for HID target  
   output       mcu_osd_strobe, // byte strobe for OSD target
   output       mcu_sdc_strobe, // byte strobe for SD card target
   output       mcu_start,
+  input  [7:0] mcu_sys_din,
   input  [7:0] mcu_hid_din,
   input  [7:0] mcu_osd_din,
   input  [7:0] mcu_sdc_din,
@@ -69,6 +71,7 @@ end // always @ (negedge spi_io_clk or posedge spi_io_ss)
   
 reg spi_in_strobe;
 reg [7:0] spi_target;
+assign mcu_sys_strobe = spi_in_strobe && spi_target == 8'd0;
 assign mcu_hid_strobe = spi_in_strobe && spi_target == 8'd1;
 assign mcu_osd_strobe = spi_in_strobe && spi_target == 8'd2; 
 assign mcu_sdc_strobe = spi_in_strobe && spi_target == 8'd3; 
@@ -104,6 +107,7 @@ always @(posedge clk) begin
 end
 
 wire [7:0] in_byte = 
+	   (spi_target == 8'd0)?mcu_sys_din:
 	   (spi_target == 8'd1)?mcu_hid_din:
 	   (spi_target == 8'd2)?mcu_osd_din:
 	   (spi_target == 8'd3)?mcu_sdc_din:

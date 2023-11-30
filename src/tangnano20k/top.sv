@@ -3,10 +3,11 @@
 module top(
   input		clk,
 
-  input		reset,
-  input		user,
+  input		reset,  // S2
+  input		user,   // S1
 
   output [5:0]	leds_n,
+  output ws2812,
 
   // spi flash interface
   output	mspi_cs,
@@ -20,7 +21,9 @@ module top(
   output	O_sdram_clk,
   output	O_sdram_cke,
   output	O_sdram_cs_n, // chip select
-  output	O_sdram_cas_n, // columns address select
+  output	O_sdram_cas_n,
+    
+ // columns address select
   output	O_sdram_ras_n, // row address select
   output	O_sdram_wen_n, // write enable
   inout [31:0]	IO_sdram_dq, // 32 bit bidirectional data bus
@@ -62,6 +65,14 @@ wire pll_lock_hdmi;
 
 wire pll_lock = pll_lock_hdmi && pll_lock_flash;
 
+// connect to ws2812 led
+wire [23:0] ws2812_color;
+ws2812 ws2812_inst (
+    .clk(clk_32),
+    .color(ws2812_color),
+    .data(ws2812)
+);
+
 /* -------------------- flash -------------------- */
    
 wire clk_flash;      // 100.265 MHz SPI flash clock
@@ -87,7 +98,7 @@ flash flash (
 
     // cpu expects ROM to start at $fc0000 and it is in fact is at $100000 in
     // ST mode and at $140000 in STE mode
-    .address( { 4'b0010, (osd_system_chipset >= 2'd2)?1'b1:1'b0, rom_addr[17:1] } ),
+    .address( { 4'b0010, (system_chipset >= 2'd2)?1'b1:1'b0, rom_addr[17:1] } ),
     .cs( !rom_n ),
     .dout(rom_dout),
 
@@ -109,18 +120,18 @@ wire [15:0] mdin;    // in from ram
 wire ram_ready;
 wire refresh;
 
-// osd_system_reset[1] indicates whether a coldboot is requested. This
+// system_reset[1] indicates whether a coldboot is requested. This
 // can either be triggered imlicitely by the user changing hardweare
 // specs (ST vs. STE or RAM size) or explicitely via an OSD menu entry.
 // A cold boot means that the ram contents becomoe invalid. We achieve this
 // by scrambling the RAM address space a little bit on every rising edge
-// of osd_system_reset[1] 
+// of system_reset[1] 
 reg [1:0] ram_scramble;
 always @(posedge clk_32) begin
     reg cb_D;
-    cb_D <= osd_system_reset[1];
+    cb_D <= system_reset[1];
 
-    if(osd_system_reset[1] && !cb_D)
+    if(system_reset[1] && !cb_D)
         ram_scramble <= ram_scramble + 2'd1;
 end
 
@@ -176,6 +187,7 @@ wire spi_io_din = io[7];
 wire spi_io_ss = io[8];
 wire spi_io_clk = io[9];
 
+wire       mcu_sys_strobe;
 wire       mcu_hid_strobe;
 wire       mcu_osd_strobe;
 wire       mcu_sdc_strobe;
@@ -183,6 +195,7 @@ wire       mcu_start;
 
 wire [7:0] mcu_data_out;  
 
+wire [7:0] sys_data_out;  
 wire [7:0] hid_data_out;  
 wire [7:0] osd_data_out = 8'h55;
 wire [7:0] sdc_data_out;
@@ -196,11 +209,13 @@ mcu_spi mcu (
         .spi_io_din(spi_io_din),
         .spi_io_dout(spi_io_dout),
 
+        .mcu_sys_strobe(mcu_sys_strobe),
         .mcu_hid_strobe(mcu_hid_strobe),
         .mcu_osd_strobe(mcu_osd_strobe),
         .mcu_sdc_strobe(mcu_sdc_strobe),
         .mcu_start(mcu_start),
         .mcu_dout(mcu_data_out),
+        .mcu_sys_din(sys_data_out),
         .mcu_hid_din(hid_data_out),
         .mcu_osd_din(osd_data_out),
         .mcu_sdc_din(sdc_data_out)
@@ -235,6 +250,7 @@ wire [7:0] keyboard_matrix_in =
 
 // decode SPI/MCU data received for human input devices (HID) and
 // convert into ST compatible mouse and keyboard signals
+
 hid hid (
         .clk(clk_32),
         .reset(!pll_lock),
@@ -250,6 +266,36 @@ hid hid (
         .joystick(hid_joy1)
          );   
 
+wire [1:0] sys_leds;
+wire [1:0] system_chipset;
+wire system_memory;
+wire system_video;
+wire [1:0] system_reset;   // reset and coldboot flag
+wire [1:0] system_scanlines;
+wire [1:0] system_volume;
+
+sysctrl sysctrl (
+        .clk(clk_32),
+        .reset(!pll_lock),
+
+         // interface to send and receive generic system control
+        .data_in_strobe(mcu_sys_strobe),
+        .data_in_start(mcu_start),
+        .data_in(mcu_data_out),
+        .data_out(sys_data_out),
+
+        .system_chipset(system_chipset),
+        .system_memory(system_memory),
+        .system_video(system_video),
+        .system_reset(system_reset),
+        .system_scanlines(system_scanlines),
+        .system_volume(system_volume),
+
+        .buttons( {reset, user} ),
+        .leds(sys_leds),
+        .color(ws2812_color)
+         );   
+
 
 // signals to wire the floppy controller to the sd card
 wire [1:0]  sd_rd;   // fdc requests sector read
@@ -261,15 +307,9 @@ wire	    sd_busy, sd_done;
 wire [31:0] sd_img_size;
 wire [1:0]  sd_img_mounted;
 
-// values set by user via OSD
-wire [1:0] osd_system_chipset;
-wire osd_system_memory;
-wire osd_system_video;
-wire [1:0] osd_system_reset;
-
 atarist atarist (
     .clk_32(clk_32),
-    .resb(!osd_system_reset[0] && !reset && pll_lock && ram_ready && flash_ready && sd_ready),       // user reset button
+    .resb(!system_reset[0] && !reset && pll_lock && ram_ready && flash_ready && sd_ready),       // user reset button
     .porb(pll_lock),
 
     // video output
@@ -280,7 +320,7 @@ atarist atarist (
     .r(st_r),
     .g(st_g),
     .b(st_b),
-    .mono_detect(!osd_system_video),    // mono=0, color=1
+    .mono_detect(!system_video),    // mono=0, color=1
 
     .keyboard_matrix_out(keyboard_matrix_out),
     .keyboard_matrix_in(keyboard_matrix_in),
@@ -312,9 +352,9 @@ atarist atarist (
     .rom_addr(rom_addr),
     .rom_data_out(rom_dout),
 
-    .blitter_en(osd_system_chipset >= 2'd1),   // MegaST (1) or STE (2)
-    .ste(osd_system_chipset >= 2'd2),          // STE (2)
-    .enable_extra_ram(osd_system_memory),      // enable extra ram
+    .blitter_en(system_chipset >= 2'd1),   // MegaST (1) or STE (2)
+    .ste(system_chipset >= 2'd2),          // STE (2)
+    .enable_extra_ram(system_memory),      // enable extra ram
 
     // interface to sdram
     .ram_ras_n(ras_n),
@@ -339,11 +379,9 @@ video video (
          .mcu_data(mcu_data_out),
 
          // values that can be configure by the user via osd
-         .osd_system_chipset(osd_system_chipset),
-         .osd_system_memory(osd_system_memory),
-         .osd_system_video(osd_system_video),
-         .osd_system_reset(osd_system_reset),
-	 
+         .system_scanlines(system_scanlines),
+         .system_volume(system_volume),
+
 	     .hs_in_n(st_hs_n),
 	     .vs_in_n(st_vs_n),
 	     .de_in(st_de),
@@ -363,7 +401,7 @@ video video (
    
 // -------------------------- SD card -------------------------------
 
-assign leds[5:2] = { 2'b00, sd_rd };
+assign leds[5:2] = { sys_leds, sd_rd };
 
 assign sd_dat = 4'b111z;   // drive unused data lines high and configure dat[0] for input
 

@@ -22,10 +22,8 @@ module video (
           input [7:0]  mcu_data,
 
           // values that can be configure by the user via osd          
-          output [1:0] osd_system_chipset,
-          output osd_system_memory,
-          output osd_system_video,
-          output [1:0] osd_system_reset,   // reset and coldboot flag
+          input [1:0] system_scanlines,
+          input [1:0] system_volume,
 		 
 	      // hdmi/tdms
 	      output	   tmds_clk_n,
@@ -81,9 +79,6 @@ video_analyzer video_analyzer (
    .vreset(vreset)  // reset signal
 );  
 
-wire [1:0] osd_system_scanlines;
-wire [1:0] osd_system_volume;
-   
 wire sd_hs_n, sd_vs_n; 
 wire [5:0] sd_r;
 wire [5:0] sd_g;
@@ -97,7 +92,7 @@ scandoubler #(10) scandoubler (
         .pixel_ena(),
 
         // scanlines (00-none 01-25% 10-50% 11-75%)
-        .scanlines(osd_system_scanlines),
+        .scanlines(system_scanlines),
 
         // shifter video interface
         .hs_in(hs_in_n),
@@ -133,13 +128,6 @@ osd_u8g2 osd_u8g2 (
         .g_in(sd_g),
         .b_in(sd_b),
 		     
-        .system_chipset(osd_system_chipset),
-        .system_memory(osd_system_memory),
-        .system_video(osd_system_video),
-        .system_reset(osd_system_reset),
-        .system_scanlines(osd_system_scanlines),
-        .system_volume(osd_system_volume),
-
         .r_out(osd_r),
         .g_out(osd_g),
         .b_out(osd_b)
@@ -150,15 +138,15 @@ wire tmds_clock;
 
 // scale audio for valume by signed division
 wire [15:0] audio_vol_l = 
-    (osd_system_volume == 2'd0)?16'd0:
-    (osd_system_volume == 2'd1)?{ {2{audio_l[15]}}, audio_l[15:2] }:
-    (osd_system_volume == 2'd2)?{ audio_l[15], audio_l[15:1] }:
+    (system_volume == 2'd0)?16'd0:
+    (system_volume == 2'd1)?{ {2{audio_l[15]}}, audio_l[15:2] }:
+    (system_volume == 2'd2)?{ audio_l[15], audio_l[15:1] }:
     audio_l;
 
 wire [15:0] audio_vol_r = 
-    (osd_system_volume == 2'd0)?16'd0:
-    (osd_system_volume == 2'd1)?{ {2{audio_r[15]}}, audio_r[15:2] }:
-    (osd_system_volume == 2'd2)?{ audio_r[15], audio_r[15:1] }:
+    (system_volume == 2'd0)?16'd0:
+    (system_volume == 2'd1)?{ {2{audio_r[15]}}, audio_r[15:2] }:
+    (system_volume == 2'd2)?{ audio_r[15], audio_r[15:1] }:
     audio_r;
 
 hdmi #(
