@@ -43,7 +43,7 @@ on USB to the PC as "20K's FRIEND". The MiSTeryNano core can initially
 just be flashed like any other core.
 
 If a MiSTeryNano core is already installed in flash, then re-flashing
-the FPGA needs some preparaion using the ```S2````buttons as descibed
+the FPGA needs some preparaion using the ```S2``` button as descibed
 below. However, the vey first flashing of the FPGA does not require
 any special prerequisites.q
 
