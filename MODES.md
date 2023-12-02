@@ -45,7 +45,7 @@ just be flashed like any other core.
 If a MiSTeryNano core is already installed in flash, then re-flashing
 the FPGA needs some preparaion using the ```S2``` button as descibed
 below. However, the vey first flashing of the FPGA does not require
-any special prerequisites.q
+any special prerequisites.
 
 ### Initially flashing the BL616 MCU
 
