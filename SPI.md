@@ -127,8 +127,12 @@ The ```SPI_HID_MOUSE``` messages contains three data bytes. The first byte conta
 the state of the mouse buttons in the LSB and the second and third
 byte contain relative x and y movements.
 
-The ```SPI_HID_JOYSTICK``` messages contains a single data byte containing
-classic 5 bit digital joystick data.
+The ```SPI_HID_JOYSTICK``` messages contains a two data bytes, the first addressing
+the joystick and the second containing classic 8 bit digital joystick data. The
+address byte is needed since unlike keyboards and mice, the core needs to
+distinguish between multiple joysticks. The uper four bits of the second byte
+contain of to four fire buttons. These can simply be or'd together for standard
+DB joystick emulation.
 
 ### OSD target
 
