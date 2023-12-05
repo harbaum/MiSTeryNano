@@ -124,9 +124,22 @@ menu_t *menu_init(u8g2_t *u8g2)
   menu.osd->u8g2 = *u8g2;
 #endif
 
-  // try to restore variables from eeprom
-  menu_settings_load(&menu);  
-  
+  // give sd card 2 seconds to become ready
+  int timeout = 200;
+  while(timeout && !sdc_is_ready()) {
+    vTaskDelay(pdMS_TO_TICKS(10));
+    timeout--;
+  }
+
+  // load data from sd card if available
+  if(timeout) {
+    printf("SD ready after %dms\r\n", (200-timeout)*10);
+    
+    // try to restore variables from eeprom
+    menu_settings_load(&menu);  
+  } else
+    printf("SD wasn't ready, not laoding defaults\r\n");
+    
   // send initial values for all variables
   for(int i=0;menu.vars[i].id;i++)
     sys_set_val(menu.osd->spi, menu.vars[i].id, menu.vars[i].value);

@@ -15,9 +15,6 @@
 // queue to send messages to OSD thread
 extern QueueHandle_t xQueue;
 
-// queue to send messages from interrupt callback to local thread
-static QueueHandle_t iQueue;
-
 #define MAX_REPORT_SIZE 8
 
 #define STATE_NONE      0 
@@ -35,12 +32,25 @@ static struct usb_config {
   spi_t *spi;
   
   struct hid_info_S {
+    int index;
     int state;
     struct usbh_hid *class;
     struct usbh_urb intin_urb;
     uint8_t *buffer;
+    int nbytes;
     hid_report_t report;
     struct usb_config *usb;
+    SemaphoreHandle_t sem;
+    TaskHandle_t task_handle;    
+    union {
+      struct {
+	unsigned char last_report[8];	
+      } keyboard;
+      struct { } mouse;
+      struct {
+	unsigned char last_state;
+      } joystick;
+    };
   } hid_info[CONFIG_USBHOST_MAX_HID_CLASS];
 } usb_config;
   
@@ -48,40 +58,42 @@ USB_NOCACHE_RAM_SECTION USB_MEM_ALIGNX uint8_t hid_buffer[CONFIG_USBHOST_MAX_HID
 
 #include "atari_st.h"
 
-void kbd_tx(struct usb_config *usb, unsigned char byte) {
+void kbd_tx(struct hid_info_S *hid, unsigned char byte) {
+  spi_t *spi = hid->usb->spi;
+  
   printf("KBD: %02x\r\n", byte);
 
-  unsigned char kbd_cmd[4] = { SPI_HID_KEYBOARD, byte, 0, 0 };
-  xQueueSendToBackFromISR(iQueue, kbd_cmd,  ( TickType_t ) 0);
+  spi_begin(spi);
+  spi_tx_u08(spi, SPI_TARGET_HID);
+  spi_tx_u08(spi, SPI_HID_KEYBOARD);
+  spi_tx_u08(spi, byte);
+  spi_end(spi);
 }
 
-void kbd_parse(struct usb_config *usb, unsigned char *buffer, int nbytes) {
+void kbd_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
   // we expect boot mode packets which are exactly 8 bytes long
   if(nbytes != 8) return;
   
-  // store local list of pressed keys to detect key release
-  static unsigned char last_report[8] = { 0,0,0,0,0,0,0,0 };
-
   // check if modifier have changed
-  if((buffer[0] != last_report[0]) && !usb_config.osd_is_visible) {
+  if((buffer[0] != hid->keyboard.last_report[0]) && !usb_config.osd_is_visible) {
     for(int i=0;i<8;i++) {
       if(modifier_atarist[i]) {      
 	// modifier released?
-	if((last_report[0] & (1<<i)) && !(buffer[0] & (1<<i)))
-	  kbd_tx(usb, 0x80 | modifier_atarist[i]);
+	if((hid->keyboard.last_report[0] & (1<<i)) && !(buffer[0] & (1<<i)))
+	  kbd_tx(hid, 0x80 | modifier_atarist[i]);
 	// modifier pressed?
-	if(!(last_report[0] & (1<<i)) && (buffer[0] & (1<<i)))
-	  kbd_tx(usb, modifier_atarist[i]);
+	if(!(hid->keyboard.last_report[0] & (1<<i)) && (buffer[0] & (1<<i)))
+	  kbd_tx(hid, modifier_atarist[i]);
       }
     }
   }
 
   // check if regular keys have changed
   for(int i=0;i<6;i++) {
-    if(buffer[2+i] != last_report[2+i]) {
+    if(buffer[2+i] != hid->keyboard.last_report[2+i]) {
       // key released?
-      if(last_report[2+i] && !usb_config.osd_is_visible)
-	kbd_tx(usb, 0x80 | keymap_atarist[last_report[2+i]]);
+      if(hid->keyboard.last_report[2+i] && !usb_config.osd_is_visible)
+	kbd_tx(hid, 0x80 | keymap_atarist[hid->keyboard.last_report[2+i]]);
       
       // key pressed?
       if(buffer[2+i])  {
@@ -100,7 +112,7 @@ void kbd_parse(struct usb_config *usb, unsigned char *buffer, int nbytes) {
 	} else {
 
 	  if(!usb_config.osd_is_visible)
-	    kbd_tx(usb, keymap_atarist[buffer[2+i]]);
+	    kbd_tx(hid, keymap_atarist[buffer[2+i]]);
 	  else {
 	    // check if cursor up/down or space has been pressed
 	    if(buffer[2+i] == 0x51) msg = MENU_EVENT_DOWN;      
@@ -114,24 +126,116 @@ void kbd_parse(struct usb_config *usb, unsigned char *buffer, int nbytes) {
       }
     }    
   }
-  memcpy(last_report, buffer, 8);
+  memcpy(hid->keyboard.last_report, buffer, 8);
 }
 
-void mouse_parse(struct usb_config *usb, signed char *buffer, int nbytes) {
+void mouse_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
+  signed char *p = (signed char*)buffer;
+  
   // we expect at least three bytes:
   if(nbytes < 3) return;
-
+ 
   // decellerate mouse somewhat
-  buffer[1] /= 2;
-  buffer[2] /= 2;
+  p[1] /= 2;
+  p[2] /= 2;
 
-  printf("MOUSE: %02x %d %d\r\n", buffer[0], buffer[1], buffer[2]);
-  
-  unsigned char mouse_cmd[4] = { SPI_HID_MOUSE, buffer[0], buffer[1], buffer[2] };
-  xQueueSendToBackFromISR(iQueue, mouse_cmd,  ( TickType_t ) 0);
+  printf("MOUSE: %02x %d %d\r\n", buffer[0], p[1], p[2]);
+
+  spi_t *spi = hid->usb->spi;  
+  spi_begin(spi);
+  spi_tx_u08(spi, SPI_TARGET_HID);
+  spi_tx_u08(spi, SPI_HID_MOUSE);
+  spi_tx_u08(spi, buffer[0]);
+  spi_tx_u08(spi, p[1]);
+  spi_tx_u08(spi, p[2]);
+  spi_end(spi);
 }
 
-void rii_joy_parse(struct usb_config *usb, unsigned char *buffer) {
+// collect bits from byte stream and assemble them into a signed word
+static uint16_t collect_bits(uint8_t *p, uint16_t offset, uint8_t size, bool is_signed) {
+  // mask unused bits of first byte
+  uint8_t mask = 0xff << (offset&7);
+  uint8_t byte = offset/8;
+  uint8_t bits = size;
+  uint8_t shift = offset&7;
+  
+  //  iprintf("0 m:%x by:%d bi=%d sh=%d ->", mask, byte, bits, shift);
+  uint16_t rval = (p[byte++] & mask) >> shift;
+  mask = 0xff;
+  shift = 8-shift;
+  bits -= shift;
+  
+  // first byte already contained more bits than we need
+  if(shift > size) {
+    // mask unused bits
+    rval &= (1<<size)-1;
+  } else {
+    // further bytes if required
+    while(bits) {
+      mask = (bits<8)?(0xff>>(8-bits)):0xff;
+      rval += (p[byte++] & mask) << shift;
+      shift += 8;
+      bits -= (bits>8)?8:bits;
+    }
+  }
+  
+  if(is_signed) {
+    // do sign expansion
+    uint16_t sign_bit = 1<<(size-1);
+    if(rval & sign_bit) {
+      while(sign_bit) {
+	rval |= sign_bit;
+	sign_bit <<= 1;
+      }
+    }
+  }
+  
+  return rval;
+}
+
+void joystick_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
+  //  printf("joystick: %d %02x %02x %02x %02x\r\n", nbytes,
+  //	 buffer[0]&0xff, buffer[1]&0xff, buffer[2]&0xff, buffer[3]&0xff);
+
+  unsigned char joy = 0;
+  
+  // collect info about the two axes
+  int a[2];
+  for(int i=0;i<2;i++) {  
+    bool is_signed = hid->report.joystick_mouse.axis[i].logical.min > 
+      hid->report.joystick_mouse.axis[i].logical.max;
+
+    a[i] = collect_bits(buffer, hid->report.joystick_mouse.axis[i].offset, 
+			hid->report.joystick_mouse.axis[i].size, is_signed);
+  }
+
+  // ... and four buttons
+  for(int i=0;i<4;i++)
+    if(buffer[hid->report.joystick_mouse.button[i].byte_offset] & 
+       hid->report.joystick_mouse.button[i].bitmask)
+      joy |= (0x10<<i);
+
+  // map directions to digital
+  if(a[0] > 0x80) joy |= 0x01;
+  if(a[0] < 0x80) joy |= 0x02;
+  if(a[1] > 0x80) joy |= 0x04;
+  if(a[1] < 0x80) joy |= 0x08;
+
+  if(joy != hid->joystick.last_state) {  
+    hid->joystick.last_state = joy;
+    printf("JOY: %02x\r\n", joy);
+  
+    spi_t *spi = hid->usb->spi;  
+    spi_begin(spi);
+    spi_tx_u08(spi, SPI_TARGET_HID);
+    spi_tx_u08(spi, SPI_HID_JOYSTICK);
+    spi_tx_u08(spi, 0);
+    spi_tx_u08(spi, joy);
+    spi_end(spi);
+  }
+}
+
+void rii_joy_parse(struct hid_info_S *hid, unsigned char *buffer) {
   unsigned char b = 0;
   if(buffer[0] == 0xcd && buffer[1] == 0x00) b = 0x10;      // cd == play/pause  -> center
   if(buffer[0] == 0xe9 && buffer[1] == 0x00) b = 0x08;      // e9 == V+          -> up
@@ -139,65 +243,22 @@ void rii_joy_parse(struct usb_config *usb, unsigned char *buffer) {
   if(buffer[0] == 0xb6 && buffer[1] == 0x00) b = 0x02;      // b6 == skip prev   -> left
   if(buffer[0] == 0xb5 && buffer[1] == 0x00) b = 0x01;      // b5 == skip next   -> right
 
-  printf("RII Joy: %02x\r\n", b);
+  printf("RII Joy: %02x %02x\r\n", 0, b);
   
-  unsigned char rii_joy_cmd[4] = { SPI_HID_JOYSTICK, b };  
-  xQueueSendToBackFromISR(iQueue, rii_joy_cmd,  ( TickType_t ) 0);  
+  spi_t *spi = hid->usb->spi;  
+  spi_begin(spi);
+  spi_tx_u08(spi, SPI_TARGET_HID);
+  spi_tx_u08(spi, SPI_HID_JOYSTICK);
+  spi_tx_u08(spi, 0);
+  spi_tx_u08(spi, b);
+  spi_end(spi);
 }
 
 void usbh_hid_callback(void *arg, int nbytes) {
-  struct hid_info_S *hid_info = (struct hid_info_S *)arg;
+  struct hid_info_S *hid = (struct hid_info_S *)arg;
 
-  // nbytes < 0 means something went wrong. E.g. a devices connected to a hub was
-  // disconnected, but the hub wasn't monitored. Sometimes this just happens when
-  // two configs are polled at the same time
-  if(nbytes < 0) {
-    USB_LOG_RAW("fail\r\n");
-    // hid_info->state = STATE_FAILED;
-    return;
-  }
-  
-  if (nbytes > 0) {
-    USB_LOG_RAW("CB%d: ", hid_info->class->minor);
-  
-    // just dump the report
-    for (size_t i = 0; i < nbytes; i++) 
-      USB_LOG_RAW("0x%02x ", hid_info->buffer[i]);
-    USB_LOG_RAW("\r\n");
-    
-    // parse reply
-
-    // the following is a hack for the Rii keyboard/touch combos to use the
-    // left top multimedia pad as a joystick. These special keys are sent
-    // via the mouse/touchpad part
-    if(hid_info->report.report_id_present &&
-       hid_info->report.type == REPORT_TYPE_MOUSE &&
-       nbytes == 3 &&
-       hid_info->buffer[0] != hid_info->report.report_id) {
-      rii_joy_parse(hid_info->usb, hid_info->buffer+1);
-      return;
-    }
-      
-    // check and skip report id if present
-    unsigned char *buffer = hid_info->buffer;
-    if(hid_info->report.report_id_present) {
-      if(!nbytes || (buffer[0] != hid_info->report.report_id))
-	return;
-
-      // skip report id
-      buffer++; nbytes--;
-    }
-  
-    if(nbytes == hid_info->report.report_size) {
-      if(hid_info->report.type == REPORT_TYPE_KEYBOARD)
-	kbd_parse(hid_info->usb, buffer, nbytes);
-      
-      if(hid_info->report.type == REPORT_TYPE_MOUSE)
-	mouse_parse(hid_info->usb, (signed char*)buffer, nbytes);
-    }
-  }
-  //  else
-  //    USB_LOG_RAW("no data\r\n");
+  xSemaphoreGiveFromISR(hid->sem, NULL);
+  hid->nbytes = nbytes;
 }  
 
 static void usbh_hid_update(struct usb_config *usb) {
@@ -230,6 +291,7 @@ static void usbh_hid_update(struct usb_config *usb) {
     
     else if(!usb->hid_info[i].class && usb->hid_info[i].state != STATE_NONE) {
       printf("LOST %d\r\n", i);
+      vTaskDelete( usb->hid_info[i].task_handle );
       usb->hid_info[i].state = STATE_NONE;
     }
   }
@@ -248,20 +310,81 @@ static void usbh_hid_update(struct usb_config *usb) {
   set_led(GPIO_PIN_28, keyboards);
 }
 
-static TaskHandle_t usb_handle;
+static void hid_parse(struct hid_info_S *hid) {
+#if 0
+  USB_LOG_RAW("CB%d: ", hid->index);
+  
+  // just dump the report
+  for (size_t i = 0; i < hid->nbytes; i++) 
+    USB_LOG_RAW("0x%02x ", hid->buffer[i]);
+  USB_LOG_RAW("\r\n");
+#endif
+  
+  // the following is a hack for the Rii keyboard/touch combos to use the
+  // left top multimedia pad as a joystick. These special keys are sent
+  // via the mouse/touchpad part
+  if(hid->report.report_id_present &&
+     hid->report.type == REPORT_TYPE_MOUSE &&
+     hid->nbytes == 3 &&
+     hid->buffer[0] != hid->report.report_id) {
+    rii_joy_parse(hid, hid->buffer+1);
+    return;
+  }
+  
+  // check and skip report id if present
+  unsigned char *buffer = hid->buffer;
+  if(hid->report.report_id_present) {
+    if(!hid->nbytes || (buffer[0] != hid->report.report_id))
+      return;
+    
+    // skip report id
+    buffer++; hid->nbytes--;
+  }
+  
+  if(hid->nbytes == hid->report.report_size) {
+    if(hid->report.type == REPORT_TYPE_KEYBOARD)
+      kbd_parse(hid, buffer, hid->nbytes);
+    
+    if(hid->report.type == REPORT_TYPE_MOUSE)
+      mouse_parse(hid, buffer, hid->nbytes);
+    
+    if(hid->report.type == REPORT_TYPE_JOYSTICK)
+      joystick_parse(hid, buffer, hid->nbytes);
+  }
+}
 
-void usb_host_stop(void) {
-  vTaskDelete( usb_handle );
+// each HID client gets itws own thread which submits urbs
+// and waits for the interrupt to succeed
+static void usbh_hid_client_thread(void *argument) {
+  struct hid_info_S *hid = (struct hid_info_S *)argument;
+
+  printf("HID client #%d: thread started\r\n", hid->index);
+
+  while(1) {
+    int ret = usbh_submit_urb(&hid->intin_urb);
+    if (ret < 0)
+      printf("HID client #%d: submit failed\r\n", hid->index);
+    else {
+      // Wait for result
+      xSemaphoreTake(hid->sem, 0xffffffffUL);
+      if(hid->nbytes > 0) hid_parse(hid);
+      hid->nbytes = 0;
+    }      
+
+    // todo: honour binterval which is in milliseconds for low speed
+    vTaskDelay(pdMS_TO_TICKS(10));
+  }
 }
 
 static void usbh_hid_thread(void *argument) {
-  int ret;
-
   printf("Starting usb host task...\r\n");
 
   struct usb_config *usb = (struct usb_config *)argument;
 
   // request status (currently only dummy data, will return 0x5c, 0x42)
+  // in the long term the core is supposed to return its HID demands
+  // (keyboard matrix type, joystick type and number, ...)
+  
   spi_begin(usb->spi);
   spi_tx_u08(usb->spi, SPI_TARGET_HID);
   spi_tx_u08(usb->spi, SPI_HID_STATUS);
@@ -270,34 +393,9 @@ static void usbh_hid_thread(void *argument) {
   printf("HID status #1: %02x\r\n", spi_tx_u08(usb->spi, 0x00));
   spi_end(usb->spi);
 
-  // queue to receive messages from ISR/callback, 10 entries of 4 bytes each
-  iQueue = xQueueCreate(10, 4);
-
   while (1) {
-    unsigned char cmd[4];
-
     usbh_hid_update(usb);
 
-    // TODO: reduce the wait time, so a stream of USB data won't block the loop
-    // int ms = pdTICKS_TO_MS(xTaskGetTickCount());
-  
-    // read from queue with 10ms timeout and forward HID commands via spi to core
-    while(xQueueReceive( iQueue, cmd, pdMS_TO_TICKS(10))) {
-      spi_begin(usb->spi);
-      spi_tx_u08(usb->spi, SPI_TARGET_HID);
-      spi_tx_u08(usb->spi, cmd[0]);
-      spi_tx_u08(usb->spi, cmd[1]);
-
-      // mouse has two more bytes to send
-      if(cmd[0] == SPI_HID_MOUSE) {
-	spi_tx_u08(usb->spi, cmd[2]);
-	spi_tx_u08(usb->spi, cmd[3]);
-      }
-    
-      spi_end(usb->spi);      
-    }
-    // usb_osal_msleep(10);
-      
     for(int i=0;i<CONFIG_USBHOST_MAX_HID_CLASS;i++) {
       if(usb->hid_info[i].state == STATE_DETECTED) {
 	printf("NEW device %d\r\n", i);
@@ -319,25 +417,18 @@ static void usbh_hid_thread(void *argument) {
 	}
 #endif
 	
-	// request first urb
-	printf("%d: Submit urb size %d\r\n", i, usb->hid_info[i].report.report_size + (usb->hid_info[i].report.report_id_present ? 1:0));
+	// setup urb
 	usbh_int_urb_fill(&usb->hid_info[i].intin_urb, usb->hid_info[i].class->intin, usb->hid_info[i].buffer,
 			  usb->hid_info[i].report.report_size + (usb->hid_info[i].report.report_id_present ? 1:0),
 			  0, usbh_hid_callback, &usb->hid_info[i]);
-	ret = usbh_submit_urb(&usb->hid_info[i].intin_urb);
-	if (ret < 0) {
-	  // submit failed
-	  printf("initial submit failed\r\n");
-	  usb->hid_info[i].state = STATE_FAILED;
-	  continue;
-	}
-      } else if(usb->hid_info[i].state == STATE_RUNNING) {
-	// todo: honour binterval which is in milliseconds for low speed
-	// todo: wait for callback
-	ret = usbh_submit_urb(&usb->hid_info[i].intin_urb);
-	// if (ret < 0) printf("submit failed\r\n");
+
+	// start a new thread for the new device
+	xTaskCreate(usbh_hid_client_thread, (char *)"usb_task", 2048, &usb->hid_info[i], configMAX_PRIORITIES-3, &usb->hid_info[i].task_handle );
       }
     }
+    // this thread only handles new devices and thus doesn't have to run very
+    // often
+    vTaskDelay(pdMS_TO_TICKS(100));
   }
 }
 
@@ -345,17 +436,20 @@ void usbh_hid_run(struct usbh_hid *hid_class) { }
 void usbh_hid_stop(struct usbh_hid *hid_class) { }
 
 void usb_host(spi_t *spi) {
+  TaskHandle_t usb_handle;
+
   printf("init usb hid host\r\n");
 
-  usbh_initialize();
-  
+  usbh_initialize();  
   usb_config.spi = spi;
   
-  // mark all HID info entries as unused
+  // initialize all HID info entries
   for(int i=0;i<CONFIG_USBHOST_MAX_HID_CLASS;i++) {
+    usb_config.hid_info[i].index = i;
     usb_config.hid_info[i].state = 0;
     usb_config.hid_info[i].buffer = hid_buffer[i];      
     usb_config.hid_info[i].usb = &usb_config;
+    usb_config.hid_info[i].sem = xSemaphoreCreateBinary();
   }
 
   xTaskCreate(usbh_hid_thread, (char *)"usb_task", 2048, &usb_config, configMAX_PRIORITIES-3, &usb_handle);

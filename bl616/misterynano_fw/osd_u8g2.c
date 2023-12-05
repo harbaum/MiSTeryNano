@@ -100,23 +100,12 @@ void osd_enable(osd_t *osd, char en) {
   spi_end(osd->spi);  
 }
 
-// TODO: reorg to make space for floppy b and acsi
-void osd_message(osd_t *osd, char *message) {
-  u8g2_SetFont(&(osd->u8g2), u8g2_font_6x10_tf);
-  u8g2_SetFontRefHeightAll(&(osd->u8g2));  	/* this will add some extra space for the text inside the buttons */
-  u8g2_UserInterfaceMessage(&(osd->u8g2), message, "Title2", "Title3", " Ok ");
-
-  osd_enable(osd, 1);
-}
-
 osd_t *osd_init(spi_t *spi) {
   // prepare u8g2
   static osd_t osd;
 
   osd.spi = spi;
 
-  sdc_init(spi);
-  
   osd.spi->dev->user_data = osd.buf;
   u8x8_Setup_mn_128x64(u8g2_GetU8x8(&osd.u8g2));
   u8g2_SetupBuffer(&osd.u8g2, osd.buf, 8, u8g2_ll_hvline_vertical_top_lsb, &u8g2_cb_r0);

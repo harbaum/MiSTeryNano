@@ -10,7 +10,8 @@
 #include <string.h>
 #include "sysctrl.h"
 
-static spi_t *spi;
+static spi_t *spi = NULL;
+static int sdc_ready = 0;
 
 static FATFS fs;
 static FIL fil[2];
@@ -63,7 +64,7 @@ int sdc_read_sector(unsigned long sector, unsigned char *buffer) {
     spi_tx_u08(spi, SPI_SDC_STATUS);
     status = spi_tx_u08(spi, 0);
     spi_end(spi);  
-    printf("SD status = %x\r\n", status);
+    // printf("SD status = %x\r\n", status);
   } while(status & 0x02);   // card busy?
   
   sdc_spi_begin(spi);  
@@ -149,7 +150,10 @@ static int fs_init() {
   // SD card inserted
   
   // switch rgb led to green
-  sys_set_rgb(spi, 0x004000);
+  if(!timeout) {
+    sys_set_rgb(spi, 0x400000);  // red, failed
+    return -1;
+  }
   
   char *type[] = { "UNKNOWN", "SDv1", "SDv2", "SDHCv2" };
   printf("SDC status: %02x\r\n", status);
@@ -159,9 +163,11 @@ static int fs_init() {
   res_msc = f_mount(&fs, CARD_MOUNTPOINT, 1);
   if (res_msc != FR_OK) {
     printf("mount fail,res:%d\r\n", res_msc);
+    sys_set_rgb(spi, 0x400000);  // red, failed
     return -1;
   }
 
+  sys_set_rgb(spi, 0x004000);  // green, ok
   return 0;
 }
 
@@ -169,6 +175,10 @@ static int fs_init() {
  
 // keep track of working directory
 static char *cwd = NULL;
+
+int sdc_is_ready(void) {
+  return sdc_ready;
+}
 
 int sdc_poll(void) {
   // read sd status
@@ -380,17 +390,17 @@ int sdc_init(spi_t *p_spi) {
 
   printf("---- SDC init ----\r\n");
 
-  fs_init();
+  if(fs_init() == 0) {
+    sdc_ready = 1;
 
-  // set default path
-  if(!cwd) cwd = strdup(CARD_MOUNTPOINT);
+    // set default path
+    if(!cwd) cwd = strdup(CARD_MOUNTPOINT);
 
-  // try to open default images
-  sdc_image_open(0, "disk_a.st");
-  sdc_image_open(1, "disk_b.st");
-
-  sdc_poll();
-  
+    // try to open default images
+    sdc_image_open(0, "disk_a.st");
+    sdc_image_open(1, "disk_b.st");
+  }
+    
   return 0;
 }
 

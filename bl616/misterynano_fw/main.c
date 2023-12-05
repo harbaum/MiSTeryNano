@@ -48,6 +48,8 @@ void set_led(int pin, int on) {
 }
 
 static void sdc_task(void *parms) {
+  sdc_init((spi_t*)parms);
+  
   while(1) {
     sdc_poll();
     // this delay needs to be rather short to ensure that the
@@ -64,7 +66,7 @@ static void osd_task(void *parms) {
 
   // switch MCU controlled leds off
   sys_set_leds(spi, 0x00);
-  
+
   menu = menu_init(spi);
   menu_do(menu, 0);
 
@@ -79,15 +81,15 @@ static void osd_task(void *parms) {
   }
 }
     
-static TaskHandle_t osd_handle;
-static TaskHandle_t sdc_handle;
-
 int main(void) {
+  TaskHandle_t osd_handle;
+  TaskHandle_t sdc_handle;
     
     board_init();
     gpio = bflb_device_get_by_name("gpio");
 
 #ifdef M0S_DOCK
+#warning "M0S DOCK"
     // init on-board LEDs
     bflb_gpio_init(gpio, GPIO_PIN_27, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_0);
     bflb_gpio_init(gpio, GPIO_PIN_28, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_0);
@@ -98,55 +100,51 @@ int main(void) {
 
     // button
     bflb_gpio_init(gpio, GPIO_PIN_2, GPIO_INPUT | GPIO_PULLDOWN | GPIO_SMT_EN | GPIO_DRV_0);
-    
-    // init eight digital outputs
-    bflb_gpio_init(gpio, GPIO_PIN_14, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_0);
-    bflb_gpio_init(gpio, GPIO_PIN_15, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_0);
-    bflb_gpio_init(gpio, GPIO_PIN_16, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_0);
-    bflb_gpio_init(gpio, GPIO_PIN_17, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_0);
-    
-    // all outputs high/inactive
-    bflb_gpio_set(gpio, GPIO_PIN_14);
-    bflb_gpio_set(gpio, GPIO_PIN_15);
-    bflb_gpio_set(gpio, GPIO_PIN_16);
-    bflb_gpio_set(gpio, GPIO_PIN_17);   
-#else
-    // init SPI pins
-    bflb_gpio_init(gpio, GPIO_PIN_0, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_0);
-    bflb_gpio_init(gpio, GPIO_PIN_1, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_0);
-    bflb_gpio_init(gpio, GPIO_PIN_2, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_0);
-    bflb_gpio_init(gpio, GPIO_PIN_3, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_0);
-
-    // all outputs high/inactive
-    bflb_gpio_set(gpio, GPIO_PIN_0);
-    bflb_gpio_set(gpio, GPIO_PIN_1);
-    bflb_gpio_set(gpio, GPIO_PIN_2);
-    bflb_gpio_set(gpio, GPIO_PIN_3);
 #endif
 
     // all communication between MCU and FPGA goes through one SPI channel
     spi_t *spi = spi_init();
 
+    printf("Waiting for FPGA to become ready\r\n");
+
     // try to establish connection to FPGA for three seconds. Assume the FPGA is
     // not properly configured after that
-    int fpga_ok, timeout = 400;
+    int fpga_ok, timeout = 500;
     do {
       fpga_ok = sys_status_is_valid(spi);
-      if(!fpga_ok)
+      if(!fpga_ok) {
 	bflb_mtimer_delay_ms(10);
-    } while(--timeout && !fpga_ok);
+	timeout--;
+      }
+    } while(timeout && !fpga_ok);
 
+    if(timeout) {
+      printf("FPGA ready after %dms!\r\n", (500-timeout)*10);
+      sys_set_rgb(spi, 0x000040);  // blue
+    } else {
+      printf("FPGA not ready after 5 seconds!\r\n");
+      sys_set_rgb(spi, 0x400000);  // red
+    }
+    
+#if 0
+    // Check the update button on the Tang Nano 20k and force flasher mode
+    // even if no timeout occured and FPGA could be accessed
+    if(bflb_gpio_read(gpio, GPIO_PIN_2))
+      timeout = 0;
+#endif
+    
     // Go into flasher mode if the FPGA could not be accessed. This
     // will also happen if the user pressed S1 or S2 during power-on
     // as these are connected to the mode lines of the FPGA.
-
+     
     // Since we are in a freertos environment we need to start a
     // thread for this, anyway, to make sure interrupts work
     if(!timeout) {
       xTaskCreate(go_flasher, (char *)"flasher_task", 4096, spi, configMAX_PRIORITIES-3, &osd_handle);
       vTaskStartScheduler();
+      for(;;);
     }
-    
+
     // message queue from USB to OSD
     xQueue = xQueueCreate(10, sizeof( unsigned long ) );
 
@@ -221,7 +219,20 @@ void go_flasher(void *p) {
   
   // switch rgb led to yellow
   sys_set_rgb(spi, 0x404000);
-      
+
+#if 0
+  while(1) {
+    if(sys_status_is_valid(spi))
+      sys_set_rgb(spi, 0x004000);
+    else
+      sys_set_rgb(spi, 0x400000);
+
+    bflb_mtimer_delay_ms(100);
+    sys_set_rgb(spi, 0);
+    bflb_mtimer_delay_ms(100);
+  }
+#endif
+  
 #ifdef ENABLE_FLASHER
   gpio_init(); 
   ft2232d_init();
