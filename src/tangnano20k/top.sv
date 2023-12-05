@@ -44,9 +44,11 @@ module top(
   // SPI connection to ob-board BL616. By default an external
   // connection is used with a M0S Dock
   input		spi_sclk, // in... 
-  input		spi_csn, // in (io?)
-  input		spi_dir, // out
-  input		spi_dat, // in (io?)
+  input		spi_csn,  // in (io?)
+  output	spi_dir,  // out
+  input		spi_dat,  // in (io?)
+
+  output    jtag_tck,
 
   // hdmi/tdms
   output	tmds_clk_n,
@@ -180,12 +182,30 @@ wire [14:0] audio_r;
 
 // ----------------- SPI input parser ----------------------
 
+// map output data onto both spi outputs
 wire spi_io_dout;
+assign spi_dir = spi_io_dout;   // spi_dir has filter cap and pulldown any basically doesn't work
+assign jtag_tck = spi_io_dout;  // using JTAG instead is a pita ...
 assign io[9:6] = { 3'bzzz, spi_io_dout };
 
-wire spi_io_din = io[7];
-wire spi_io_ss = io[8];
-wire spi_io_clk = io[9];
+// by default the internal SPI is being used. Once there is
+// a select from the external spi, then the connection is
+// being switched
+reg spi_ext;
+always @(posedge clk_32) begin
+    if(!pll_lock)
+        spi_ext = 1'b0;
+    else begin
+        if(io[8] == 1'b0)
+            spi_ext = 1'b1;
+    end
+end
+
+// switch between internal SPI connected to the on-board bl616
+// or to the external one possibly connected to a M0S Dock
+wire spi_io_din = spi_ext?io[7]:spi_dat;
+wire spi_io_ss = spi_ext?io[8]:spi_csn;
+wire spi_io_clk = spi_ext?io[9]:spi_sclk;
 
 wire       mcu_sys_strobe;
 wire       mcu_hid_strobe;
@@ -224,8 +244,8 @@ mcu_spi mcu (
 // joy0 is usually used for the mouse, joy1 for the joystick. The
 // joystick can either be driven from the external MCU or via FPGA IO pins
 wire [5:0] joy0;
-wire [4:0] hid_joy1;
-wire [4:0] joy1 = hid_joy1 | { !io[0], !io[2], !io[1], !io[4], !io[3] };
+wire [7:0] hid_joy1;
+wire [4:0] joy1 = hid_joy1[4:0] | { !io[0], !io[2], !io[1], !io[4], !io[3] };
 
 // The keyboard matrix is maintained inside HID
 wire [7:0] keyboard[14:0];
@@ -263,7 +283,8 @@ hid hid (
 
         .mouse(joy0),
         .keyboard(keyboard),
-        .joystick(hid_joy1)
+        .joystick0(hid_joy1),
+        .joystick1()
          );   
 
 wire [1:0] sys_leds;
@@ -401,7 +422,8 @@ video video (
    
 // -------------------------- SD card -------------------------------
 
-assign leds[5:2] = { sys_leds, sd_rd };
+// assign leds[5:2] = { sys_leds, sd_rd };
+assign leds[5:2] = { spi_ext, 1'b0, sd_rd };
 
 assign sd_dat = 4'b111z;   // drive unused data lines high and configure dat[0] for input
 
