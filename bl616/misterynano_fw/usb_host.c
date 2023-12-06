@@ -216,10 +216,10 @@ void joystick_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
       joy |= (0x10<<i);
 
   // map directions to digital
-  if(a[0] > 0x80) joy |= 0x01;
-  if(a[0] < 0x80) joy |= 0x02;
-  if(a[1] > 0x80) joy |= 0x04;
-  if(a[1] < 0x80) joy |= 0x08;
+  if(a[0] > 0xc0) joy |= 0x01;
+  if(a[0] < 0x40) joy |= 0x02;
+  if(a[1] > 0xc0) joy |= 0x04;
+  if(a[1] < 0x40) joy |= 0x08;
 
   if(joy != hid->joystick.last_state) {  
     hid->joystick.last_state = joy;

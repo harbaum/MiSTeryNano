@@ -25,11 +25,15 @@ The SPI bus between the MCU and the FPGA consists of four connections:
 | CSN  | GPIO12 -> 56      | GPIO0 -> 86       |
 | SCK  | GPIO13 -> 54      | GPIO1 -> 13       |
 | MOSI | GPIO11 -> 41      | GPIO3 -> 76       |
-| MISO | GPIO10 <- 42      | GPIO2 <- 75       |
+| MISO | GPIO10 <- 42      | GPIO10 <- 6 (GPIO2 <- 75) |
 
 Currently the SPI bus is run at 20Mhz and only the M0S variant is
-implemented and supported. Higher speeds and the use of the internal
-MCU will come later.
+implemented and supported. The internal MCU is supposed to use GPIO2
+to FPGA pin 6 for MISO data. But due to a design error on the Tang
+Nano 20, GPIO2 is unusable for fast signals. Thus GPIO10 is being used
+which is one of the JTAG pins on FPGA side. Using this pin as a regular
+IO requires to disable JTAG in the FPGA. As a consequence, programming
+the FPGA needs [special care](MODES.md).
 
 The SPI master is the MCU and the SPI target is the FPGA. The SPI is
 operated in MODE1 with clock idle state being low and data being
