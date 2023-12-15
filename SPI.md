@@ -20,12 +20,13 @@ below may be outdated. The basic principles should still be valid.
 
 The SPI bus between the MCU and the FPGA consists of four connections:
 
-|      | M0S Dock <-> FPGA | int. MCU <-> FPGA |
-|------|-------------------|-------------------|
-| CSN  | GPIO12 -> 56      | GPIO0 -> 86       |
-| SCK  | GPIO13 -> 54      | GPIO1 -> 13       |
-| MOSI | GPIO11 -> 41      | GPIO3 -> 76       |
-| MISO | GPIO10 <- 42      | GPIO10 <- 6 (GPIO2 <- 75) |
+|      | M0S Dock <-> FPGA | int. MCU <-> FPGA |                                      |
+|------|-------------------|-------------------|--------------------------------------|
+| CSN  | GPIO12 -> 56      | GPIO0 -> 86       | SPI select, active low               |
+| SCK  | GPIO13 -> 54      | GPIO1 -> 13       | SPI clock, idle low                  |
+| MOSI | GPIO11 -> 41      | GPIO3 -> 76       | SPI data from MCU to FPGA            |
+| MISO | GPIO10 <- 42      | GPIO10 <- 6 (GPIO2 <- 75) | SPI data from FPGA to MCU    |
+| IRQ  | GPIO14 <- 51      | TBD               | Interrupt from FPGA to MCU, active low |
 
 Currently the SPI bus is run at 20Mhz and only the M0S variant is
 implemented and supported. The internal MCU is supposed to use GPIO2
@@ -33,7 +34,9 @@ to FPGA pin 6 for MISO data. But due to a design error on the Tang
 Nano 20, GPIO2 is unusable for fast signals. Thus GPIO10 is being used
 which is one of the JTAG pins on FPGA side. Using this pin as a regular
 IO requires to disable JTAG in the FPGA. As a consequence, programming
-the FPGA needs [special care](MODES.md).
+the FPGA needs [special care](MODES.md). Since release 1.2.2 a interrupt
+signal (IRQ) is being used to allow the FPGA to notify the MCU of
+events.
 
 The SPI master is the MCU and the SPI target is the FPGA. The SPI is
 operated in MODE1 with clock idle state being low and data being
@@ -51,7 +54,7 @@ the MCU wants to address. Currently implemented are:
 
 | value | name | description | MCU implementation | FPGA implementation |
 |-------|------|-------------|--------------------|---------------------|
-| 0     | SYS  | Generic system control | [```sysctrl.c```](bl616/misterynano_fw/sysctrl.c) | [```hid.v```](src/misc/hid.v) |
+| 0     | SYS  | Generic system control | [```sysctrl.c```](bl616/misterynano_fw/sysctrl.c) | [```hid.v```](src/misc/sysctrl.v) |
 | 1     | HID  | Human Interface Devices, e.g. keyboard & mice | [```usb_host.c```](bl616/misterynano_fw/susb_host.c) | [```hid.v```](src/misc/hid.v) |
 | 2     | OSD  | On-Screen-Display | [```osd_u8g2.c```](bl616/misterynano_fw/sosd_u8g2.c) | [```osd_u8g2.v```](src/misc/osd_u8g2.v) |
 | 3     | SDC  | SD Card   | [```sdc.c```](bl616/misterynano_fw/ssdc.c) | [```sd_card.v```](src/misc/sd_card.v) |
@@ -82,11 +85,14 @@ The SYS (system control) target currently supports these commands:
 | 2 | ```SPI_SYS_RGB``` | Send RGB color info into FPGA |
 | 3 | ```SPI_SYS_BTN``` | Request button state from FPGA |
 | 4 | ```SPI_SYS_SET``` | Set a variable in the FPGA |
+| 5 | ```SPI_SYS_IRQ_CTRL``` | Interrupt control |
 
-The ```SPI_SYS_STATUS``` command returns $5c and $42. This can be used to
-check if the FPGA has started up and has the right core installed.
+The ```SPI_SYS_STATUS``` command currently just returns $5c and
+$42. This can be used to check if the FPGA has started up and has the
+right core installed.
 
-The ```SPI_SYS_LEDS``` command allows to control LEDs 4 and 5.
+The ```SPI_SYS_LEDS``` command allows to control LEDs 4 and 5 on the Tang
+Nano from the MCU. The other four LEDs are controlled by the core itself.
 
 The ```SPI_SYS_RGB``` command can be used to send a 24 bit (three bytes)
 RGB (red/green/blue) value into the core which it can e.g. use to drive
@@ -94,15 +100,20 @@ the on-board ws2812 led.
 
 The ```SPI_SYS_BTN``` command will return the state of the two S0 and S1
 buttons on the Tang Nano 20k. This can e.g. be used to control the MCU
-via those buttons. The reply also contains latched values from startup
-indicating whether these buttons were pressed during power-up.
+via those buttons.
 
-The ```SPI_SYS_SET``` command has three data bytes. The first byte
-is the ASCII ID's of a variable to be set and the second byte is a 8 bit value. E.g.
-the Atari ST core supports the configuration of the chipset between three
-value (ST, Mega ST and STE) via the OSD. This setting is sent using the ID 'C'
-(for Chipset) with a value of 0 to 2. The use of these values is core
-specific.
+The ```SPI_SYS_SET``` command has two data bytes. The first byte is
+the ASCII ID's of a variable to be set and the second byte is a 8 bit
+value. E.g.  the Atari ST core supports the configuration of the
+chipset between three values (ST, Mega ST and STE) via the OSD. This
+setting is sent using the ID 'C' (for Chipset) with a value of 0 to
+2. The use of these values is core specific.
+
+With ```SPI_SYS_IRQ_CTRL``` the first data byte allows to acknowledge
+the eight possible interrupt sources inside the FPGA. The second data
+byte will return the pending interrupts. The eight interrupts souces
+are currently mapped to the SPI targets, e.g. the SD card target 3 is
+mapped to interrupt bit 3.
 
 ### HID target
 
@@ -127,21 +138,22 @@ used to open and close the OSD. While the OSD is visible no keyboard
 data is sent into the core. Instead the keyboard is being used to
 control the OSD.
 
-The ```SPI_HID_MOUSE``` messages contains three data bytes. The first byte contains
-the state of the mouse buttons in the LSB and the second and third
-byte contain relative x and y movements.
+The ```SPI_HID_MOUSE``` messages contain three data bytes. The first
+byte carries the state of the mouse buttons in bits 0 and 1. The
+second and third bytes contain relative x and y movements.
 
-The ```SPI_HID_JOYSTICK``` messages contains a two data bytes, the first addressing
-the joystick and the second containing classic 8 bit digital joystick data. The
-address byte is needed since unlike keyboards and mice, the core needs to
-distinguish between multiple joysticks. The uper four bits of the second byte
-contain of to four fire buttons. These can simply be or'd together for standard
-DB joystick emulation.
+The ```SPI_HID_JOYSTICK``` messages contains two data bytes, the
+first addressing the joystick and the second containing classic 8 bit
+digital joystick data. The address byte is needed since unlike
+keyboards and mice, the core needs to distinguish between multiple
+joysticks. The upper four bits of the second byte contain up to four
+fire buttons. These can simply be or'd together for standard DB9
+joystick emulation.
 
 ### OSD target
 
 The OSD (on-screen-display) is a monochrome 128x64 frame buffer inside
-the FPGA that can be displayed centered in the main screen on request
+the FPGA that can be displayed centered on the main screen on request
 by the MCU. The 1024 bytes of video memory (128x64/8) are organized
 "vertically" as typically used with small OLED displays. This is to
 easy the use of the [u8g2](https://github.com/olikraus/u8g2) library
@@ -158,9 +170,9 @@ The OSD target supports the following commands:
 The ```SPI_OSD_ENABLE``` command has one data byte. The lowest bit of this
 indicates whether the OSD is to be shown (1) or hidden (0).
 
-The ```SPI_OSD_WRITE``` command is followed by a byte containing a offset value
+The ```SPI_OSD_WRITE``` command is followed by a byte containing an offset value
 and 1 or more data bytes. The offset indicates which tile the graphics data
-starts at. E.g. a offset of 100 indicates that writing should start at tile column
+starts at. E.g. an offset of 100 indicates that writing should start at tile column
 100 which is the 800th pixel column. Since the display is 128 pixels wide the
 800th column is the 32th pixel column in tile row 6 (6*128+32=800). This is exactly
 how the u8g2 library expects to address a display.
@@ -187,6 +199,7 @@ The SDC target supports the following commands:
 | 2 | ```SPI_SDC_READ``` | Request the core to read a sector for it's own purpose |
 | 3 | ```SPI_SDC_MCU_READ``` | Request to read data for MCU usage |
 | 4 | ```SPI_SDC_INSERTED``` | Inform core about the selection of disk images |
+| 5 | ```SPI_SDC_MCU_WRITE``` | Request to write data on behalf of the MCU |
 
 The ```SPI_SDC_STATUS``` is used to poll the SD card status. The first
 byte returned is a generic status byte indicating whether the card
@@ -225,3 +238,9 @@ values typically used when reading from floppy disk into sector
 offsets into the image file. A size of 0 indicates that no image is
 currently selected. The core should then behave as if e.g. no floppy
 disk is inserted.
+
+Using ```SPI_SDC_MCU_WRITE``` the MCU can request a sector to be written to
+SD card. The first four data bytes indicate which sector on the SD card
+is to be written. The following 512 bytes are the data to be written.
+Afterwards command will return bytes != 0 as long as the card is busy
+writing.
