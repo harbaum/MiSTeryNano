@@ -196,7 +196,7 @@ The SDC target supports the following commands:
 | value | name | description |
 |---------|-------------|-------------|
 | 1 | ```SPI_SDC_STATUS```  | Read SD card status |
-| 2 | ```SPI_SDC_READ``` | Request the core to read a sector for it's own purpose |
+| 2 | ```SPI_SDC_CORE_RW``` | Request the core to read or write a sector for it's own purpose |
 | 3 | ```SPI_SDC_MCU_READ``` | Request to read data for MCU usage |
 | 4 | ```SPI_SDC_INSERTED``` | Inform core about the selection of disk images |
 | 5 | ```SPI_SDC_MCU_WRITE``` | Request to write data on behalf of the MCU |
@@ -211,16 +211,16 @@ Atari ST core bit 0 indicates a request for floppy A: and bit 1 for
 floppy B:. The following four bytes contain the sector number the core
 wants to read.
 
-The ```SPI_SDC_READ``` requests the core to read a sector from SD card
-and use it for it's own purposes. The command is followed by four
-bytes containing the sector number to be read. This command is usually
-a sent in reply to bit 0 or 1 being set in the reply
-to```SPI_SDC_STATUS```. The core has requested to read a sector
-(e.g. sector if it wants to read the first sector from floppy) and the
-MCU now instructs it to read a certain sector from SD card. This will
-be the first sector of the disk images on SD card which will be the
-first data sector if the image file. No actual data is being returned to
-the MCU with this command.
+The ```SPI_SDC_CORE_RW``` requests the core to read or write a sector
+from or to SD card and use it for it's own purposes. The command is
+followed by four bytes containing the sector number to be read or
+written. This command is usually a sent in reply to bit 0 or 1 being
+set in the reply to```SPI_SDC_STATUS```. The core has requested to
+read or write a sector (e.g. sector 0 if it wants to read or write the
+first sector on the floppy) and the MCU now instructs it to use a
+certain sector on SD card. This will be the first sector of the disk
+images on SD card which will be the first data sector in the image
+file. No actual data is being returned to the MCU with this command.
 
 In contrast ```SPI_SDC_MCU_READ``` requests the FPGA to return the contents
 of a sector from the SD card is to be returned to the MCU. The following four
