@@ -54,7 +54,7 @@ the MCU wants to address. Currently implemented are:
 
 | value | name | description | MCU implementation | FPGA implementation |
 |-------|------|-------------|--------------------|---------------------|
-| 0     | SYS  | Generic system control | [```sysctrl.c```](bl616/misterynano_fw/sysctrl.c) | [```hid.v```](src/misc/sysctrl.v) |
+| 0     | SYS  | Generic system control | [```sysctrl.c```](bl616/misterynano_fw/sysctrl.c) | [```sysctrl.v```](src/misc/sysctrl.v) |
 | 1     | HID  | Human Interface Devices, e.g. keyboard & mice | [```usb_host.c```](bl616/misterynano_fw/susb_host.c) | [```hid.v```](src/misc/hid.v) |
 | 2     | OSD  | On-Screen-Display | [```osd_u8g2.c```](bl616/misterynano_fw/sosd_u8g2.c) | [```osd_u8g2.v```](src/misc/osd_u8g2.v) |
 | 3     | SDC  | SD Card   | [```sdc.c```](bl616/misterynano_fw/ssdc.c) | [```sd_card.v```](src/misc/sd_card.v) |
