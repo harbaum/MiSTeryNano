@@ -32,7 +32,7 @@ module top(
   output [3:0]	O_sdram_dqm, // 32/4
 
   // generic IO, used for mouse/joystick/...
-  inout [9:0]	io,
+  inout [11:0]	io,
   // config inputs
   input [3:0]	cfg,
 
@@ -48,7 +48,7 @@ module top(
   output	spi_dir,  // out
   input		spi_dat,  // in (io?)
 
-  output    jtag_tck,
+//  output    jtag_tck,
 
   // hdmi/tdms
   output	tmds_clk_n,
@@ -185,7 +185,7 @@ wire [14:0] audio_r;
 // map output data onto both spi outputs
 wire spi_io_dout;
 assign spi_dir = spi_io_dout;   // spi_dir has filter cap and pulldown any basically doesn't work
-assign jtag_tck = spi_io_dout;  // using JTAG instead is a pita ...
+// assign jtag_tck = spi_io_dout;  // using JTAG instead is a pita ...
 assign io[9:6] = { 3'bzzz, spi_io_dout };
 
 // by default the internal SPI is being used. Once there is
@@ -287,13 +287,17 @@ hid hid (
         .joystick1()
          );   
 
-wire [1:0] sys_leds;
+wire [1:0] system_leds;
 wire [1:0] system_chipset;
 wire system_memory;
 wire system_video;
 wire [1:0] system_reset;   // reset and coldboot flag
 wire [1:0] system_scanlines;
 wire [1:0] system_volume;
+
+wire sdc_int;
+wire sdc_iack = int_ack[3];
+wire [7:0] int_ack;
 
 sysctrl sysctrl (
         .clk(clk_32),
@@ -311,16 +315,22 @@ sysctrl sysctrl (
         .system_reset(system_reset),
         .system_scanlines(system_scanlines),
         .system_volume(system_volume),
+        
+        .int_out_n(io[10]),
+        .int_in( { 4'b0000, sdc_int, 3'b000 }),
+        .int_ack( int_ack ),
 
         .buttons( {reset, user} ),
-        .leds(sys_leds),
+        .leds(system_leds),
         .color(ws2812_color)
          );   
 
 
 // signals to wire the floppy controller to the sd card
 wire [1:0]  sd_rd;   // fdc requests sector read
+wire [1:0]  sd_wr;   //     -"-             write
 wire [7:0]  sd_rd_data;
+wire [7:0]  sd_wr_data;
 wire [31:0] sd_lba;  
 wire [8:0]  sd_byte_index;
 wire	    sd_rd_byte_strobe;
@@ -361,11 +371,11 @@ atarist atarist (
     .sd_img_size    ( sd_img_size ),
 	.sd_lba         ( sd_lba ),
 	.sd_rd          ( sd_rd ),
-	.sd_wr          (),
+	.sd_wr          ( sd_wr ),
 	.sd_ack         ( sd_busy ),
 	.sd_buff_addr   ( sd_byte_index ),
 	.sd_dout        ( sd_rd_data ),
-	.sd_din         (),
+	.sd_din         ( sd_wr_data ),
     .sd_dout_strobe ( sd_rd_byte_strobe ),
 
     // interface to ROM
@@ -376,6 +386,8 @@ atarist atarist (
     .blitter_en(system_chipset >= 2'd1),   // MegaST (1) or STE (2)
     .ste(system_chipset >= 2'd2),          // STE (2)
     .enable_extra_ram(system_memory),      // enable extra ram
+
+    .floppy_protected(2'b00),              // floppy write protection
 
     // interface to sdram
     .ram_ras_n(ras_n),
@@ -422,10 +434,8 @@ video video (
    
 // -------------------------- SD card -------------------------------
 
-// assign leds[5:2] = { sys_leds, sd_rd };
+// assign leds[5:2] = { system_leds, sd_rd };
 assign leds[5:2] = { spi_ext, 1'b0, sd_rd };
-
-assign sd_dat = 4'b111z;   // drive unused data lines high and configure dat[0] for input
 
 // Give MCU some time to open a default disk image before booting the core
 // image_size != 0 means card is initialized. Wait up to 2 seconds for this before
@@ -460,7 +470,7 @@ sd_card #(
     // SD card signals
     .sdclk(sd_clk),
     .sdcmd(sd_cmd),
-    .sddat0(sd_dat[0]),
+    .sddat(sd_dat),
 
     // mcu interface
     .data_strobe(mcu_sdc_strobe),
@@ -473,13 +483,19 @@ sd_card #(
     .image_size(sd_img_size),           // length of image file
     .image_mounted(sd_img_mounted),
 
+    // interrupt to signal communication request
+    .irq(sdc_int),
+    .iack(sdc_iack),
+
     // user read sector command interface (sync with clk)
     .rstart(sd_rd), 
+    .wstart(sd_wr), 
     .rsector(sd_lba),
     .rbusy(sd_busy),
     .rdone(sd_done),
 
     // sector data output interface (sync with clk)
+    .inbyte(sd_wr_data),
     .outen(sd_rd_byte_strobe), // when outen=1, a byte of sector content is read out from outbyte
     .outaddr(sd_byte_index),   // outaddr from 0 to 511, because the sector size is 512
     .outbyte(sd_rd_data)       // a byte of sector content

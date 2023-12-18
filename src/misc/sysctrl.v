@@ -8,10 +8,15 @@ module sysctrl (
   input		   clk,
   input		   reset,
 
-  input		   data_in_strobe,
-  input		   data_in_start,
-  input [7:0]      data_in,
-  output reg [7:0] data_out,
+  input		        data_in_strobe,
+  input		        data_in_start,
+  input [7:0]       data_in,
+  output reg [7:0]  data_out,
+
+  // interrupt interface
+  output            int_out_n,
+  input [7:0]       int_in,
+  output reg [7:0]  int_ack,
 
   input  [1:0] buttons,          // S0 and S1 buttons on Tang Nano 20k
 
@@ -35,12 +40,16 @@ reg [7:0] id;
 wire [7:0] data_in_rev = { data_in[0], data_in[1], data_in[2], data_in[3], 
                            data_in[4], data_in[5], data_in[6], data_in[7] };
 
+assign int_out_n = (int_in != 8'h00)?1'b0:1'b1;
+
 // process mouse events
 always @(posedge clk) begin
    if(reset) begin
       state <= 4'd0;      
       leds <= 2'b00;        // after reset leds are off
       color <= 24'h000000;  // color black -> rgb led off
+
+      int_ack <= 8'h00;
 
       // OSD value defaults. These should be sane defaults, but the MCU
       // will very likely override these early
@@ -50,6 +59,7 @@ always @(posedge clk) begin
       system_scanlines <= 2'b00;
       system_volume <= 2'b00;   
    end else begin
+      int_ack <= 8'h00;
 
       if(data_in_strobe) begin      
         if(data_in_start) begin
@@ -102,6 +112,13 @@ always @(posedge clk) begin
                     // Value "A": volume mute(0), 33%(1), 66%(2) or 100%(3)
                     if(id == "A") system_volume <= data_in[1:0];
                 end
+            end
+
+            // CMD 5: interrupt control
+            if(command == 8'd5) begin
+                // second byte acknowleges the nterrupts
+                if(state == 4'd1) int_ack <= data_in;
+                data_out <= int_in;
             end
          end
       end

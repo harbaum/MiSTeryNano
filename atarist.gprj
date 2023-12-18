@@ -94,7 +94,7 @@
 	<File path="./src/ikbd/rom/ikbd.hex" type="file.other" enable="1"/>
 	
 	<File path="./src/misc/sdcmd_ctrl.v" type="file.verilog" enable="1"/>
-	<File path="./src/misc/sd_reader.v" type="file.verilog" enable="1"/>
+	<File path="./src/misc/sd_rw.v" type="file.verilog" enable="1"/>
 	<File path="./src/misc/sd_card.v" type="file.verilog" enable="1"/>
 	
 	<File path="./src/tangnano20k/atarist.cst" type="file.cst" enable="1"/>

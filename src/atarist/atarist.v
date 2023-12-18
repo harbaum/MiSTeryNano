@@ -49,6 +49,8 @@ module atarist (
     input wire     enable_extra_ram,
     input wire     blitter_en,
 
+    input [1:0]    floppy_protected, // floppy A/B write protect
+
 	// DRAM interface
 	output wire 	   ram_ras_n,
 	output wire 	   ram_cash_n,
@@ -853,7 +855,7 @@ fdc1772 fdc1772 (
 	.img_ds         ( 1'b0             ), // "double sided" image. Unused in ST
 	.img_type       ( 3'd1             ), // Atari ST floppy type
 	.img_mounted    ( sd_img_mounted   ), // signaling that new image has been mounted
-	.img_wp         ( 2'b11            ), // write protect
+	.img_wp         ( floppy_protected ), // write protect
 	.img_size       ( sd_img_size      ), // size of image in bytes, 737280 for 80 tracks, 9 spt double sided
 
 	.sd_lba         ( sd_lba           ), // sector requested by fdc to be read/written

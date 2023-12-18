@@ -43,10 +43,11 @@ reg sdcmdoe  = 1'b0;
 reg sdcmdout = 1'b1;
 
 // sdcmd tri-state driver
-assign sdcmd = sdcmdoe ? sdcmdout : 1'bz;
 `ifdef VERILATOR
+assign sdcmd = sdcmdoe ? sdcmdout : 1'b1;
 wire sdcmdin = sdcmdoe ? 1'b1 : sdcmd_in;
 `else
+assign sdcmd = sdcmdoe ? sdcmdout : 1'bz;
 wire sdcmdin = sdcmdoe ? 1'b1 : sdcmd;
 `endif
    
