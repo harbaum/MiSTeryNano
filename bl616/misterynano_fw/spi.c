@@ -1,9 +1,12 @@
 #include "spi.h"
+#include "sdc.h"
+#include "sysctrl.h"
 
 // spi
 #include "bflb_mtimer.h"
 #include "bflb_spi.h"
 #include "bflb_dma.h"
+#include "bflb_gpio.h"
 
 extern struct bflb_device_s *gpio;
 
@@ -20,6 +23,7 @@ extern struct bflb_device_s *gpio;
 #define SPI_PIN_SCK   GPIO_PIN_13
 #define SPI_PIN_MISO  GPIO_PIN_10
 #define SPI_PIN_MOSI  GPIO_PIN_11
+#define SPI_PIN_IRQ   GPIO_PIN_14
 #else
 #warning "SPI for internal"
 #define SPI_PIN_CSN   GPIO_PIN_0
@@ -30,6 +34,37 @@ extern struct bflb_device_s *gpio;
 #endif
 
 // #define BITBANG
+
+static TaskHandle_t spi_task_handle;
+void spi_isr(uint8_t pin) {
+  if (pin == SPI_PIN_IRQ) {
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+    vTaskNotifyGiveFromISR( spi_task_handle, &xHigherPriorityTaskWoken );
+    portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+  }
+}
+
+// this task receives the interrupt request. Since we cannot
+// call sys_irq_ctrl from the interrupt as spi_begin might
+// block we need to do this from the task (which is allowed to
+// block). The SPI task then demultiplexes the event sources.
+static void spi_task(void *parms) {
+  spi_t *spi = (spi_t*)parms;
+
+  // initialize SD card
+  sdc_init(spi);
+  
+  while(1) {
+    ulTaskNotifyTake( pdTRUE, portMAX_DELAY );
+    
+    // get pending interrupts and ack them all
+    int pending = sys_irq_ctrl(spi, 0xff);
+    if(pending & 0x08) {
+      // pending interrupt for sdc target
+      sdc_handle_event();
+    }
+  }
+}
 
 spi_t *spi_init(void) {
   // when FPGA sets data on rising edge:
@@ -48,7 +83,7 @@ spi_t *spi_init(void) {
   /* spi cs */
   bflb_gpio_init(gpio, SPI_PIN_CSN, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_1);
   bflb_gpio_set(gpio, SPI_PIN_CSN);
-  
+
   struct bflb_spi_config_s spi_cfg = {
     .freq = 20000000,   // 20MHz
     .role = SPI_ROLE_MASTER,
@@ -77,9 +112,19 @@ spi_t *spi_init(void) {
   bflb_gpio_reset(gpio, SPI_PIN_SCK);  // SCK low
   bflb_gpio_reset(gpio, SPI_PIN_MOSI); // MOSI low
 #endif  
-  
+
+  // semaphore to access the spi bus
   spi.sem = xSemaphoreCreateMutex();
-  
+
+  xTaskCreate(spi_task, (char *)"spi_task", 512, &spi, configMAX_PRIORITIES-2, &spi_task_handle);
+
+  /* interrupt input */
+  bflb_irq_disable(gpio->irq_num);
+  bflb_gpio_init(gpio, SPI_PIN_IRQ, GPIO_INPUT | GPIO_PULLUP | GPIO_SMT_EN);
+  bflb_gpio_int_init(gpio, SPI_PIN_IRQ, GPIO_INT_TRIG_MODE_SYNC_FALLING_EDGE);
+  bflb_gpio_irq_attach(SPI_PIN_IRQ, spi_isr);
+  bflb_irq_enable(gpio->irq_num);
+
   return &spi;
 }
 

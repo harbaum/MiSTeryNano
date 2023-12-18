@@ -21,12 +21,11 @@ char *disk_a = NULL;
 
 // variable ids must match the ones in the menu string
 menu_variable_t variables[] = {
-  { 'C', { 2 }},              // default chipset = STE
-  { 'M', { 0 }},              // default memory = 4MB
-  { 'V', { 0 }},              // default video = color
-  { 'S', { 0 }},              // default scanlines = none
-  { 'A', { 1 }},              // default volume = 33%
-  //  { 'D', { .ptr=&disk_a }},   // default disk is initialized separately
+  { 'C', { 0 }},    // default chipset = ST
+  { 'M', { 0 }},    // default memory = 4MB
+  { 'V', { 0 }},    // default video = color
+  { 'S', { 0 }},    // default scanlines = none
+  { 'A', { 1 }},    // default volume = 33%
   { '\0',{ 0 }}
 };
 
@@ -49,13 +48,13 @@ static const char main_form[] =
 static const char system_form[] =
   "System,0;"                           // parent form is 0
   // --------
-  "L,Chipset:,ST|Mega ST|STE,C;"        // selection stored in variable "SC"
+  "L,Chipset:,ST|Mega ST|STE,C;"        // selection stored in variable "C"
   "L,Memory:,4MB|8MB,M;"                // ...
   "L,Video:,Color|Mono,V;"
   "L,Scanlines:,None|25%|50%|75%,S;"
   "L,Volume:,Mute|33%|66%|100%,A;"
-  "B,Cold Boot,B;";                      // system reset with memory reset
-//  "B,Save settings,S;";
+  "B,Cold Boot,B;"                      // system reset with memory reset
+  "B,Save settings,S;";
 
 static const char *forms[] = {
   main_form,
@@ -69,40 +68,52 @@ static void menu_goto_form(menu_t *menu, int form) {
   menu->offset = 0;
 }
 
-static void menu_settings_load(menu_t *menu) {
-  FIL fil;
+#define SETTINGS_FILE  "/sd/atarist.ini"
 
-  if(f_open(&fil, "/sd/atarist.ini", FA_OPEN_EXISTING | FA_READ) == FR_OK) {    
+static void menu_settings_load(menu_t *menu) {
+  printf("Read settings\r\n");
+
+  sdc_lock();  // get exclusive access to the file system
+
+  FIL fil;
+  if(f_open(&fil, SETTINGS_FILE, FA_OPEN_EXISTING | FA_READ) == FR_OK) {    
     char buffer[8];
 
-    printf("Settings file open\r\n");
+    printf("Settings file opened\r\n");
     while(f_gets(buffer, sizeof(buffer), &fil) != NULL) {
       int value = atoi(buffer+1);
-      printf("Setting %c:%d\r\n", buffer[0], value);
+      printf("  %c:%d\r\n", buffer[0], value);
 
       for(int i=0;menu->vars[i].id;i++)
 	if(menu->vars[i].id == buffer[0])
 	  menu->vars[i].value = value;
     }
     f_close(&fil);
-  }
+  } else
+    printf("Error opening file\r\n");
+  
+  sdc_unlock();
 }
 
-#if 0
 static void menu_settings_save(menu_t *menu) {
-  unsigned char buffer[512];
-  unsigned char *p = buffer;
-  for(int i=0;menu->vars[i].id;i++) {
-    *p++ = menu->vars[i].id;
-    *p++ = menu->vars[i].value;
-  }
-
-  // append NUL id as end marker
-  *p++ = 0;
-
+  printf("Write settings\r\n");
+  
+  sdc_lock();  // get exclusive access to the file system
+  
   // saving does not work, yet, as there is no SD card write support by now
+  FIL file;
+  if(f_open(&file, SETTINGS_FILE, FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {
+    char str[8];
+    for(int i=0;menu->vars[i].id;i++) {
+      sprintf(str, "%c%d\n", menu->vars[i].id, menu->vars[i].value);
+      f_puts(str, &file);
+    }
+    f_close(&file);  
+  } else
+    printf("Error opening file\r\n");
+  
+  sdc_unlock();
 }
-#endif
 
 #ifndef SDL
 menu_t *menu_init(spi_t *spi)
@@ -138,7 +149,7 @@ menu_t *menu_init(u8g2_t *u8g2)
     // try to restore variables from eeprom
     menu_settings_load(&menu);  
   } else
-    printf("SD wasn't ready, not laoding defaults\r\n");
+    printf("SD wasn't ready, not loading settings\r\n");
     
   // send initial values for all variables
   for(int i=0;menu.vars[i].id;i++)
@@ -447,8 +458,8 @@ static void menu_select(menu_t *menu) {
   case 'B': {
     char id = menu_get_chr(menu, s, 2);
     
-    //    if(id == 'S')
-    //      menu_settings_save(menu);
+    if(id == 'S')
+      menu_settings_save(menu);
 
     // normal reset
     if(id == 'R') {    

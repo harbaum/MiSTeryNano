@@ -12,6 +12,7 @@
 
 static spi_t *spi = NULL;
 static int sdc_ready = 0;
+static SemaphoreHandle_t sdc_sem;
 
 static FATFS fs;
 static FIL fil[2];
@@ -64,7 +65,6 @@ int sdc_read_sector(unsigned long sector, unsigned char *buffer) {
     spi_tx_u08(spi, SPI_SDC_STATUS);
     status = spi_tx_u08(spi, 0);
     spi_end(spi);  
-    // printf("SD status = %x\r\n", status);
   } while(status & 0x02);   // card busy?
   
   sdc_spi_begin(spi);  
@@ -81,8 +81,38 @@ int sdc_read_sector(unsigned long sector, unsigned char *buffer) {
   for(int i=0;i<512;i++) buffer[i] = spi_tx_u08(spi, 0);
 
   spi_end(spi);
+
+  //  printf("sector %ld\r\n", sector);
+  //  hexdump(buffer, 512);
+
+  return 0;
+}
+
+int sdc_write_sector(unsigned long sector, const unsigned char *buffer) {
+  // check if sd card is still busy as it may
+  // be reading a sector for the core.
+  unsigned char status;
+  do {
+    sdc_spi_begin(spi);  
+    spi_tx_u08(spi, SPI_SDC_STATUS);
+    status = spi_tx_u08(spi, 0);
+    spi_end(spi);  
+  } while(status & 0x02);   // card busy?
+
+  sdc_spi_begin(spi);  
+  spi_tx_u08(spi, SPI_SDC_MCU_WRITE);
+  spi_tx_u08(spi, (sector >> 24) & 0xff);
+  spi_tx_u08(spi, (sector >> 16) & 0xff);
+  spi_tx_u08(spi, (sector >> 8) & 0xff);
+  spi_tx_u08(spi, sector & 0xff);
+
+  // write sector data
+  for(int i=0;i<512;i++) spi_tx_u08(spi, buffer[i]);  
   
-  // hexdump(buffer, 512);
+  // todo: add timeout
+  while(spi_tx_u08(spi, 0));  // wait for ready
+  
+  spi_end(spi);
 
   return 0;
 }
@@ -107,6 +137,7 @@ static int sdc_read(BYTE *buff, LBA_t sector, UINT count) {
 
 static int sdc_write(const BYTE *buff, LBA_t sector, UINT count) {
   printf("sdc_write(%p,%d,%d)\r\n", buff, sector, count);  
+  sdc_write_sector(sector, buff);
   return 0;
 }
 
@@ -144,13 +175,13 @@ static int fs_init() {
       vTaskDelay(pdMS_TO_TICKS(1));
     }
   } while(timeout && ((status & 0xf0) != 0x80));
-
   // getting here with a timeout either means that there
   // is no matching core on the FPGA or that there is no
   // SD card inserted
   
   // switch rgb led to green
   if(!timeout) {
+    printf("SD not ready, status = %d\r\n", status);
     sys_set_rgb(spi, 0x400000);  // red, failed
     return -1;
   }
@@ -166,7 +197,7 @@ static int fs_init() {
     sys_set_rgb(spi, 0x400000);  // red, failed
     return -1;
   }
-
+  
   sys_set_rgb(spi, 0x004000);  // green, ok
   return 0;
 }
@@ -180,7 +211,9 @@ int sdc_is_ready(void) {
   return sdc_ready;
 }
 
-int sdc_poll(void) {
+int sdc_handle_event(void) {
+  printf("Handling SDC event\r\n");
+  
   // read sd status
   sdc_spi_begin(spi);  
   spi_tx_u08(spi, SPI_SDC_STATUS);
@@ -204,17 +237,19 @@ int sdc_poll(void) {
     // ---- figure out which physical sector to use ----
   
     // translate sector into a cluster number inside image
+    sdc_lock();
     f_lseek(&fil[drive], (rsector+1)*512);
+    sdc_unlock();
 
     // and add sector offset within cluster    
     unsigned long dsector = clst2sect(fil[drive].clust) + rsector%fs.csize;
     
     printf("%c: sector %lu -> %lu\r\n", drive?'B':'A', rsector, dsector);
 
-    // send sector number to core, so it can fetch the right
-    // sector from it's local sd card
+    // send sector number to core, so it can read or write the right
+    // sector from/to its local sd card
     sdc_spi_begin(spi);  
-    spi_tx_u08(spi, SPI_SDC_READ);
+    spi_tx_u08(spi, SPI_SDC_CORE_RW);
     spi_tx_u08(spi, (dsector >> 24) & 0xff);
     spi_tx_u08(spi, (dsector >> 16) & 0xff);
     spi_tx_u08(spi, (dsector >> 8) & 0xff);
@@ -250,6 +285,8 @@ int sdc_image_open(int drive, char *name) {
   strcat(fname, "/");
   strcat(fname, name);
 
+  sdc_lock();
+  
   // tell core that the "disk" has been removed
   sdc_image_inserted(drive, 0);
 
@@ -265,6 +302,7 @@ int sdc_image_open(int drive, char *name) {
 
   if(f_open(&fil[drive], fname, FA_OPEN_EXISTING | FA_READ) != 0) {
     printf("file open failed\r\n");
+    sdc_unlock();
     return -1;
   } else {
     printf("file opened, cl=%d(%d)\r\n", fil[drive].obj.sclust, clst2sect(fil[drive].obj.sclust));
@@ -291,6 +329,7 @@ int sdc_image_open(int drive, char *name) {
 	lktbl = NULL;
 	fil[drive].cltbl = NULL;
 
+	sdc_unlock();
 	return -1;
       } else
 	printf("Link table ok\r\n");
@@ -300,6 +339,7 @@ int sdc_image_open(int drive, char *name) {
   // image has successfully been opened, so report image size to core
   sdc_image_inserted(drive, fil[drive].obj.objsize);
   
+  sdc_unlock();
   return 0;
 }
 
@@ -365,6 +405,8 @@ sdc_dir_t *sdc_readdir(char *name) {
 
   printf("max name len = %d\r\n", FF_LFN_BUF);
 
+  sdc_lock();
+  
   int ret = f_opendir(&dir, cwd);
 
   printf("opendir(%s)=%d\r\n", cwd, ret);
@@ -374,33 +416,109 @@ sdc_dir_t *sdc_readdir(char *name) {
     if(fno.fname[0] != 0 && !(fno.fattrib & (AM_HID|AM_SYS)) ) {
       printf("%s %s, len=%d\r\n", (fno.fattrib & AM_DIR) ? "dir: ":"file:", fno.fname, fno.fsize);
 
-      append(&sdc_dir, &fno);
+      printf("X: %s\r\n", fno.fname+strlen(fno.fname)-3);
+      
+      // only accept directories or .ST files
+      if((fno.fattrib & AM_DIR) ||
+	 (strlen(fno.fname) > 3 && strcasecmp(fno.fname+strlen(fno.fname)-3, ".st") == 0))
+	append(&sdc_dir, &fno);
     }
   } while(fno.fname[0] != 0);
 
   f_closedir(&dir);
 
   qsort(sdc_dir.files, sdc_dir.len, sizeof(sdc_dir_entry_t), dir_compare);
+  sdc_unlock();
 
   return &sdc_dir;
 }
 
 int sdc_init(spi_t *p_spi) {
   spi = p_spi;
+  sdc_sem = xSemaphoreCreateMutex();
 
   printf("---- SDC init ----\r\n");
 
   if(fs_init() == 0) {
-    sdc_ready = 1;
 
+#if 0  // do some file system level write tests
+    DIR dir;
+    FILINFO fno;
+
+    // check existence of a subdirectory
+    if(f_opendir(&dir, "/sd/fstest") == FR_OK) {
+      printf("Directory /sd/fstest exists. Using it.\r\n");  
+      do {
+	f_readdir(&dir, &fno);
+	if(fno.fname[0] != 0 && !(fno.fattrib & (AM_HID|AM_SYS)) ) {
+	  printf("%s %s, len=%d\r\n", (fno.fattrib & AM_DIR) ? "dir: ":"file:", fno.fname, fno.fsize);
+	}
+      } while(fno.fname[0] != 0);
+      f_closedir(&dir);
+    } else {
+      printf("Directory /sd/fstest does not exist. Creating it.\r\n");  
+      if(f_mkdir("/sd/fstest") != FR_OK)
+	printf("Unable to create\r\n");
+    }
+     
+    // create a few randomly named files with some more or less random content
+    for(int i=0;i<10;i++) {
+      char str[32];
+      sprintf(str, "/sd/fstest/test_%03d.txt", abs(random()%1000));      
+      printf("Writing %s\r\n", str);
+      
+      FIL file;
+      if(f_open(&file, str, FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {
+	int lines = 10 + abs(random()%20);
+	
+	for(int l=0;l<lines;l++) {
+	  sprintf(str, "Hallo Welt %d\r\n", abs(random()%100));	  
+	  UINT wlen;
+	  FRESULT res = f_write(&file, str, strlen(str), &wlen);
+	  printf("Wrote %d, wlen %ld\r\n", res, wlen);
+	}
+	f_close(&file);      
+      } else
+	printf("open file failed\r\n");
+    }
+    printf("done\r\n");
+#endif
+
+#if 0  // do some sector level write tests
+    unsigned char buffer[4][512];
+    for(int i=0;i<4;i++) {
+      sdc_read_sector(2+i, buffer[i]);
+      printf("Sector %d:\r\n", 2+i);
+      hexdump(buffer[i], 512);
+    }
+    
+    for(int i=0;i<4;i++) {
+      for(int b=0;b<512;b++) buffer[i][b] = b+i;
+      sdc_write_sector(2+i, buffer[i]);
+    }
+#endif
+    
     // set default path
     if(!cwd) cwd = strdup(CARD_MOUNTPOINT);
 
     // try to open default images
     sdc_image_open(0, "disk_a.st");
     sdc_image_open(1, "disk_b.st");
+
+    // signal that we are ready, so other threads may e.g. continue as
+    // a config stored on sd card has now been read
+    sdc_ready = 1;
   }
     
   return 0;
 }
 
+// use a locking mechanism to make sure the file system isn't modified
+// by two threads at the same time
+void sdc_lock(void) {
+  xSemaphoreTake(sdc_sem, 0xffffffffUL); // wait forever
+}
+
+void sdc_unlock(void) {
+  xSemaphoreGive(sdc_sem);
+}

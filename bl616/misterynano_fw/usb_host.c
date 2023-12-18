@@ -9,7 +9,12 @@
 #include "bflb_gpio.h"
 #include "hidparser.h"
 
-// #include "cfg.h"
+#ifdef CHERRYUSB_VERSION
+#error NIX
+#endif
+
+#define CHERRY_NEW     // for cu >= 10.2
+
 #include "menu.h"    // for event codes
 
 // queue to send messages to OSD thread
@@ -35,7 +40,9 @@ static struct usb_config {
     int index;
     int state;
     struct usbh_hid *class;
+#ifndef CHERRY_NEW
     struct usbh_urb intin_urb;
+#endif
     uint8_t *buffer;
     int nbytes;
     hid_report_t report;
@@ -195,7 +202,7 @@ static uint16_t collect_bits(uint8_t *p, uint16_t offset, uint8_t size, bool is_
 
 void joystick_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
   //  printf("joystick: %d %02x %02x %02x %02x\r\n", nbytes,
-  //	 buffer[0]&0xff, buffer[1]&0xff, buffer[2]&0xff, buffer[3]&0xff);
+  //  	 buffer[0]&0xff, buffer[1]&0xff, buffer[2]&0xff, buffer[3]&0xff);
 
   unsigned char joy = 0;
   
@@ -361,7 +368,11 @@ static void usbh_hid_client_thread(void *argument) {
   printf("HID client #%d: thread started\r\n", hid->index);
 
   while(1) {
+#ifndef CHERRY_NEW
     int ret = usbh_submit_urb(&hid->intin_urb);
+#else
+    int ret = usbh_submit_urb(&hid->class->intin_urb);
+#endif
     if (ret < 0)
       printf("HID client #%d: submit failed\r\n", hid->index);
     else {
@@ -416,12 +427,16 @@ static void usbh_hid_thread(void *argument) {
 	  }
 	}
 #endif
-	
+
 	// setup urb
-	usbh_int_urb_fill(&usb->hid_info[i].intin_urb, usb->hid_info[i].class->intin, usb->hid_info[i].buffer,
+	usbh_int_urb_fill(&usb->hid_info[i].class->intin_urb,
+#ifdef CHERRY_NEW	
+			  usb->hid_info[i].class->hport,
+#endif
+			  usb->hid_info[i].class->intin, usb->hid_info[i].buffer,
 			  usb->hid_info[i].report.report_size + (usb->hid_info[i].report.report_id_present ? 1:0),
 			  0, usbh_hid_callback, &usb->hid_info[i]);
-
+	
 	// start a new thread for the new device
 	xTaskCreate(usbh_hid_client_thread, (char *)"usb_task", 2048, &usb->hid_info[i], configMAX_PRIORITIES-3, &usb->hid_info[i].task_handle );
       }
