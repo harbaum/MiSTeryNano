@@ -7,17 +7,6 @@
 //           Support CardType   : SDv1.1 , SDv2  or SDHCv2
 //--------------------------------------------------------------------------------------------------------
 
-// TODO:
-// + write support
-//   + birdirectional sddat0
-//   + accept write command
-//   + write data
-//   + write crc
-//   + wait for card crc ack
-//   + wait while sd card busy
-// + wide mode (4 bit)
-// 
-
 module sd_rw # (
     parameter [2:0] CLK_DIV = 3'd2,     // when clk =   0~ 25MHz , set CLK_DIV = 3'd1,
                                         // when clk =  25~ 50MHz , set CLK_DIV = 3'd2,
