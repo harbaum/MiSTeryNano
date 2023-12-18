@@ -25,22 +25,29 @@ The SPI bus between the MCU and the FPGA consists of four connections:
 | CSN  | GPIO12 -> 56      | GPIO0 -> 86       | SPI select, active low               |
 | SCK  | GPIO13 -> 54      | GPIO1 -> 13       | SPI clock, idle low                  |
 | MOSI | GPIO11 -> 41      | GPIO3 -> 76       | SPI data from MCU to FPGA            |
-| MISO | GPIO10 <- 42      | GPIO10 <- 6 (GPIO2 <- 75) | SPI data from FPGA to MCU    |
+| MISO | GPIO10 <- 42      | GPIO10 <- 6       | SPI data from FPGA to MCU    |
 | IRQ  | GPIO14 <- 51      | TBD               | Interrupt from FPGA to MCU, active low |
 
-Currently the SPI bus is run at 20Mhz and only the M0S variant is
-implemented and supported. The internal MCU is supposed to use GPIO2
-to FPGA pin 6 for MISO data. But due to a design error on the Tang
-Nano 20, GPIO2 is unusable for fast signals. Thus GPIO10 is being used
-which is one of the JTAG pins on FPGA side. Using this pin as a regular
-IO requires to disable JTAG in the FPGA. As a consequence, programming
-the FPGA needs [special care](MODES.md). Since release 1.2.2 a interrupt
-signal (IRQ) is being used to allow the FPGA to notify the MCU of
-events.
+Currently the SPI bus is run at 20Mhz and only the M0S variant is by
+now not fully implemented and supported.
 
-The SPI master is the MCU and the SPI target is the FPGA. The SPI is
-operated in MODE1 with clock idle state being low and data being
-sampled on the falling edge of clock.
+The internal MCU is supposed to use GPIO2 to FPGA pin 6 for MISO
+data. But due to a design error on the Tang Nano 20k, GPIO2 is
+unusable for fast signals. Thus GPIO10 is being used which is one of
+the JTAG pins on FPGA side. Using this pin as a regular IO requires to
+disable JTAG in the FPGA. As a consequence, programming the FPGA needs
+[special care](MODES.md).
+
+The SPI master is the MCU and the SPI target is the FPGA. Thus, only
+the MCU initiates SPI communication. The SPI is operated in MODE1 with
+clock idle state being low and data being sampled on the falling edge
+of clock.
+
+Since release 1.2.2 an interrupt signal (IRQ) is being used to allow
+the FPGA to notify the MCU of events. This avoids the need to
+constantly poll the FPGA from the MCU and the FPGA can simply raise
+the interrupt signal whenever it requires the cooperation of the MCU
+e.g. to translate sector read/write requests.
 
 ## Protocol
 
@@ -87,12 +94,15 @@ The SYS (system control) target currently supports these commands:
 | 4 | ```SPI_SYS_SET``` | Set a variable in the FPGA |
 | 5 | ```SPI_SYS_IRQ_CTRL``` | Interrupt control |
 
-The ```SPI_SYS_STATUS``` command currently just returns $5c and
-$42. This can be used to check if the FPGA has started up and has the
-right core installed.
+The ```SPI_SYS_STATUS``` command currently just returns $5c and $42 in
+the Atari ST core. This can be used to check if the FPGA has started
+up and has the right core installed. Other cores may use different
+bytes to allow the MCU to identify the type of the running core.
 
 The ```SPI_SYS_LEDS``` command allows to control LEDs 4 and 5 on the Tang
 Nano from the MCU. The other four LEDs are controlled by the core itself.
+This may not always be wired up and some releases may use all LEDs by the
+FPGA directly to signal certain operation states and events.
 
 The ```SPI_SYS_RGB``` command can be used to send a 24 bit (three bytes)
 RGB (red/green/blue) value into the core which it can e.g. use to drive
@@ -111,7 +121,7 @@ setting is sent using the ID 'C' (for Chipset) with a value of 0 to
 
 With ```SPI_SYS_IRQ_CTRL``` the first data byte allows to acknowledge
 the eight possible interrupt sources inside the FPGA. The second data
-byte will return the pending interrupts. The eight interrupts souces
+byte will return the pending interrupts. The eight interrupts sources
 are currently mapped to the SPI targets, e.g. the SD card target 3 is
 mapped to interrupt bit 3.
 
