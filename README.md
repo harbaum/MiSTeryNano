@@ -25,13 +25,8 @@ The MiSTeryNano is a work in progress. Current features are:
     * Mouse and keyboard via USB
     * Joystick via IO pins of Tang Nano
   * Floppy disk images
-    * Read support for drive A: and drive B:
+    * Read and write support for drive A: and drive B:
     * Images stored on regular FAT/exFAT formatted SD card
-
-## Missing features
-
-  * Support for hard disk images
-  * Floppy disk write support
 
 ## Videos
 
@@ -191,15 +186,14 @@ The MiSTeryNano will automatically load a file named [```DISK_A.ST```](sim/flopp
 You can use the on-screen-display (OSD) to change disk images. The F12
 key will open the on screen display.
 
-### Configuration
+### Wiring
 
-Since version 1.2.0 MiSTeryNano the [M0S/BL616
+Since version 1.2.2 MiSTeryNano the [M0S/BL616
 MCU](https://github.com/harbaum/MiSTeryNano/tree/main/bl616)
-controls not only the USB keyboard and mouse. It also
-controls the OSD and the SD card and is being used for all
-configurations as well. 
+has an additional IRQ connection to the FPGA for faster
+response times.
 
 A digital DB9 joystick can be attached directly to the board.
 
-![MiSTeryNano wiring](images/wiring_spi.png)
+![MiSTeryNano wiring](images/wiring_spi_irq.png)
 

@@ -1,5 +1,18 @@
 # Differences of previous versions
 
+## SPI in version 1.2.0
+
+Beginning with version 1.2.0 the connection between the M0S MCU and
+the FPGA is a SPI bus. The wiring is the same as with the PS/2 variant
+but the signals are used differently.
+
+![MiSTeryNano wiring](images/wiring_spi.png)
+
+With the SPI bus the M0S was no longer limited to to keyboard and
+mouse. Instead it also took over the SD card file system handling, the
+control of the on-screen-display and various other tasks that are not
+directly related to the retro machine itself.
+
 ## PS/2 and configuration in version 1.1.0
 
 Version 1.1.0 implemented a PS/2 like connection to send the keyboard
