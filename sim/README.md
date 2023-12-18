@@ -31,6 +31,19 @@ card are probably sufficient:
 $ dd if=/dev/sdb of=sd16g.img bs=1024 count=10240
 ```
 
+## sdc_tb
+
+The [SD card testbench](sdc_tb) is a low level testbench that was
+created to implement a 4 bit SD card driver with read and write
+capabilities. It is based in the
+[FPGA-SDcard-Reader](https://github.com/WangXuan95/FPGA-SDcard-Reader)
+project. This testbench includes a verilator/c++ implementation of an
+SD card.
+
+This testbench comes with an [Arduino sketch](sdc_tb/sdtest) that was
+used on a ESP8266 to test and learn about the 4 bit SD card mode with
+a real SD card connected to the ESP8266 microcontroller.
+
 ## flash_tb
 
 [Flash_tb](flash_tb) simulates interfacing to the SPI flash of the Tang Nano
