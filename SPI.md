@@ -2,8 +2,8 @@
 
 In MiSTeryNano the workload is distributed between the FPGA and the
 BL616 MCU. The FPGA implements the hardware of the original device (in
-this case the Atari ST) and the BLC616 MCU mainly deals with modern
-peripherals like USB keyboards and mice and SD cards with their file
+this case the Atari ST) and the BL616 MCU mainly deals with modern
+peripherals like USB keyboards, mice and SD cards with their file
 systems (FAT, exFAT).
 
 This setup requires that the FPGA and the MCU communicate permanently
