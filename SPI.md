@@ -2,8 +2,8 @@
 
 In MiSTeryNano the workload is distributed between the FPGA and the
 BL616 MCU. The FPGA implements the hardware of the original device (in
-this case the Atari ST) and the BLC616 MCU mainly deals with modern
-peripherals like USB keyboards and mice and SD cards with their file
+this case the Atari ST) and the BL616 MCU mainly deals with modern
+peripherals like USB keyboards, mice and SD cards with their file
 systems (FAT, exFAT).
 
 This setup requires that the FPGA and the MCU communicate permanently
@@ -15,6 +15,10 @@ from the FPGA. This is all done via a SPI bus.
 
 This part of MiSTeryNano is a work and progress and the information
 below may be outdated. The basic principles should still be valid.
+
+## Internal vs. external MCU
+
+It's possible to either use the Tang Nano 20k's internal BL616 MCU or an externally connected one e.g on a M0S Dock. Using the internal MCU has the advantage that no additional component is required. The major disadvantage is that this MCU is usually being used to flash the FPGA from a PC. Repurposing the internal MCU makes flashing the FPGA more difficult and thus hinders FPGA development. Using an external MCU like e.g. a M0S Dock instead leaves the internal MCU and it's ability to flash the FPGA untouched. Development therefore usually takes place with an external M0S Dock.
 
 ## SPI bus
 
@@ -28,15 +32,14 @@ The SPI bus between the MCU and the FPGA consists of four connections:
 | MISO | GPIO10 <- 42      | GPIO10 <- 6       | SPI data from FPGA to MCU    |
 | IRQ  | GPIO14 <- 51      | TBD               | Interrupt from FPGA to MCU, active low |
 
-Currently the SPI bus is run at 20Mhz and only the M0S variant is by
-now not fully implemented and supported.
+Currently the SPI bus is run at 20Mhz and only the M0S variant is currently fully implemented and supported.
 
 The internal MCU is supposed to use GPIO2 to FPGA pin 6 for MISO
 data. But due to a design error on the Tang Nano 20k, GPIO2 is
-unusable for fast signals. Thus GPIO10 is being used which is one of
+unusable for fast signals. Thus, GPIO10 is being used instead. GPIO10 is one of
 the JTAG pins on FPGA side. Using this pin as a regular IO requires to
 disable JTAG in the FPGA. As a consequence, programming the FPGA needs
-[special care](MODES.md).
+[special care](MODES.md). This only affects the Tang Nano 20k's internal MCU. An external M0S based solution is not affected by this.
 
 The SPI master is the MCU and the SPI target is the FPGA. Thus, only
 the MCU initiates SPI communication. The SPI is operated in MODE1 with

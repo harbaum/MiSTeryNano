@@ -18,12 +18,11 @@ The MiSTeryNano is a work in progress. Current features are:
     * color and monochrome video via HDMI
     * YM2149 and STE DMA sound via HDMI
     * Blitter
-  * Supports most TOS
-    * Tested with german TOS 1.04, german TOS 2.06 and US TOS 1.00
+  * Supports most TOS versions
   * Full IKBD implementation
     * Mapped to USB via BL616 MCU
     * Mouse and keyboard via USB
-    * Joystick via IO pins of Tang Nano
+    * Joystick via USB or dedicated IO pins of Tang Nano 20k
   * Floppy disk images
     * Read and write support for drive A: and drive B:
     * Images stored on regular FAT/exFAT formatted SD card
