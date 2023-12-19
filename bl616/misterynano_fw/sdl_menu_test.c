@@ -1,4 +1,13 @@
+/*
+  sdl_menu_test.c
 
+  SDL (native PC) version of the MiSTeryNano menu for testing purposes
+ */
+
+// mount image locally to modify it
+// sudo mount -o offset=1048576 sd.img /mnt
+
+#include <SDL.h>
 #include "u8g2.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -9,15 +18,6 @@
 
 #include "menu.h"
 
-/* TODO
-   - font fix
-   - usb message from cb 
-   - long filename scroll
-   - config
-     - scanlines
-     - volume
- */
-
 u8g2_t u8g2;
 
 static FATFS fs;
@@ -27,9 +27,6 @@ static FIL fil;
 static int sdc_status() { return 0; }
 static int sdc_initialize() { return 0; }
 static int sdc_write(const BYTE *buff, LBA_t sector, UINT count) { assert(0 != 0); return 0; }
-
-// mount image locally to modify it
-// sudo mount -o offset=1048576 sd.img /mnt
 
 static int sdc_read(BYTE *buff, LBA_t sector, UINT count) {
   static FILE *img = NULL;
@@ -48,6 +45,12 @@ static int sdc_read(BYTE *buff, LBA_t sector, UINT count) {
   
   return 0;
 }
+
+void vTaskDelay(int ms) { }
+
+void sdc_lock(void) {}
+void sdc_unlock(void) {}
+int sdc_is_ready(void) { return 1; }
 
 static int sdc_ioctl(BYTE cmd, void *buff) { assert(0 != 0); return 0; }
  
@@ -78,7 +81,7 @@ static int fs_init() {
 
 static char *cwd = NULL;
 
-int sdc_image_open(char *name) {
+int sdc_image_open(int drive, char *name) {
   char fname[strlen(cwd) + strlen(name) + 2];
   strcpy(fname, cwd);
   strcat(fname, "/");
@@ -179,8 +182,8 @@ sdc_dir_t *sdc_readdir(char *name) {
 
 void osd_enable(osd_t *, char) { }
 
-void osd_emit(osd_t *, const char id[2], uint8_t v) {
-  printf("EMIT %c%c=%d\n", id[0], id[1], v);
+void sys_set_val(spi_t *, const char id, uint8_t v) {
+  printf("SYS SET %c=%d\n", id, v);
 }
 
 static LBA_t clst2sect(DWORD clst) {
@@ -202,17 +205,19 @@ int main(void) {
 
   do {
     k = u8g_sdl_get_key();
+    int event = -1;
     if(k >= 0) {
       // printf("K = %d\n", k);
-      int event = 0;
       if ( k == 276 ) event = MENU_EVENT_LEFT;
       if ( k == 275 ) event = MENU_EVENT_RIGHT;
       if ( k == 274 ) event = MENU_EVENT_DOWN;
       if ( k == 273 ) event = MENU_EVENT_UP;
       if ( k == ' ' ) event = MENU_EVENT_SELECT;
-      
-      menu_do(menu, event);
-    }
+      if ( k == 'o' ) event = MENU_EVENT_PGUP;
+      if ( k == 'p' ) event = MENU_EVENT_PGDOWN;
+    }    
+    menu_do(menu, event);
+    if(event == -1) SDL_Delay(40);
   } while(k != 'q');
   
   return 0;

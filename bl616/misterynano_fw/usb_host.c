@@ -9,10 +9,6 @@
 #include "bflb_gpio.h"
 #include "hidparser.h"
 
-#ifdef CHERRYUSB_VERSION
-#error NIX
-#endif
-
 #define CHERRY_NEW     // for cu >= 10.2
 
 #include "menu.h"    // for event codes
@@ -30,10 +26,7 @@ extern QueueHandle_t xQueue;
 extern struct bflb_device_s *gpio;
 
 static struct usb_config {
-  // The USB side keeps track of the OSDs visibility as this will also
-  // suppress forwarding of HID events into the core
-  int osd_is_visible;
-  
+  osd_t *osd;  
   spi_t *spi;
   
   struct hid_info_S {
@@ -82,7 +75,7 @@ void kbd_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
   if(nbytes != 8) return;
   
   // check if modifier have changed
-  if((buffer[0] != hid->keyboard.last_report[0]) && !usb_config.osd_is_visible) {
+  if((buffer[0] != hid->keyboard.last_report[0]) && !osd_is_visible(usb_config.osd)) {
     for(int i=0;i<8;i++) {
       if(modifier_atarist[i]) {      
 	// modifier released?
@@ -99,12 +92,12 @@ void kbd_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
   for(int i=0;i<6;i++) {
     if(buffer[2+i] != hid->keyboard.last_report[2+i]) {
       // key released?
-      if(hid->keyboard.last_report[2+i] && !usb_config.osd_is_visible)
+      if(hid->keyboard.last_report[2+i] && !osd_is_visible(usb_config.osd))
 	kbd_tx(hid, 0x80 | keymap_atarist[hid->keyboard.last_report[2+i]]);
       
       // key pressed?
       if(buffer[2+i])  {
-	unsigned long msg = 0;
+	static unsigned long msg = 0;
 
 	// F12 toggles the OSD state. Therefore F12 must never be forwarded
 	// to the core and thus must have an empty entry in the keymap. ESC
@@ -113,17 +106,19 @@ void kbd_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
 	// Caution: Since the OSD closes on the press event, the following
 	// release event will be sent into the core. The core should thus
 	// cope with release events that did not have a press event before
-	if(buffer[2+i] == 0x45 || (usb_config.osd_is_visible && buffer[2+i] == 0x29)) {
-	  msg = usb_config.osd_is_visible?MENU_EVENT_HIDE:MENU_EVENT_SHOW;
-	  usb_config.osd_is_visible = !usb_config.osd_is_visible;
+	if(buffer[2+i] == 0x45 || (osd_is_visible(usb_config.osd) && buffer[2+i] == 0x29)) {
+	  msg = osd_is_visible(usb_config.osd)?MENU_EVENT_HIDE:MENU_EVENT_SHOW;
 	} else {
-
-	  if(!usb_config.osd_is_visible)
+	  if(!osd_is_visible(usb_config.osd))
 	    kbd_tx(hid, keymap_atarist[buffer[2+i]]);
 	  else {
+	    // printf("%02x\r\n", buffer[2+i]);
+	    
 	    // check if cursor up/down or space has been pressed
 	    if(buffer[2+i] == 0x51) msg = MENU_EVENT_DOWN;      
 	    if(buffer[2+i] == 0x52) msg = MENU_EVENT_UP;
+	    if(buffer[2+i] == 0x4e) msg = MENU_EVENT_PGDOWN;      
+	    if(buffer[2+i] == 0x4b) msg = MENU_EVENT_PGUP;
 	    if((buffer[2+i] == 0x2c) || (buffer[2+i] == 0x28))
 	      msg = MENU_EVENT_SELECT;
 	  }
@@ -450,6 +445,10 @@ static void usbh_hid_thread(void *argument) {
 void usbh_hid_run(struct usbh_hid *hid_class) { }
 void usbh_hid_stop(struct usbh_hid *hid_class) { }
 
+void usb_register_osd(osd_t *osd) {
+  usb_config.osd = osd;
+}
+
 void usb_host(spi_t *spi) {
   TaskHandle_t usb_handle;
 
@@ -457,6 +456,7 @@ void usb_host(spi_t *spi) {
 
   usbh_initialize();  
   usb_config.spi = spi;
+  usb_config.osd = NULL;
   
   // initialize all HID info entries
   for(int i=0;i<CONFIG_USBHOST_MAX_HID_CLASS;i++) {

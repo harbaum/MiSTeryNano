@@ -310,10 +310,69 @@ static void menu_draw_entry(menu_t *menu, int y, const char *s) {
     u8g2_DrawButtonFrame(MENU2U8G2(menu), hl_x, ypos, U8G2_BTN_INV, hl_w, 1, 1);
 }
 
-static void menu_fileselector(menu_t *menu, int state) {
+static const int icon_skip = 10;
+
+static void menu_fs_scroll_entry(menu_t *menu, sdc_dir_entry_t *entry) {
+  int row = menu->entry - menu->offset - 1;
+  int y =  13 + 12 * (row+1);
+  int width = u8g2_GetDisplayWidth(MENU2U8G2(menu));
+  int swid = u8g2_GetStrWidth(MENU2U8G2(menu), entry->name) + 1;
+
+  // fill the area where the scrolling entry would show
+  u8g2_SetClipWindow(MENU2U8G2(menu), icon_skip, y-9, width, y+12-9);  
+  u8g2_DrawBox(MENU2U8G2(menu), icon_skip, y-9, width-icon_skip, 12);
+  u8g2_SetDrawColor(MENU2U8G2(menu), 0);
+  
+  int scroll = menu->fs_scroll_cur++ - 25;   // 25 means 1 sec delay
+  if(menu->fs_scroll_cur > swid-width+icon_skip+50) menu->fs_scroll_cur = 0;
+  if(scroll < 0) scroll = 0;
+  if(scroll > swid-width+icon_skip) scroll = swid-width+icon_skip;
+  
+  u8g2_DrawStr(MENU2U8G2(menu), icon_skip-scroll, y, entry->name);      
+
+  // restore previous draw mode
+  u8g2_SetDrawColor(MENU2U8G2(menu), 1);
+  u8g2_SetMaxClipWindow(MENU2U8G2(menu));
+  u8g2_SendBuffer(MENU2U8G2(menu));
+}
+
+static void menu_fs_draw_entry(menu_t *menu, int row, sdc_dir_entry_t *entry) {      
   static const unsigned char folder_icon[] = { 0x70,0x8e,0xff,0x81,0x81,0x81,0x81,0x7e };
   static const unsigned char up_icon[] =     { 0x04,0x0e,0x1f,0x0e,0xfe,0xfe,0xfe,0x00 };
   
+  char str[strlen(entry->name)+1];
+  int y =  13 + 12 * (row+1);
+  
+  strcpy(str, entry->name);
+  int width = u8g2_GetDisplayWidth(MENU2U8G2(menu));
+  
+  // properly ellipsize string
+  int dotlen = u8g2_GetStrWidth(MENU2U8G2(menu), "...");
+  if(u8g2_GetStrWidth(MENU2U8G2(menu), str) > width-icon_skip) {
+    // the entry is too long to fit the menu.    
+    if(menu->entry == row+menu->offset+1) {
+      menu->fs_scroll_cur = 0;
+      menu->fs_scroll_entry = entry;
+#ifndef SDL
+      // enable timer, to allow animations
+      xTimerStart(menu->osd->timer, 0);
+#endif
+    }
+    
+    while(u8g2_GetStrWidth(MENU2U8G2(menu), str) > width-icon_skip-dotlen) str[strlen(str)-1] = 0;
+    if(strlen(str) < sizeof(str)-4) strcat(str, "...");
+  }
+  u8g2_DrawStr(MENU2U8G2(menu), icon_skip, y, str);      
+  
+  // draw folder icon in front of directories
+  if(entry->is_dir)
+    u8g2_DrawXBM(MENU2U8G2(menu), 1, y-8, 8, 8, strcmp(entry->name, "..")?folder_icon:up_icon);
+
+  if(menu->entry == row+menu->offset+1)
+    u8g2_DrawButtonFrame(MENU2U8G2(menu), 0, y, U8G2_BTN_INV, width, 1, 1);     
+}
+
+static void menu_fileselector(menu_t *menu, int state) {
   static sdc_dir_t *dir = NULL;
   const static char *s;
   static int parent;
@@ -337,32 +396,13 @@ static void menu_fileselector(menu_t *menu, int state) {
     menu_draw_title(menu, menu_get_str(menu, s, MENU_ENTRY_INDEX_LABEL));
 
     // draw up to four files
-    for(int i=0;i<((dir->len<4)?dir->len:4);i++) {
-      char str[32];
-      static const int icon_skip = 10;
-      int y =  13 + 12 * (i+1);
-      sdc_dir_entry_t *entry = &(dir->files[i+menu->offset]);
-
-      strncpy(str, entry->name, sizeof(str));
-      str[sizeof(str)-1] = 0;   // terminate possibly truncated string
-
-      int width = u8g2_GetDisplayWidth(MENU2U8G2(menu));
+    menu->fs_scroll_entry = NULL;  // assume no scrolling needed
+#ifndef SDL
+    xTimerStop(menu->osd->timer, 0);
+#endif
     
-      // properly ellipsize string
-      int dotlen = u8g2_GetStrWidth(MENU2U8G2(menu), "...");
-      if(u8g2_GetStrWidth(MENU2U8G2(menu), str) > width-icon_skip) {
-	while(u8g2_GetStrWidth(MENU2U8G2(menu), str) > width-icon_skip-dotlen) str[strlen(str)-1] = 0;
-	if(strlen(str) < sizeof(str)-4) strcat(str, "...");
-      }
-      u8g2_DrawStr(MENU2U8G2(menu), icon_skip, y, str);      
-
-      // draw folder icon in front of directories
-      if(entry->is_dir)
-        u8g2_DrawXBM(MENU2U8G2(menu), 1, y-8, 8, 8, strcmp(entry->name, "..")?folder_icon:up_icon);
-
-      if(menu->entry == i+menu->offset+1)
-	u8g2_DrawButtonFrame(MENU2U8G2(menu), 0, y, U8G2_BTN_INV, width, 1, 1);   
-    }
+    for(int i=0;i<((dir->len<4)?dir->len:4);i++)
+      menu_fs_draw_entry(menu, i, &(dir->files[i+menu->offset]));
   } else if(state == 4) {
 
     if(!menu->entry) 
@@ -465,12 +505,14 @@ static void menu_select(menu_t *menu) {
     if(id == 'R') {    
       sys_set_val(menu->osd->spi, 'R', 1);
       sys_set_val(menu->osd->spi, 'R', 0);
+      osd_enable(menu->osd, OSD_INVISIBLE);  // hide OSD
     }
 
     // cold boot
     if(id == 'B') {    
       sys_set_val(menu->osd->spi, 'R', 3);
       sys_set_val(menu->osd->spi, 'R', 0);
+      osd_enable(menu->osd, OSD_INVISIBLE);  // hide OSD
     }
   } break;
 	
@@ -480,7 +522,7 @@ static void menu_select(menu_t *menu) {
 }
 
 static int menu_entry_is_usable(menu_t *menu) {
-  // check the current entry in the menu is actually selectable
+  // check if the current entry in the menu is actually selectable
   // (currently only the title of the start form is not)
 
   // not start form? -> ok
@@ -492,12 +534,19 @@ static int menu_entry_is_usable(menu_t *menu) {
 static void menu_entry_go(menu_t *menu, int step) {
   do {
     menu->entry += step;
-    
-    if(menu->entry < 0) menu->entry = menu->entries-1;
-    if(menu->entry >= menu->entries) menu->entry = 0;
+
+    // single step wraps top/bottom, paging does not
+    if(abs(step) == 1) {    
+      if(menu->entry < 0) menu->entry = menu->entries + menu->entry;
+      if(menu->entry >= menu->entries) menu->entry = menu->entry - menu->entries;
+    } else {
+      // limit to top/bottom. Afterwards step 1 in opposite direction to skip unusable entries
+      if(menu->entry < 1) { menu->entry = 1; step = 1; }	
+      if(menu->entry >= menu->entries) { menu->entry = menu->entries - 1; step = -1; }
+    }
 
     // scrolling needed?
-    if(step == 1) {
+    if(step > 0) {
       if(menu->entries <= 5)                   menu->offset = 0;
       else {
 	if(menu->entry <= 3)                   menu->offset = 0;
@@ -506,7 +555,7 @@ static void menu_entry_go(menu_t *menu, int step) {
       }
     }
 
-    if(step == -1) {
+    if(step < 0) {
       if(menu->entries <= 5)                   menu->offset = 0;
       else {
 	if(menu->entry <= 2)                   menu->offset = 0;
@@ -523,12 +572,22 @@ static void menu_entry_go(menu_t *menu, int step) {
 }
 
 void menu_do(menu_t *menu, int event) {
+  if(event < 0) {
+    if((menu->form == MENU_FORM_FSEL) && (menu->fs_scroll_entry))
+      menu_fs_scroll_entry(menu, menu->fs_scroll_entry);
+    
+    return;
+  }
+  
   if(event)  {
     if(event == MENU_EVENT_SHOW)   osd_enable(menu->osd, OSD_VISIBLE);
     if(event == MENU_EVENT_HIDE)   osd_enable(menu->osd, OSD_INVISIBLE);
     
     if(event == MENU_EVENT_UP)     menu_entry_go(menu, -1);
     if(event == MENU_EVENT_DOWN)   menu_entry_go(menu,  1);
+
+    if(event == MENU_EVENT_PGUP)   menu_entry_go(menu, -4);
+    if(event == MENU_EVENT_PGDOWN) menu_entry_go(menu,  4);
 
     if(event == MENU_EVENT_SELECT) menu_select(menu);
   }  

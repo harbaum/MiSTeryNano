@@ -414,10 +414,8 @@ sdc_dir_t *sdc_readdir(char *name) {
   do {
     f_readdir(&dir, &fno);
     if(fno.fname[0] != 0 && !(fno.fattrib & (AM_HID|AM_SYS)) ) {
-      printf("%s %s, len=%d\r\n", (fno.fattrib & AM_DIR) ? "dir: ":"file:", fno.fname, fno.fsize);
+      // printf("%s %s, len=%d\r\n", (fno.fattrib & AM_DIR) ? "dir: ":"file:", fno.fname, fno.fsize);
 
-      printf("X: %s\r\n", fno.fname+strlen(fno.fname)-3);
-      
       // only accept directories or .ST files
       if((fno.fattrib & AM_DIR) ||
 	 (strlen(fno.fname) > 3 && strcasecmp(fno.fname+strlen(fno.fname)-3, ".st") == 0))

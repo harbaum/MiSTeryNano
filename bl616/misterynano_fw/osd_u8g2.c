@@ -120,3 +120,7 @@ osd_t *osd_init(spi_t *spi) {
   
   return &osd;
 }
+
+int osd_is_visible(osd_t *osd) {
+  return osd->state == OSD_VISIBLE;
+}

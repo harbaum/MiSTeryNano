@@ -6,6 +6,7 @@
 
 #include <FreeRTOS.h>
 #include <queue.h>
+#include <timers.h>
 
 #include "board.h"
 
@@ -47,7 +48,13 @@ void set_led(int pin, int on) {
 #endif
 }
 
-/* TODO: move this to osd_xxx.c */
+// a 25Hz timer that can be activated by the menu whenever animations
+// are displayed and which should be updated constantly
+static void osd_timer(xTimerHandle pxTimer) {
+  static long msg = -1;
+  xQueueSendToBack(xQueue, &msg,  ( TickType_t ) 0);
+}
+
 static void osd_task(void *parms) {
   menu_t *menu;
   spi_t *spi = (spi_t*)parms;
@@ -58,92 +65,100 @@ static void osd_task(void *parms) {
   sys_set_leds(spi, 0x00);
 
   menu = menu_init(spi);
+  // inform USB about OSD and MENU, so USB can request e.g.
+  // if the OSD is visible and key events should not be sent
+  // into the core
+  usb_register_osd(menu->osd);
+  
   menu_do(menu, 0);
 
+  // create a 25 Hz timer that frequently wakes the OSD thread allowing for animations
+  menu->osd->timer = xTimerCreate("OSD timer", pdMS_TO_TICKS(40), pdTRUE,
+				  NULL, osd_timer);
   // wait for user events
   while(1) {
     // receive events from usb
     
     // printf("spi tc done count:%d\r\n", spi_tc_done_count);
-    unsigned long cmd;
+    long cmd;
     xQueueReceive( xQueue, &cmd, 0xffffffffUL);
     menu_do(menu, cmd);
   }
 }
-    
+
 int main(void) {
   TaskHandle_t osd_handle;
     
-    board_init();
-    gpio = bflb_device_get_by_name("gpio");
+  board_init();
+  gpio = bflb_device_get_by_name("gpio");
 
 #ifdef M0S_DOCK
 #warning "M0S DOCK"
-    // init on-board LEDs
-    bflb_gpio_init(gpio, GPIO_PIN_27, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_0);
-    bflb_gpio_init(gpio, GPIO_PIN_28, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_0);
-
-    // both leds off
-    bflb_gpio_set(gpio, GPIO_PIN_27);
-    bflb_gpio_set(gpio, GPIO_PIN_28);
-
-    // button
-    bflb_gpio_init(gpio, GPIO_PIN_2, GPIO_INPUT | GPIO_PULLDOWN | GPIO_SMT_EN | GPIO_DRV_0);
+  // init on-board LEDs
+  bflb_gpio_init(gpio, GPIO_PIN_27, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_0);
+  bflb_gpio_init(gpio, GPIO_PIN_28, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_0);
+  
+  // both leds off
+  bflb_gpio_set(gpio, GPIO_PIN_27);
+  bflb_gpio_set(gpio, GPIO_PIN_28);
+  
+  // button
+  bflb_gpio_init(gpio, GPIO_PIN_2, GPIO_INPUT | GPIO_PULLDOWN | GPIO_SMT_EN | GPIO_DRV_0);
 #endif
-
-    // all communication between MCU and FPGA goes through one SPI channel
-    spi_t *spi = spi_init();
-
-    printf("Waiting for FPGA to become ready\r\n");
-
-    // try to establish connection to FPGA for three seconds. Assume the FPGA is
-    // not properly configured after that
-    int fpga_ok, timeout = 500;
-    do {
-      fpga_ok = sys_status_is_valid(spi);
-      if(!fpga_ok) {
-	bflb_mtimer_delay_ms(10);
-	timeout--;
-      }
-    } while(timeout && !fpga_ok);
-
-    if(timeout) {
-      printf("FPGA ready after %dms!\r\n", (500-timeout)*10);
-      sys_set_val(spi, 'R', 3);    // immediately set reset as the config may change
-      sys_set_rgb(spi, 0x000040);  // blue
-    } else {
-      printf("FPGA not ready after 5 seconds!\r\n");
-      // this is basically useless and will only work if the
-      // FPGA receives requests but cannot answer them
-      sys_set_rgb(spi, 0x400000);  // red
+  
+  // all communication between MCU and FPGA goes through one SPI channel
+  spi_t *spi = spi_init();
+  
+  printf("Waiting for FPGA to become ready\r\n");
+  
+  // try to establish connection to FPGA for three seconds. Assume the FPGA is
+  // not properly configured after that
+  int fpga_ok, timeout = 500;
+  do {
+    fpga_ok = sys_status_is_valid(spi);
+    if(!fpga_ok) {
+      bflb_mtimer_delay_ms(10);
+      timeout--;
     }
-    
+  } while(timeout && !fpga_ok);
+  
+  if(timeout) {
+    printf("FPGA ready after %dms!\r\n", (500-timeout)*10);
+    sys_set_val(spi, 'R', 3);    // immediately set reset as the config may change
+    sys_set_rgb(spi, 0x000040);  // blue
+  } else {
+    printf("FPGA not ready after 5 seconds!\r\n");
+    // this is basically useless and will only work if the
+    // FPGA receives requests but cannot answer them
+    sys_set_rgb(spi, 0x400000);  // red
+  }
+  
 #ifndef M0S_DOCK
-    // Go into flasher mode if the FPGA could not be accessed. This
-    // will also happen if the user pressed S1 or S2 during power-on
-    // as these are connected to the mode lines of the FPGA.
-     
-    // Since we are in a freertos environment we need to start a
-    // thread for this, anyway, to make sure interrupts work
-    if(!timeout) {
-      xTaskCreate(go_flasher, (char *)"flasher_task", 4096, spi, configMAX_PRIORITIES-3, &osd_handle);
-      vTaskStartScheduler();
-      for(;;);
-    }
-#endif
-    
-    // message queue from USB to OSD
-    xQueue = xQueueCreate(10, sizeof( unsigned long ) );
-
-    usb_host(spi);
-
-    // start a thread for the on screen display    
-    xTaskCreate(osd_task, (char *)"osd_task", 4096, spi, configMAX_PRIORITIES-3, &osd_handle);
-
+  // Go into flasher mode if the FPGA could not be accessed. This
+  // will also happen if the user pressed S1 or S2 during power-on
+  // as these are connected to the mode lines of the FPGA.
+  
+  // Since we are in a freertos environment we need to start a
+  // thread for this, anyway, to make sure interrupts work
+  if(!timeout) {
+    xTaskCreate(go_flasher, (char *)"flasher_task", 4096, spi, configMAX_PRIORITIES-3, &osd_handle);
     vTaskStartScheduler();
-
-    // will never get here
-    while (1);
+    for(;;);
+  }
+#endif
+  
+  // message queue from USB to OSD
+  xQueue = xQueueCreate(10, sizeof( long ) );
+  
+  usb_host(spi);
+  
+  // start a thread for the on screen display    
+  xTaskCreate(osd_task, (char *)"osd_task", 4096, spi, configMAX_PRIORITIES-3, &osd_handle);
+  
+  vTaskStartScheduler();
+  
+  // will never get here
+  while (1);
 }
 
 #ifdef ENABLE_FLASHER
