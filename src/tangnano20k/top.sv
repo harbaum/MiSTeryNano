@@ -294,10 +294,19 @@ wire system_video;
 wire [1:0] system_reset;   // reset and coldboot flag
 wire [1:0] system_scanlines;
 wire [1:0] system_volume;
+wire system_wide_screen;
+wire [1:0] system_floppy_wprot;
 
 wire sdc_int;
 wire sdc_iack = int_ack[3];
 wire [7:0] int_ack;
+
+wire [7:0] acsi_status_byte;
+wire [3:0] acsi_status_byte_index;
+wire acsi_ack, acsi_nak;
+wire [7:0] acsi_dma_status;
+wire acsi_data_in_strobe;
+wire [15:0] acsi_data_in;
 
 sysctrl sysctrl (
         .clk(clk_32),
@@ -315,10 +324,21 @@ sysctrl sysctrl (
         .system_reset(system_reset),
         .system_scanlines(system_scanlines),
         .system_volume(system_volume),
+        .system_wide_screen(system_wide_screen),
+        .system_floppy_wprot(system_floppy_wprot),
         
         .int_out_n(io[10]),
         .int_in( { 4'b0000, sdc_int, 3'b000 }),
         .int_ack( int_ack ),
+
+        .acsi_status_byte(acsi_status_byte),
+        .acsi_status_byte_index(acsi_status_byte_index),
+        .acsi_ack(acsi_ack),
+        .acsi_nak(acsi_nak),
+        .acsi_dma_status(acsi_dma_status),
+        .acsi_data_in_strobe(acsi_data_in_strobe),
+        .acsi_data_in(acsi_data_in),
+         // .acsi_enable(acsi_enable),
 
         .buttons( {reset, user} ),
         .leds(system_leds),
@@ -336,7 +356,21 @@ wire [8:0]  sd_byte_index;
 wire	    sd_rd_byte_strobe;
 wire	    sd_busy, sd_done;
 wire [31:0] sd_img_size;
-wire [1:0]  sd_img_mounted;
+wire [3:0]  sd_img_mounted;
+reg         sd_ready;
+
+// signals to wire ACSI to the SD card, some of these should be combined
+// with the floppy iside atarist.v and ultimately inside dma.v 
+wire [1:0] 	acsi_rd_req;
+wire [1:0] 	acsi_wr_req;
+wire [31:0] acsi_lba;
+wire acsi_sd_done = sd_done;
+wire acsi_sd_busy = sd_busy;
+wire acsi_sd_rd_byte_strobe = sd_rd_byte_strobe;
+wire [7:0] acsi_sd_rd_byte = sd_rd_data;
+wire [7:0] acsi_sd_wr_byte;
+wire [8:0] acsi_sd_byte_addr = sd_byte_index;
+
 
 atarist atarist (
     .clk_32(clk_32),
@@ -366,8 +400,27 @@ atarist atarist (
     .midi_rx(1'b0),
     .midi_tx(),
 
+    // ACSI disk/sd card interface
+	.acsi_rd_req(acsi_rd_req),
+	.acsi_wr_req(acsi_wr_req),
+	.acsi_lba(acsi_lba),
+ 	.acsi_sd_done(acsi_sd_done),
+ 	.acsi_sd_busy(acsi_sd_busy),
+	.acsi_sd_rd_byte_strobe(acsi_sd_rd_byte_strobe),
+	.acsi_sd_rd_byte(acsi_sd_rd_byte),
+	.acsi_sd_wr_byte(acsi_sd_wr_byte),
+	.acsi_sd_byte_addr(acsi_sd_byte_addr),
+
+	.acsi_status_byte(acsi_status_byte),
+	.acsi_status_byte_index(acsi_status_byte_index),
+    .acsi_ack(acsi_ack),
+    .acsi_nak(acsi_nak),
+    .acsi_dma_status(acsi_dma_status),
+    .acsi_data_in_strobe(acsi_data_in_strobe),
+    .acsi_data_in(acsi_data_in),
+
     // floppy sd card interface
-    .sd_img_mounted ( sd_img_mounted ),
+    .sd_img_mounted ( sd_img_mounted[1:0] ),
     .sd_img_size    ( sd_img_size ),
 	.sd_lba         ( sd_lba ),
 	.sd_rd          ( sd_rd ),
@@ -383,11 +436,11 @@ atarist atarist (
     .rom_addr(rom_addr),
     .rom_data_out(rom_dout),
 
-    .blitter_en(system_chipset >= 2'd1),   // MegaST (1) or STE (2)
-    .ste(system_chipset >= 2'd2),          // STE (2)
-    .enable_extra_ram(system_memory),      // enable extra ram
-
-    .floppy_protected(2'b00),              // floppy write protection
+    // external configurations
+    .blitter_en(system_chipset >= 2'd1),    // MegaST (1) or STE (2)
+    .ste(system_chipset >= 2'd2),           // STE (2)
+    .enable_extra_ram(system_memory),       // enable extra ram
+    .floppy_protected(system_floppy_wprot), // floppy write protection
 
     // interface to sdram
     .ram_ras_n(ras_n),
@@ -412,6 +465,7 @@ video video (
          .mcu_data(mcu_data_out),
 
          // values that can be configure by the user via osd
+	     .system_wide_screen(system_wide_screen),
          .system_scanlines(system_scanlines),
          .system_volume(system_volume),
 
@@ -441,7 +495,6 @@ assign leds[5:2] = { spi_ext, 1'b0, sd_rd };
 // image_size != 0 means card is initialized. Wait up to 2 seconds for this before
 // booting the ST
 reg [31:0] sd_wait;
-reg sd_ready;
 always @(posedge clk_32) begin
     if(!pll_lock) begin
         sd_wait <= 32'd0;
@@ -459,6 +512,20 @@ always @(posedge clk_32) begin
                 sd_ready <= 1'b1;
         end
     end
+end
+
+// differentiate between floppy and acsi requests
+wire      is_acsi = (acsi_rd_req != 0) ||  (acsi_wr_req != 0) || is_acsi_D;   
+reg 	  is_acsi_D;
+   
+always @(posedge clk) begin
+   // ACSI requests IO -> save state
+   if(acsi_rd_req || acsi_wr_req)
+     is_acsi_D <= 1'b1;
+   
+   // FDC requests IO 
+   if(sd_rd || sd_wr)
+     is_acsi_D <= 1'b0;
 end
 
 sd_card #(
@@ -488,17 +555,23 @@ sd_card #(
     .iack(sdc_iack),
 
     // user read sector command interface (sync with clk)
-    .rstart(sd_rd), 
-    .wstart(sd_wr), 
-    .rsector(sd_lba),
+    .rstart( { acsi_rd_req, sd_rd} ), 
+    .wstart( { acsi_wr_req, sd_wr } ), 
+    .rsector( is_acsi?acsi_lba:sd_lba),
     .rbusy(sd_busy),
     .rdone(sd_done),
 
     // sector data output interface (sync with clk)
-    .inbyte(sd_wr_data),
+    .inbyte(is_acsi?acsi_sd_wr_byte:sd_wr_data),
     .outen(sd_rd_byte_strobe), // when outen=1, a byte of sector content is read out from outbyte
     .outaddr(sd_byte_index),   // outaddr from 0 to 511, because the sector size is 512
     .outbyte(sd_rd_data)       // a byte of sector content
 );
 
 endmodule
+
+// To match emacs with gw_ide default
+// Local Variables:
+// tab-width: 4
+// End:
+

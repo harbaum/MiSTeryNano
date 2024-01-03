@@ -2,34 +2,47 @@
     sysctrl.v
  
     generic system control interface fro/via the MCU
+
+    TODO: This is currently very core specific. This needs to be
+    generic for all cores.
 */
 
 module sysctrl (
-  input		   clk,
-  input		   reset,
+  input		    clk,
+  input		    reset,
 
-  input		        data_in_strobe,
-  input		        data_in_start,
-  input [7:0]       data_in,
+  input		    data_in_strobe,
+  input		    data_in_start,
+  input [7:0]	    data_in,
   output reg [7:0]  data_out,
 
   // interrupt interface
-  output            int_out_n,
-  input [7:0]       int_in,
+  output	    int_out_n,
+  input [7:0]	    int_in,
   output reg [7:0]  int_ack,
 
-  input  [1:0] buttons,          // S0 and S1 buttons on Tang Nano 20k
+  input [1:0]	    buttons, // S0 and S1 buttons on Tang Nano 20k
 
-  output reg [1:0] leds,         // two leds can be controlled from the MCU
-  output reg [23:0] color,       // a 24bit color to e.g. be used to drive the ws2812
+  output reg [1:0]  leds, // two leds can be controlled from the MCU
+  output reg [23:0] color, // a 24bit color to e.g. be used to drive the ws2812
+
+  input [7:0] acsi_status_byte,
+  output [3:0] acsi_status_byte_index,
+  output reg acsi_ack,
+  output reg acsi_nak,
+  output reg [7:0] acsi_dma_status,
+  output reg acsi_data_in_strobe,
+  output reg [15:0] acsi_data_in,
 
   // values that can be configured by the user
-  output reg [1:0] system_chipset,
-  output reg system_memory,
-  output reg system_video,
-  output reg [1:0] system_reset,
-  output reg [1:0] system_scanlines,
-  output reg [1:0] system_volume
+  output reg [1:0]  system_chipset,
+  output reg	    system_memory,
+  output reg	    system_video,
+  output reg [1:0]  system_reset,
+  output reg [1:0]  system_scanlines,
+  output reg [1:0]  system_volume,
+  output reg	    system_wide_screen,
+  output reg [1:0]  system_floppy_wprot
 );
 
 reg [3:0] state;
@@ -41,6 +54,9 @@ wire [7:0] data_in_rev = { data_in[0], data_in[1], data_in[2], data_in[3],
                            data_in[4], data_in[5], data_in[6], data_in[7] };
 
 assign int_out_n = (int_in != 8'h00)?1'b0:1'b1;
+
+assign acsi_status_byte_index = state-3'd1;
+reg acsi_byte_toggle;
 
 // process mouse events
 always @(posedge clk) begin
@@ -58,13 +74,22 @@ always @(posedge clk) begin
       system_video <= 1'b0;   
       system_scanlines <= 2'b00;
       system_volume <= 2'b00;   
+      system_wide_screen <= 1'b0;   
+      system_floppy_wprot <= 2'b00;   
+
+      acsi_dma_status <= 8'h00;
+      acsi_byte_toggle <= 1'b0;
    end else begin
       int_ack <= 8'h00;
+      acsi_ack <= 1'b0;
+      acsi_nak <= 1'b0;
+      acsi_data_in_strobe <= 1'b0;
 
       if(data_in_strobe) begin      
         if(data_in_start) begin
             state <= 4'd1;
             command <= data_in;
+            acsi_byte_toggle <= 1'b0;
         end else if(state != 4'd0) begin
             if(state != 4'd15) state <= state + 4'd1;
 	    
@@ -74,6 +99,7 @@ always @(posedge clk) begin
 	            // on e.g. an unprogrammed device
                 if(state == 4'd1) data_out <= 8'h5c;
                 if(state == 4'd2) data_out <= 8'h42;
+                if(state == 4'd3) data_out <= 8'h01;   // core id 1 = Atari ST
             end
 	   
             // CMD 1: there are two MCU controlled LEDs
@@ -111,14 +137,40 @@ always @(posedge clk) begin
                     if(id == "S") system_scanlines <= data_in[1:0];
                     // Value "A": volume mute(0), 33%(1), 66%(2) or 100%(3)
                     if(id == "A") system_volume <= data_in[1:0];
+                    // Value "W": normal 4:3 screen (0), wide 16:9 screen (1)
+                    if(id == "W") system_wide_screen <= data_in[0];
+                    // Value "P": floppy write protecion None(0), A(1), B(2) both(3)
+                    if(id == "P") system_floppy_wprot <= data_in[1:0];
                 end
             end
 
             // CMD 5: interrupt control
             if(command == 8'd5) begin
-                // second byte acknowleges the nterrupts
+                // second byte acknowleges the interrupts
                 if(state == 4'd1) int_ack <= data_in;
                 data_out <= int_in;
+            end
+
+            // CMD 6: ACSI status. This will finally be removed and done in core
+            if(command == 8'd6) begin
+                data_out <= acsi_status_byte;
+            end
+
+            // CMD 7: ACSI  ack/nak
+            if(command == 8'd7) begin
+                if(state == 4'd1) begin
+                    if(data_in[0]) acsi_ack <= 1'b1;
+                    else           acsi_nak <= 1'b1;
+                end
+                if(state == 4'd2) acsi_dma_status <= data_in;
+            end
+
+            // CMD 8: ACSI data in
+            if(command == 8'd8) begin
+                if(!acsi_byte_toggle) acsi_data_in[15:8] <= data_in;
+                else                  acsi_data_in[ 7:0] <= data_in;
+                if(acsi_byte_toggle)  acsi_data_in_strobe <= 1'b1;
+                acsi_byte_toggle <= !acsi_byte_toggle;
             end
          end
       end

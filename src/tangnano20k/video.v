@@ -13,17 +13,18 @@ module video (
 	      input [3:0]  g_in,
 	      input [3:0]  b_in,
 
-          input [15:0] audio_l,
-          input [15:0] audio_r,
+              input [15:0] audio_l,
+              input [15:0] audio_r,
 
           // (spi) interface from MCU
-          input        mcu_start,
-          input        mcu_osd_strobe,
-          input [7:0]  mcu_data,
+              input	   mcu_start,
+              input	   mcu_osd_strobe,
+              input [7:0]  mcu_data,
 
           // values that can be configure by the user via osd          
-          input [1:0] system_scanlines,
-          input [1:0] system_volume,
+              input [1:0]  system_scanlines,
+              input [1:0]  system_volume,
+	      input	   system_wide_screen, 	      
 		 
 	      // hdmi/tdms
 	      output	   tmds_clk_n,
@@ -163,6 +164,7 @@ hdmi #(
 
   // video input
   .stmode(vmode),    // current video mode PAL/NTSC/MONO
+  .wide(system_wide_screen),       // adopt to wide screen video
   .reset(vreset),    // signal to synchronize HDMI
 
   // Atari STE outputs 4 bits per color. Scandoubler outputs 6 bits (to be

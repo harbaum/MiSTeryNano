@@ -96,11 +96,11 @@ always @ (posedge clk or negedge rstn)
         cnt4 <= 8'hFF;
     end else begin
         {done, timeout, syntaxe} <= 0;
-        
+
         clkcnt <= ( clkcnt < {clkdivr[16:0],1'b1} ) ? (clkcnt+18'd1) : 18'd0;
         
         if     (clkcnt == 18'd0)
-            clkdivr <= {2'h0, clkdiv} + 18'd1;
+          clkdivr <= {2'h0, clkdiv}; //  + 18'd1;
         
         if (clkcnt == clkdivr)
             sdclk <= 1'b0;

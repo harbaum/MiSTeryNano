@@ -5,6 +5,7 @@
 //
 // Copyright (c) 2014 Till Harbaum <till@harbaum.org>
 // Copyright (c) 2019 Gyorgy Szombathelyi
+// Copyright (c) 2024 Till Harbaum <till@harbaum.org>
 //
 // This source file is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published
@@ -19,6 +20,14 @@
 // You should have received a copy of the GNU General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
+
+// This version has been modified for the MiSTeryNano. It includes a
+// sector buffer for ACSI and expects the SCSI target commands to be
+// implemented in the acsi.v submodule. The MCU is not directly involved,
+// anymore and all IO is done directly via the SD card implementation.
+// The MCU may be involved by the SD card to e.g. translate into the
+// SD card file system structure. But that happens outside the DMA's
+// scope.
 
 // ##############DMA/WD1772 Disk controller                           ###########
 // -------+-----+-----------------------------------------------------+----------
@@ -40,49 +49,61 @@
 //        |     |0 - pin A0 low, 1 - pin A0 high ------------------'  |
 	 
 module dma (
-	// clocks and system interface
-	input             clk, // 32 MHz
-	input             clk_en,
-	input             reset,
+    // clocks and system interface
+	input 			  clk, // 32 MHz
+	input 			  clk_en,
+	input 			  reset,
 	// cpu interface
-	input      [15:0] cpu_din,
-	input 		      cpu_sel,
-	input             cpu_a1,
-	input 		      cpu_rw,
+	input [15:0] 	  cpu_din,
+	input 			  cpu_sel,
+	input 			  cpu_a1,
+	input 			  cpu_rw,
 	output reg [15:0] cpu_dout,
 
+	// SD card interface for ACSI
+	output [1:0] 	  acsi_rd_req,       // read request for two ACSI targets
+	output reg [1:0]  acsi_wr_req,       // write request for two ACSI targets
+	output [31:0] 	  acsi_lba,          // logical block to read or write
+ 	input 			  sd_busy,           // SD is busy (has accepted read or write request)
+ 	input 			  sd_done,           // SD is done (data has been read or written)
+	input 			  sd_rd_byte_strobe, // SD has read a byte to be stored in ACSI buffer
+	input [7:0] 	  sd_rd_byte,        // data byte received from SD card
+	output reg [7:0]  sd_wr_byte,        // data byte to be sent to SD card
+	input [8:0] 	  sd_byte_addr,      // address of data byte within 512 bytes sector
+
+	// TODO to be removed: 
 	// data interface for ACSI
-	input             dio_data_in_strobe,
-	input      [15:0] dio_data_in_reg,
+	input 			  dio_data_in_strobe,
+	input [15:0] 	  dio_data_in_reg,
 
-	input             dio_data_out_strobe,
-	output     [15:0] dio_data_out_reg,
+	input 			  dio_data_out_strobe,
+	output [15:0] 	  dio_data_out_reg,
 
-	input             dio_dma_ack,
-	input       [7:0] dio_dma_status,
+	input 			  dio_dma_ack,
+	input [7:0] 	  dio_dma_status,
 
-	input             dio_dma_nak,
-	output      [7:0] dio_status_in,
-	input       [3:0] dio_status_index,
+	input 			  dio_dma_nak,
+	output [7:0] 	  dio_status_in,
+	input [3:0] 	  dio_status_index,
 
 	// additional acsi control signals
-	output            acsi_irq,
-	input [7:0]       acsi_enable,
+	output 			  acsi_irq,
+	input [7:0] 	  acsi_enable,
 
 	// FDC interface
-	output            fdc_sel,
-	output [1:0]      fdc_addr,
-	output            fdc_rw,
-	output [7:0]      fdc_din,
-	input  [7:0]      fdc_dout,
-	input             fdc_drq,
+	output 			  fdc_sel,
+	output [1:0] 	  fdc_addr,
+	output 			  fdc_rw,
+	output [7:0] 	  fdc_din,
+	input [7:0] 	  fdc_dout,
+	input 			  fdc_drq,
 
 	// ram interface for dma engine
-	input             rdy_i,
-	output            rdy_o,
-	input [15:0]      ram_din
+	input 			  rdy_i,
+	output 			  rdy_o,
+	input [15:0] 	  ram_din
 );
-
+   
 // some games access right after writing the sector count
 // then this access won't be ack'ed if the DMA already started
 assign rdy_o = cpu_sel ? cpu_rdy : ram_br;
@@ -160,25 +181,208 @@ end
 
 // ============= ACSI submodule ============   
 
+// sector buffer to receive data from SD card at full
+// speed and to be able to receive it via DMA at
+// a reduced speed. This buffer is currently only used
+// for ACSI. Floppy has it's own buffer
+reg [7:0] buffer [512];
+reg [2:0] acsi_io_state;   
+
+always @(posedge clk) begin
+   // waiting for SD card to deliver the sector
+   if(acsi_io_state == READ_WAIT4SD && sd_rd_byte_strobe)
+      buffer[sd_byte_addr] <= sd_rd_byte;
+
+   if(acsi_io_state == WRITE_WAIT4SD)
+	  sd_wr_byte <= buffer[sd_byte_addr];   	  
+end
+   
 // select signal for the acsi controller access (write only, status comes from io controller)
-wire    acsi_reg_sel = cpu_sel && !cpu_a1 && (dma_mode[4:3] == 2'b01);
+wire acsi_reg_sel = cpu_sel && !cpu_a1 && (dma_mode[4:3] == 2'b01);
 wire [7:0] acsi_dout;
 
-wire io_dma_ack, io_dma_nak;
+// state machine to copy from sector buffer into fifo
+reg [8:0] acsi_io_counter;
+reg [15:0] acsi_read_data;   
+reg acsi_read_strobe;   
+reg acsi_write_strobe;   
+reg acsi_dma_done;   
+reg acsi_request_next;   
+
+// internal write request. This is not directly
+// wired to the external write request as the
+// SD card cannot write before all data has
+// arived in the buffer
+wire [1:0] acsi_wr_req_int;  
+   
+// states of the ACSI read/write state machine
+localparam [2:0] IDLE            = 3'd0,
+                 READ_WAIT4SD    = 3'd1,
+                 READING         = 3'd2,
+                 READ_WAIT4DMA   = 3'd3,
+                 READ_CHECK_NEXT = 3'd4,
+                 WRITING         = 3'd5,
+                 WRITE_START_SD  = 3'd6,
+                 WRITE_WAIT4SD   = 3'd7;
+
+// TODO: narrow this more
+wire acsi_is_reading = acsi_io_state >= READ_WAIT4SD && acsi_io_state <= READ_CHECK_NEXT;
+wire acsi_is_writing = acsi_io_state >= WRITING && acsi_io_state <= WRITE_WAIT4SD; 
+   
+wire [3:0] fifo_fill = fifo_wptr - fifo_rptr;   
+wire fifo_is_full = (fifo_fill == 15);  
+
+// ACSI DMA state machine, reveiving data from SD card and writing it via DMA    
+always @(posedge clk) begin
+   if (reset) begin
+      acsi_io_state <= 3'd0;      
+      acsi_read_strobe <= 1'b0;
+      acsi_write_strobe <= 1'b0;
+      acsi_dma_done <= 1'b0;   
+      acsi_request_next <= 1'b0;
+	  acsi_wr_req <= 2'b00;	  
+   end else begin
+      acsi_read_strobe <= 1'b0;
+      acsi_write_strobe <= 1'b0;
+      acsi_dma_done <= 1'b0;   
+      acsi_request_next <= 1'b0;	     
+      
+      case(acsi_io_state)
+        IDLE: begin
+           if(acsi_rd_req)
+			 acsi_io_state <= READ_WAIT4SD;
+		   
+           if(acsi_wr_req_int) begin
+			  acsi_io_state <= WRITING;
+              acsi_io_counter <= 9'd0;
+		   end
+		end
+
+        WRITING: begin
+            if(!acsi_io_counter[0]) begin
+			   // start a transfer of 8 bytes once at least 8 bytes are in the FIFO
+			   if((!acsi_io_counter[3:0] && fifo_fill == 8) || 
+				  ( acsi_io_counter[3:0] && fifo_fill)) begin
+				 
+				  buffer[acsi_io_counter] <= fifo_data_out[15:8];			   
+				  acsi_io_counter <= acsi_io_counter + 9'd1;
+
+				  // write strobe causes the fifo read pointer to increase.
+				  // But happens in the next cycle and the FIFO read one cycle
+				  // after that. So in the next cycle the current 16 bit data
+				  // is still valid.
+				  acsi_write_strobe <= 1'b1;
+			   end
+            end else begin // if (!acsi_io_counter[0])
+			   // give fifo one extra cycle after the strobe to deliver data
+			   if(!acsi_write_strobe) begin
+			   
+				  buffer[acsi_io_counter] <= fifo_data_out[7:0];
+				  acsi_io_counter <= acsi_io_counter + 9'd1;
+			   
+				  if(acsi_io_counter == 9'd511) begin
+					 acsi_io_state <= WRITE_START_SD;
+					 acsi_wr_req <= acsi_wr_req_int;				  
+				  end
+			   end
+            end
+		end
+
+        WRITE_START_SD: begin
+		   // wait for SD card to ack the request by becoming
+		   // busy
+		   if(sd_busy) begin
+			  acsi_io_state <= WRITE_WAIT4SD;
+			  acsi_wr_req <= 2'b00;
+		   end		   
+		end		   
+		
+        WRITE_WAIT4SD: begin
+		   if(sd_done) begin
+              // check if sector counter has reached 0
+              if(dma_scnt != 0)
+                // request next write request and increase lba
+                acsi_request_next <= 1'b1;
+              else
+                // request acsi to raise interrupt, so core CPU knows
+                // that the transfer has ended
+                acsi_dma_done <= 1'b1;
+			  
+              // return to idle state
+              acsi_io_state <= 3'd0;
+           end
+		end
+		
+        READ_WAIT4SD:
+             if(sd_done) begin
+                // sd card has delivered data, so
+                // push it into the DMA fifo
+                acsi_io_state <= READING;
+                acsi_io_counter <= 9'd0;
+            end
+        READING: begin
+            if(!acsi_io_counter[0]) begin
+                // read upper byte from sector buffer. Two bytes
+                // are needed since the fifo is 16 bit
+                acsi_read_data[15:8] <= buffer[acsi_io_counter];
+                acsi_io_counter <= acsi_io_counter + 9'd1;
+            end else begin
+                // read lower byte
+                acsi_read_data[7:0] <= buffer[acsi_io_counter];
+
+                // trigger strobe and continue  if fifo is not full
+               // if(!fifo_read_start && !fifo_read_in_progress) begin
+                if(!fifo_is_full) begin
+                    acsi_read_strobe <= 1'b1;	      
+                    acsi_io_counter <= acsi_io_counter + 9'd1;
+
+                    if(acsi_io_counter == 9'd511) acsi_io_state <= READ_WAIT4DMA;
+                end
+            end // else: !if(!acsi_io_counter[0])
+        end
+        READ_WAIT4DMA:
+            // all data sent into fifo, wait for last dma transfer to end
+            if(sector_strobe)
+                acsi_io_state <= READ_CHECK_NEXT;
+        READ_CHECK_NEXT: begin
+            // check if sector counter has reached 0
+            if(dma_scnt != 0)
+                // request next read request and increase lba
+                acsi_request_next <= 1'b1;
+            else
+                // request acsi to raise interrupt, so core CPU knows
+                // that the transfer has ended
+                acsi_dma_done <= 1'b1;
+
+            // return to idle state
+            acsi_io_state <= 3'd0;
+        end
+      endcase
+   end // else: !if(reset)
+end
 
 acsi acsi(
 	 .clk         ( clk                   ),
 	 .clk_en      ( clk_en                ),
 	 .reset       ( reset                 ),
-	 
+
+	 .dma_done    ( acsi_dma_done         ),
 	 .irq         ( acsi_irq              ),
 
 	  // acsi target enable
 	 .enable      ( acsi_enable           ),
 
+	 // SD card interface
+	 .data_rd_req ( acsi_rd_req           ),
+	 .data_wr_req ( acsi_wr_req_int       ),
+	 .data_lba    ( acsi_lba              ),
+	 .data_busy   ( sd_busy               ),
+	 .data_done   ( sd_done               ),
+	 .data_next   ( acsi_request_next     ),
+
 	 // signals from/to io controller
-	 .dma_ack     ( io_dma_ack            ),
-	 .dma_nak     ( io_dma_nak            ),
+	 .dma_ack     ( dio_dma_ack           ),
+	 .dma_nak     ( dio_dma_nak           ),
 	 .dma_status  ( dio_dma_status        ),
 
 	 .status_sel  ( dio_status_index      ),
@@ -290,8 +494,11 @@ always @(posedge clk or posedge fifo_reset) begin
 	end
 end
 
-wire [15:0] fifo_data_in = dma_direction_out?ram_din:(fdc_fifo_strobe?fdc_fifo_in:dio_data_in_reg);
-wire fifo_data_in_strobe = dma_direction_out?ram_access_strobe:(io_data_in_strobe | fdc_fifo_strobe);
+wire [15:0] fifo_data_in = acsi_is_reading?acsi_read_data:
+	    dma_direction_out?ram_din:(fdc_fifo_strobe?fdc_fifo_in:dio_data_in_reg);
+
+wire fifo_data_in_strobe = acsi_is_reading?acsi_read_strobe:
+     dma_direction_out?ram_access_strobe:(dio_data_in_strobe | fdc_fifo_strobe);
 
 // write to fifo on rising edge of fifo_data_in_strobe
 always @(posedge clk or posedge fifo_reset) begin
@@ -306,8 +513,12 @@ end
 // ============= FIFO READ ENGINE ==================
 // start condition for fifo read
 // allow to fill 8 words by the FDC/HDD, then transfer them to the CPU
+wire fifo_full_8 = fifo_fill >= 8;  
+
 wire fifo_read_start = dma_in_progress && !dma_direction_out && !fifo_read_in_progress &&
-     ((fifo_rptr == 4'd0 && fifo_wptr == 4'd8) || (fifo_rptr == 4'd8 && fifo_wptr == 4'd0));
+     fifo_full_8;
+   
+//     ((fifo_rptr == 4'd0 && fifo_wptr == 4'd8) || (fifo_rptr == 4'd8 && fifo_wptr == 4'd0));
 wire fifo_read_stop = !dma_direction_out && fifo_read_in_progress &&
      ram_access_strobe && (fifo_rptr == 4'd7 || fifo_rptr == 4'd15);
 
@@ -323,7 +534,8 @@ always @(posedge clk or posedge fifo_reset) begin
 end
 
 reg [15:0] fifo_data_out;
-wire fifo_data_out_strobe = dma_direction_out?(io_data_out_strobe | fdc_fifo_strobe):ram_access_strobe;
+wire fifo_data_out_strobe = acsi_is_writing?acsi_write_strobe:
+	 dma_direction_out?(dio_data_out_strobe | fdc_fifo_strobe):ram_access_strobe;
 
 always @(posedge clk)
    fifo_data_out <= fifo[fifo_rptr];
@@ -417,22 +629,9 @@ always @(posedge clk)
 
 assign dio_data_out_reg = fifo_data_out;
 
-wire io_data_in_strobe = dio_data_in_strobe ^ dio_data_in_strobeD;
-wire io_data_out_strobe = dio_data_out_strobe ^ dio_data_out_strobeD;
-
-reg dio_data_in_strobeD;
-reg dio_data_out_strobeD;
-reg dio_dma_ackD;
-reg dio_dma_nakD;
-
-assign io_dma_ack = dio_dma_ack ^ dio_dma_ackD;
-assign io_dma_nak = dio_dma_nak ^ dio_dma_nakD;
-
-always@(posedge clk) begin
-	dio_data_in_strobeD <= dio_data_in_strobe;
-	dio_data_out_strobeD <= dio_data_out_strobe;
-	dio_dma_ackD <= dio_dma_ack;
-	dio_dma_nakD <= dio_dma_nak;
-end
-
 endmodule
+
+// To match emacs with gw_ide default
+// Local Variables:
+// tab-width: 4
+// End:

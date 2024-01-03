@@ -42,7 +42,6 @@ module sd_rw # (
     output wire	       rdone,
     // sector data output interface (sync with clk)
     output reg	       outen,    // when outen=1, a byte of sector content is read out from outbyte
-    output reg	       inen,     // when inen=1, a byte of sector content is written from inbyte
     output reg [ 8:0]  outaddr,  // outaddr from 0 to 511, because the sector size is 512
     input  [ 7:0]      inbyte,   // a byte to write sector content
     output reg [ 7:0]  outbyte   // a byte of read sector content
@@ -271,7 +270,6 @@ integer i;
 always @ (posedge clk or negedge rstn)
     if(~rstn) begin
         outen   <= 1'b0;
-        inen    <= 1'b0;
         outaddr <= 0;
         outbyte <= 0;
         sdclkl  <= 1'b0;
@@ -280,8 +278,6 @@ always @ (posedge clk or negedge rstn)
         sddatoe <= 0;
         sddatout <= 4'd15;       
     end else begin
-        inen    <= 1'b0;
-       // TODO: check if this is really not needed        outaddr <= 0;
         outen   <= 1'b0;
         sdclkl  <= sdclk;
         if(sdcmd_stat!=WRITING && sdcmd_stat!=CMD17 && sdcmd_stat!=READING ) begin
@@ -296,7 +292,6 @@ always @ (posedge clk or negedge rstn)
 		       
                         for(i=0;i<4;i=i+1) data_crc[i] <= 16'h0000;
                         ridx   <= 0;
-                        inen   <= 1'b1; // fetch first byte to be written
                         outaddr<= 0;
 		        sddatout <= 4'd0;  // send start bit
 		    end else begin		   
@@ -321,7 +316,6 @@ always @ (posedge clk or negedge rstn)
                        for(i=0;i<4;i=i+1) 
 			 data_crc[i] <= CalcCrc16(data_crc[i], wdata[i]);
 		       sddatout <= wdata;
-                       inen   <= 1'b1;
                        outaddr<= ridx[9:1]+9'd1;
 		    end
 		     

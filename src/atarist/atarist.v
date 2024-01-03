@@ -28,17 +28,39 @@ module atarist (
 	output wire [14:0] audio_mix_l,
 	output wire [14:0] audio_mix_r,
 
-    // floopy disk/sd card interface
+    // floppy disk/sd card interface
 	output [31:0] 	   sd_lba,
 	output [1:0] 	   sd_rd,
 	output [1:0] 	   sd_wr,
-	input 		   sd_ack,
+	input 		       sd_ack,
 	input [8:0] 	   sd_buff_addr,
 	input [7:0] 	   sd_dout,
 	output [7:0] 	   sd_din,
-	input 		   sd_dout_strobe,
+	input 		       sd_dout_strobe,
 	input [1:0] 	   sd_img_mounted,
 	input [31:0] 	   sd_img_size,
+
+    // ACSI disk/sd card interface
+	output [1:0] 	   acsi_rd_req,
+	output [1:0] 	   acsi_wr_req,
+	output [31:0] 	   acsi_lba,
+ 	input 		       acsi_sd_done,
+ 	input 		       acsi_sd_busy,
+	input 		       acsi_sd_rd_byte_strobe,
+	input [7:0] 	   acsi_sd_rd_byte,
+	output [7:0] 	   acsi_sd_wr_byte,
+	input [8:0] 	   acsi_sd_byte_addr,
+
+    // interface to the ACSI status. In the long term this
+    // should all be handled inside acsi.v and only sector
+    // IO should reach the MCU
+	output [7:0]    acsi_status_byte,
+	input [3:0]     acsi_status_byte_index,
+    input acsi_ack,
+    input acsi_nak,
+    input [7:0] acsi_dma_status,
+    input acsi_data_in_strobe,
+    input [15:0] acsi_data_in,
 
 	// MIDI UART
 	input wire 	   midi_rx,
@@ -70,8 +92,7 @@ module atarist (
 	output wire [1:0]  leds
 );
 
-// STe always has a blitter
-wire [7:0] acsi_enable = 8'b00000000;  
+wire [7:0] acsi_enable = 8'b00000001;  
 
 // registered reset signals
 reg         reset;
@@ -121,7 +142,6 @@ end
 // MCU signals
 
 wire        mhz4, mhz4_en, clk16;
-wire        clk16_en = ~clk16;
 wire        mcu_dtack_n;
 wire        ras0_n, ras1_n;
 wire        cas0h_n, cas0l_n, cas1h_n, cas1l_n;
@@ -794,16 +814,27 @@ dma dma (
 	.cpu_rw       ( rw            ),
 	.cpu_dout     ( dma_data_out  ),
 
+	// SD card interface for ACSI
+	.acsi_rd_req  ( acsi_rd_req                 ),
+	.acsi_wr_req  ( acsi_wr_req                 ),
+	.acsi_lba     ( acsi_lba                    ),
+ 	.sd_done      ( acsi_sd_done                ),
+ 	.sd_busy      ( acsi_sd_busy                ),
+	.sd_rd_byte_strobe ( acsi_sd_rd_byte_strobe ),
+	.sd_rd_byte   ( acsi_sd_rd_byte             ),
+	.sd_wr_byte   ( acsi_sd_wr_byte             ),
+	.sd_byte_addr ( acsi_sd_byte_addr           ),
+
 	// IO controller interface for ACSI
-	.dio_data_in_strobe  ( 1'b0 ),
-	.dio_data_in_reg     ( ),
+	.dio_data_in_strobe  ( acsi_data_in_strobe ),
+	.dio_data_in_reg     ( acsi_data_in ),
 	.dio_data_out_strobe ( 1'b0 ),
 	.dio_data_out_reg    ( ),
-	.dio_dma_ack         ( 1'b0 ),
-	.dio_dma_status      ( ),
-	.dio_dma_nak         ( 1'b0 ),
-	.dio_status_in       ( ),
-	.dio_status_index    ( ),
+	.dio_dma_ack         ( acsi_ack ),
+	.dio_dma_status      ( acsi_dma_status ),
+	.dio_dma_nak         ( acsi_nak ),
+	.dio_status_in       ( acsi_status_byte ),
+	.dio_status_index    ( acsi_status_byte_index ),
 
 	// additional signals for ACSI interface
 	.acsi_irq     ( acsi_irq    ),
@@ -869,3 +900,9 @@ fdc1772 fdc1772 (
 );
 
 endmodule
+
+// To match emacs with gw_ide default
+// Local Variables:
+// tab-width: 4
+// End:
+

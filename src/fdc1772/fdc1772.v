@@ -755,6 +755,7 @@ end
 reg data_in_strobe;
 reg [7:0] data_in;
 
+`ifdef VERILATOR
 fdc1772_dpram #(8, 10) fifo
 (
 	.clock(clkcpu),
@@ -769,6 +770,28 @@ fdc1772_dpram #(8, 10) fifo
 	.wren_b(data_in_strobe),
 	.q_b(fifo_q)
 );
+`else
+fdc_dpram fifo
+(
+    .clka(clkcpu),
+    .reseta(1'b0),
+    .cea(1'b1),
+    .ada(fifo_sdptr),
+    .wrea(sd_dout_strobe & sd_ack),
+    .dina(sd_dout),
+    .ocea(1'b1),
+    .douta(sd_din),
+
+    .clkb(clkcpu),
+    .resetb(1'b0),
+    .ceb(1'b1),
+    .adb(fifo_cpuptr_adj),
+    .wreb(data_in_strobe),
+    .dinb(data_in),
+    .oceb(1'b1),
+    .doutb(fifo_q)
+);
+`endif
 
 // ------------------ SD card control ------------------------
 localparam SD_IDLE = 0;
@@ -1067,6 +1090,7 @@ end
 
 endmodule
 
+`ifdef VERILATOR
 module fdc1772_dpram #(parameter DATAWIDTH=8, ADDRWIDTH=9)
 (
 	input                   clock,
@@ -1103,3 +1127,4 @@ always @(posedge clock) begin
 end
 
 endmodule
+`endif
