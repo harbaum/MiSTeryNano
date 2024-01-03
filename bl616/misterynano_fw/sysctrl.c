@@ -17,8 +17,12 @@ int sys_status_is_valid(spi_t *spi) {
   spi_tx_u08(spi, 0);
   unsigned char b0 = spi_tx_u08(spi, 0);
   unsigned char b1 = spi_tx_u08(spi, 0);
+  unsigned char b2 = spi_tx_u08(spi, 0);
   spi_end(spi);  
 
+  if((b0 == 0x5c) && (b1 == 0x42))  
+    printf("Core ID: %02x\r\n", b2);
+  
   return((b0 == 0x5c) && (b1 == 0x42));
 }
 

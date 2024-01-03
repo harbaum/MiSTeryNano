@@ -17,8 +17,6 @@
 
 #define MENU2U8G2(a)  (&(a->osd->u8g2))
 
-char *disk_a = NULL;
-
 // variable ids must match the ones in the menu string
 menu_variable_t variables[] = {
   { 'C', { 0 }},    // default chipset = ST
@@ -26,6 +24,8 @@ menu_variable_t variables[] = {
   { 'V', { 0 }},    // default video = color
   { 'S', { 0 }},    // default scanlines = none
   { 'A', { 1 }},    // default volume = 33%
+  { 'W', { 0 }},    // default normal (4:3) screen
+  { 'P', { 0 }},    // default no floppy write protected
   { '\0',{ 0 }}
 };
 
@@ -41,8 +41,9 @@ static const char main_form[] =
   "MiSTeryNano,;"                       // main form has no parent
   // --------
   "S,System,1;"                         // System submenu is form 1
-  "F,Disk A:,0;"                        // fileselector for Disk A:
-  "F,Disk B:,1;"                        // fileselector for Disk B:
+  "F,Disk A:,0|.st;"                    // fileselector for Disk A:
+  "F,Disk B:,1|.st;"                    // fileselector for Disk B:
+  "F,ACSI #0:,2|.hd;"                   // fileselector for HDD:
   "B,Reset,R;";                         // system reset
 
 static const char system_form[] =
@@ -51,8 +52,10 @@ static const char system_form[] =
   "L,Chipset:,ST|Mega ST|STE,C;"        // selection stored in variable "C"
   "L,Memory:,4MB|8MB,M;"                // ...
   "L,Video:,Color|Mono,V;"
+  "L,Screen:,Normal|Wide,W;"
   "L,Scanlines:,None|25%|50%|75%,S;"
   "L,Volume:,Mute|33%|66%|100%,A;"
+  "L,Floppy prot.:,None|A:|B:|Both,P;"
   "B,Cold Boot,B;"                      // system reset with memory reset
   "B,Save settings,S;";
 
@@ -207,6 +210,11 @@ static char *menu_get_substr(menu_t *menu, const char *s, int n, int m) {
   
 static int menu_get_int(menu_t *menu, const char *s, int n) {
   char *str = menu_get_str(menu, s, n);
+  return atoi(str);
+}
+
+static int menu_get_subint(menu_t *menu, const char *s, int n, int m) {
+  char *str = menu_get_substr(menu, s, n, m);
   return atoi(str);
 }
 
@@ -377,20 +385,22 @@ static void menu_fileselector(menu_t *menu, int state) {
   const static char *s;
   static int parent;
   static int drive;
+  static char ext[5];   // extension to filter for
   
   if(state == 0) {
     // init
     s = menu->forms[menu->form];
     for(int i=0;i<menu->entry;i++) s = strchr(s, ';')+1;
+
+    strcpy(ext, menu_get_substr(menu, s, 2, 1));
     
     // scan files
-    dir = sdc_readdir(NULL);
+    dir = sdc_readdir(NULL, ext);
     menu->entry = 1;               // start by highlighting first file entry
     menu->entries = dir->len + 1;  // incl. title
     menu->offset = 0;
     parent = menu->form;
-    drive = menu_get_int(menu, s, 2);    
-    
+    drive = menu_get_subint(menu, s, 2, 0);
   } else if(state == 1) {
     // draw
     menu_draw_title(menu, menu_get_str(menu, s, MENU_ENTRY_INDEX_LABEL));
@@ -411,7 +421,7 @@ static void menu_fileselector(menu_t *menu, int state) {
       sdc_dir_entry_t *entry = &(dir->files[menu->entry - 1]);
 
       if(entry->is_dir) {
-	dir = sdc_readdir(entry->name);
+	dir = sdc_readdir(entry->name, ext);
 	menu->entry = 1;               // start by highlighting first file entry
 	menu->entries = dir->len + 1;  // incl. title
 	menu->offset = 0;

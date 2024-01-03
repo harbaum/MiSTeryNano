@@ -96,7 +96,7 @@ int sdc_image_open(int drive, char *name) {
   return 0;
 }
 
-sdc_dir_t *sdc_readdir(char *name) {
+sdc_dir_t *sdc_readdir(char *name, char *ext) {
   static sdc_dir_t sdc_dir = { 0, NULL };
 
   // set default path
@@ -168,8 +168,10 @@ sdc_dir_t *sdc_readdir(char *name) {
     f_readdir(&dir, &fno);
     if(fno.fname[0] != 0 && !(fno.fattrib & (AM_HID|AM_SYS)) ) {
       printf("%s %s, len=%d\n", (fno.fattrib & AM_DIR) ? "dir: ":"file:", fno.fname, fno.fsize);
-
-      append(&sdc_dir, &fno);
+      // only accept directories or .ST files
+      if((fno.fattrib & AM_DIR) ||
+	 (strlen(fno.fname) > 3 && strcasecmp(fno.fname+strlen(fno.fname)-3, ext) == 0))	
+	append(&sdc_dir, &fno);
     }
   } while(fno.fname[0] != 0);
 

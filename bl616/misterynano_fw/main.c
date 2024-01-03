@@ -72,7 +72,8 @@ static void osd_task(void *parms) {
   
   menu_do(menu, 0);
 
-  // create a 25 Hz timer that frequently wakes the OSD thread allowing for animations
+  // create a 25 Hz timer that frequently wakes the OSD thread
+  // allowing for animations
   menu->osd->timer = xTimerCreate("OSD timer", pdMS_TO_TICKS(40), pdTRUE,
 				  NULL, osd_timer);
   // wait for user events
@@ -111,7 +112,7 @@ int main(void) {
   
   printf("Waiting for FPGA to become ready\r\n");
   
-  // try to establish connection to FPGA for three seconds. Assume the FPGA is
+  // try to establish connection to FPGA for five seconds. Assume the FPGA is
   // not properly configured after that
   int fpga_ok, timeout = 500;
   do {

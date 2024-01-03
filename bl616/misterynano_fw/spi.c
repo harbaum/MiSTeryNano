@@ -2,6 +2,8 @@
 #include "sdc.h"
 #include "sysctrl.h"
 
+#define SPI_POLL   // enable to poll and don't use interrupts
+
 // spi
 #include "bflb_mtimer.h"
 #include "bflb_spi.h"
@@ -55,14 +57,20 @@ static void spi_task(void *parms) {
   sdc_init(spi);
   
   while(1) {
+#ifdef SPI_POLL
+    ulTaskNotifyTake( pdTRUE, pdMS_TO_TICKS(100));
+    sys_irq_ctrl(spi, 0xff);
+    sdc_handle_event();
+#else
     ulTaskNotifyTake( pdTRUE, portMAX_DELAY );
-    
+
     // get pending interrupts and ack them all
     int pending = sys_irq_ctrl(spi, 0xff);
-    if(pending & 0x08) {
+    if(pending & 0x08) {  // irq 3 = SDC
       // pending interrupt for sdc target
       sdc_handle_event();
     }
+#endif
   }
 }
 

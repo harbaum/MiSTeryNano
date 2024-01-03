@@ -97,7 +97,8 @@ void kbd_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
       
       // key pressed?
       if(buffer[2+i])  {
-	static unsigned long msg = 0;
+	static unsigned long msg;
+	msg = 0;
 
 	// F12 toggles the OSD state. Therefore F12 must never be forwarded
 	// to the core and thus must have an empty entry in the keymap. ESC
@@ -106,14 +107,12 @@ void kbd_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
 	// Caution: Since the OSD closes on the press event, the following
 	// release event will be sent into the core. The core should thus
 	// cope with release events that did not have a press event before
-	if(buffer[2+i] == 0x45 || (osd_is_visible(usb_config.osd) && buffer[2+i] == 0x29)) {
+	if(buffer[2+i] == 0x45 || (osd_is_visible(usb_config.osd) && buffer[2+i] == 0x29))
 	  msg = osd_is_visible(usb_config.osd)?MENU_EVENT_HIDE:MENU_EVENT_SHOW;
-	} else {
+	else {
 	  if(!osd_is_visible(usb_config.osd))
 	    kbd_tx(hid, keymap_atarist[buffer[2+i]]);
 	  else {
-	    // printf("%02x\r\n", buffer[2+i]);
-	    
 	    // check if cursor up/down or space has been pressed
 	    if(buffer[2+i] == 0x51) msg = MENU_EVENT_DOWN;      
 	    if(buffer[2+i] == 0x52) msg = MENU_EVENT_UP;
@@ -124,33 +123,12 @@ void kbd_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
 	  }
 	}
 	  
-	if(msg) xQueueSendToBackFromISR(xQueue, &msg,  ( TickType_t ) 0);
+	if(msg)
+	  xQueueSendToBackFromISR(xQueue, &msg,  ( TickType_t ) 0);
       }
     }    
   }
   memcpy(hid->keyboard.last_report, buffer, 8);
-}
-
-void mouse_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
-  signed char *p = (signed char*)buffer;
-  
-  // we expect at least three bytes:
-  if(nbytes < 3) return;
- 
-  // decellerate mouse somewhat
-  p[1] /= 2;
-  p[2] /= 2;
-
-  printf("MOUSE: %02x %d %d\r\n", buffer[0], p[1], p[2]);
-
-  spi_t *spi = hid->usb->spi;  
-  spi_begin(spi);
-  spi_tx_u08(spi, SPI_TARGET_HID);
-  spi_tx_u08(spi, SPI_HID_MOUSE);
-  spi_tx_u08(spi, buffer[0]);
-  spi_tx_u08(spi, p[1]);
-  spi_tx_u08(spi, p[2]);
-  spi_end(spi);
 }
 
 // collect bits from byte stream and assemble them into a signed word
@@ -193,6 +171,50 @@ static uint16_t collect_bits(uint8_t *p, uint16_t offset, uint8_t size, bool is_
   }
   
   return rval;
+}
+
+void mouse_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
+  // we expect at least three bytes:
+  if(nbytes < 3) return;
+  
+  //  printf("MOUSE:"); for(int i=0;i<nbytes;i++) printf(" %02x", buffer[i]); printf("\r\n");
+
+  // collect info about the two axes
+  int a[2];
+  for(int i=0;i<2;i++) {  
+    bool is_signed = hid->report.joystick_mouse.axis[i].logical.min > 
+      hid->report.joystick_mouse.axis[i].logical.max;
+
+    a[i] = collect_bits(buffer, hid->report.joystick_mouse.axis[i].offset, 
+			hid->report.joystick_mouse.axis[i].size, is_signed);
+  }
+
+  // ... and two buttons
+  unsigned char btns = 0;
+  for(int i=0;i<2;i++)
+    if(buffer[hid->report.joystick_mouse.button[i].byte_offset] & 
+       hid->report.joystick_mouse.button[i].bitmask)
+      btns |= (1<<i);
+
+#if 0
+  // decellerate mouse somewhat
+  static int x_left = 0;
+  static int y_left = 0;
+
+  a[0] += x_left;  a[1] += y_left;       // add bits left from previous 
+  x_left = a[0] & 1;  y_left = a[1] & 1; // save bits that would now be lost
+  
+  a[0] /= 2; a[1] /= 2;
+#endif
+  
+  spi_t *spi = hid->usb->spi;  
+  spi_begin(spi);
+  spi_tx_u08(spi, SPI_TARGET_HID);
+  spi_tx_u08(spi, SPI_HID_MOUSE);
+  spi_tx_u08(spi, btns);
+  spi_tx_u08(spi, a[0]);
+  spi_tx_u08(spi, a[1]);
+  spi_end(spi);
 }
 
 void joystick_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
