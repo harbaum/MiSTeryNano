@@ -1,58 +1,63 @@
 /* top.sv - atarist on tang nano toplevel */
 
 module top(
-  input		clk,
+  input			clk,
 
-  input		reset,  // S2
-  input		user,   // S1
+  input			reset, // S2
+  input			user, // S1
 
   output [5:0]	leds_n,
-  output ws2812,
+  output		ws2812,
 
   // spi flash interface
-  output	mspi_cs,
-  output	mspi_clk,
-  inout		mspi_di,
-  inout		mspi_hold,
-  inout		mspi_wp,
-  inout		mspi_do,
+  output		mspi_cs,
+  output		mspi_clk,
+  inout			mspi_di,
+  inout			mspi_hold,
+  inout			mspi_wp,
+  inout			mspi_do,
 
   // "Magic" port names that the gowin compiler connects to the on-chip SDRAM
-  output	O_sdram_clk,
-  output	O_sdram_cke,
-  output	O_sdram_cs_n, // chip select
-  output	O_sdram_cas_n,
+  output		O_sdram_clk,
+  output		O_sdram_cke,
+  output		O_sdram_cs_n, // chip select
+  output		O_sdram_cas_n,
     
  // columns address select
-  output	O_sdram_ras_n, // row address select
-  output	O_sdram_wen_n, // write enable
+  output		O_sdram_ras_n, // row address select
+  output		O_sdram_wen_n, // write enable
   inout [31:0]	IO_sdram_dq, // 32 bit bidirectional data bus
   output [10:0]	O_sdram_addr, // 11 bit multiplexed address bus
   output [1:0]	O_sdram_ba, // two banks
   output [3:0]	O_sdram_dqm, // 32/4
 
   // generic IO, used for mouse/joystick/...
-  inout [11:0]	io,
-  // config inputs
-  input [3:0]	cfg,
+  inout [7:0]	io,
 
+  // interface to external BL616/M0S
+  inout [5:0]	m0s,
+
+  // MIDI
+  input			midi_in,
+  output		midi_out,
+		   
   // SD card slot
-  output	sd_clk,
-  inout		sd_cmd, // MOSI
+  output		sd_clk,
+  inout			sd_cmd, // MOSI
   inout [3:0]	sd_dat, // 0: MISO
 	   
   // SPI connection to ob-board BL616. By default an external
   // connection is used with a M0S Dock
-  input		spi_sclk, // in... 
-  input		spi_csn,  // in (io?)
-  output	spi_dir,  // out
-  input		spi_dat,  // in (io?)
+  input			spi_sclk, // in... 
+  input			spi_csn, // in (io?)
+  output		spi_dir, // out
+  input			spi_dat, // in (io?)
 
 //  output    jtag_tck,
 
   // hdmi/tdms
-  output	tmds_clk_n,
-  output	tmds_clk_p,
+  output		tmds_clk_n,
+  output		tmds_clk_p,
   output [2:0]	tmds_d_n,
   output [2:0]	tmds_d_p
 );
@@ -63,9 +68,6 @@ assign leds_n = ~leds;
 wire sys_resetn;
 
 wire clk_32;
-wire pll_lock_hdmi;
-
-wire pll_lock = pll_lock_hdmi && pll_lock_flash;
 
 // connect to ws2812 led
 wire [23:0] ws2812_color;
@@ -75,16 +77,33 @@ ws2812 ws2812_inst (
     .data(ws2812)
 );
 
-/* -------------------- flash -------------------- */
-   
-wire clk_flash;      // 100.265 MHz SPI flash clock
+// system values are set by the external MCU (by the user via the OSD)
+// and used to control the system in general
+wire [1:0] system_leds;
+wire [1:0] system_chipset;
+wire system_memory;
+wire system_video;
+wire [1:0] system_reset;   // reset and coldboot flag
+wire [1:0] system_scanlines;
+wire [1:0] system_volume;
+wire system_wide_screen;
+wire [1:0] system_floppy_wprot;
+
+/* -------------- clock generation --------------- */
+
+wire pll_lock_hdmi;
 wire pll_lock_flash;   
+wire pll_lock = pll_lock_hdmi && pll_lock_flash;
+
+wire clk_flash;      // 100.265 MHz SPI flash clock
 flash_pll flash_pll (
         .clkout( clk_flash ),
         .clkoutp( mspi_clk ),   // shifted by -22.5/335.5 deg
         .lock(pll_lock_flash),
         .clkin(clk)
     );
+
+/* -------------------- flash -------------------- */  
 
 wire rom_n;
 wire [23:1] rom_addr;
@@ -186,7 +205,7 @@ wire [14:0] audio_r;
 wire spi_io_dout;
 assign spi_dir = spi_io_dout;   // spi_dir has filter cap and pulldown any basically doesn't work
 // assign jtag_tck = spi_io_dout;  // using JTAG instead is a pita ...
-assign io[9:6] = { 3'bzzz, spi_io_dout };
+assign m0s[5:0] = { 5'bzzzzz, spi_io_dout };
 
 // by default the internal SPI is being used. Once there is
 // a select from the external spi, then the connection is
@@ -196,16 +215,16 @@ always @(posedge clk_32) begin
     if(!pll_lock)
         spi_ext = 1'b0;
     else begin
-        if(io[8] == 1'b0)
+        if(m0s[2] == 1'b0)
             spi_ext = 1'b1;
     end
 end
 
 // switch between internal SPI connected to the on-board bl616
 // or to the external one possibly connected to a M0S Dock
-wire spi_io_din = spi_ext?io[7]:spi_dat;
-wire spi_io_ss = spi_ext?io[8]:spi_csn;
-wire spi_io_clk = spi_ext?io[9]:spi_sclk;
+wire spi_io_din = spi_ext?m0s[1]:spi_dat;
+wire spi_io_ss = spi_ext?m0s[2]:spi_csn;
+wire spi_io_clk = spi_ext?m0s[3]:spi_sclk;
 
 wire       mcu_sys_strobe;
 wire       mcu_hid_strobe;
@@ -246,6 +265,7 @@ mcu_spi mcu (
 wire [5:0] joy0;
 wire [7:0] hid_joy1;
 wire [4:0] joy1 = hid_joy1[4:0] | { !io[0], !io[2], !io[1], !io[4], !io[3] };
+assign io[7:5] = 3'bzzz;   // three unused IO pins
 
 // The keyboard matrix is maintained inside HID
 wire [7:0] keyboard[14:0];
@@ -287,26 +307,9 @@ hid hid (
         .joystick1()
          );   
 
-wire [1:0] system_leds;
-wire [1:0] system_chipset;
-wire system_memory;
-wire system_video;
-wire [1:0] system_reset;   // reset and coldboot flag
-wire [1:0] system_scanlines;
-wire [1:0] system_volume;
-wire system_wide_screen;
-wire [1:0] system_floppy_wprot;
-
 wire sdc_int;
 wire sdc_iack = int_ack[3];
 wire [7:0] int_ack;
-
-wire [7:0] acsi_status_byte;
-wire [3:0] acsi_status_byte_index;
-wire acsi_ack, acsi_nak;
-wire [7:0] acsi_dma_status;
-wire acsi_data_in_strobe;
-wire [15:0] acsi_data_in;
 
 sysctrl sysctrl (
         .clk(clk_32),
@@ -327,18 +330,9 @@ sysctrl sysctrl (
         .system_wide_screen(system_wide_screen),
         .system_floppy_wprot(system_floppy_wprot),
         
-        .int_out_n(io[10]),
+        .int_out_n(m0s[4]),
         .int_in( { 4'b0000, sdc_int, 3'b000 }),
         .int_ack( int_ack ),
-
-        .acsi_status_byte(acsi_status_byte),
-        .acsi_status_byte_index(acsi_status_byte_index),
-        .acsi_ack(acsi_ack),
-        .acsi_nak(acsi_nak),
-        .acsi_dma_status(acsi_dma_status),
-        .acsi_data_in_strobe(acsi_data_in_strobe),
-        .acsi_data_in(acsi_data_in),
-         // .acsi_enable(acsi_enable),
 
         .buttons( {reset, user} ),
         .leds(system_leds),
@@ -397,8 +391,8 @@ atarist atarist (
     .audio_mix_r( audio_r ),
 
     // MIDI UART
-    .midi_rx(1'b0),
-    .midi_tx(),
+    .midi_rx(midi_in),
+    .midi_tx(midi_out),
 
     // ACSI disk/sd card interface
 	.acsi_rd_req(acsi_rd_req),
@@ -411,16 +405,8 @@ atarist atarist (
 	.acsi_sd_wr_byte(acsi_sd_wr_byte),
 	.acsi_sd_byte_addr(acsi_sd_byte_addr),
 
-	.acsi_status_byte(acsi_status_byte),
-	.acsi_status_byte_index(acsi_status_byte_index),
-    .acsi_ack(acsi_ack),
-    .acsi_nak(acsi_nak),
-    .acsi_dma_status(acsi_dma_status),
-    .acsi_data_in_strobe(acsi_data_in_strobe),
-    .acsi_data_in(acsi_data_in),
-
-    // floppy sd card interface
-    .sd_img_mounted ( sd_img_mounted[1:0] ),
+    // floppy/acsi sd card interface
+    .sd_img_mounted ( sd_img_mounted ),
     .sd_img_size    ( sd_img_size ),
 	.sd_lba         ( sd_lba ),
 	.sd_rd          ( sd_rd ),

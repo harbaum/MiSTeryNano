@@ -19,9 +19,6 @@
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 //
 
-// TODO:
-// - migrate from rd[x]/wr[x] to  req/rw/dev
-
 module acsi (
     // clocks and system interface
 	input 			  clk,
@@ -29,41 +26,35 @@ module acsi (
 	input 			  reset,
 
 	input [7:0] 	  enable,
+	input [31:0] 	  img_size [2],
 
 	// SD card interface
 	output reg [1:0]  data_rd_req, // request read from sd card
 	output reg [1:0]  data_wr_req, // request write to sd card
-	output reg [31:0] data_lba,    // lba requested
-	input 			  data_busy,   // sd card has accepted request and now loads sector
-	input 			  data_done,   // sd card ready in reply to req
-	input 			  dma_done,    // DMA transfer finished
-	input 			  data_next,   // DMA requests another sector to be tranferred
+	output reg [31:0] data_lba, // lba requested
+	input 			  data_busy, // sd card has accepted request and now loads sector
+	input 			  data_done, // sd card ready in reply to req
+	input 			  dma_done, // DMA transfer finished
+	input 			  data_next, // DMA requests another sector to be tranferred
 	     
-	// old IO controller interface
-	input 			  dma_ack,     // IO controller answers request
-	input 			  dma_nak,     // IO controller rejects request
-	input [7:0] 	  dma_status,
-
-	
-	input [3:0] 	  status_sel,  // 10 command bytes + 1 status byte
-	output [7:0] 	  status_byte,
-
-   // cpu interface
+    // cpu interface
 	input 			  cpu_a1,
 	input 			  cpu_sel,
 	input 			  cpu_rw,
 	input [7:0] 	  cpu_din,
 	output [7:0] 	  cpu_dout,
 
+    // ACSI command reply output to be written into DMA FIFO
+	output [15:0] 	  reply_data,
+	output 			  reply_req,
+	input 			  reply_ack,
+			 
 	output reg 		  irq
 );
 
 reg cpu_selD;
 always @(posedge clk) if (clk_en) cpu_selD <= cpu_sel;
 wire cpu_req = ~cpu_selD & cpu_sel;
-
-// acsi always returns dma status on cpu_read
-assign cpu_dout = dma_status;
 
 // Total number of command bytes:
 // cmd 0..1f  -> 6 
@@ -81,39 +72,145 @@ wire [3:0] parms =
 reg [2:0] target;
 reg [3:0] byte_counter;
 reg [7:0] cmd_parameter [15:0];
-reg busy;
+reg err;
 
-// acsi status as reported to the io controller
-assign status_byte =
-    (status_sel == 0)?cmd_parameter[0]:
-    (status_sel == 1)?cmd_parameter[1]:
-    (status_sel == 2)?cmd_parameter[2]:
-    (status_sel == 3)?cmd_parameter[3]:
-    (status_sel == 4)?cmd_parameter[4]:
-    (status_sel == 5)?cmd_parameter[5]:
-    (status_sel == 6)?cmd_parameter[6]:
-    (status_sel == 7)?cmd_parameter[7]:
-    (status_sel == 8)?cmd_parameter[8]:
-    (status_sel == 9)?cmd_parameter[9]:
-    (status_sel == 10)?{ target, 4'b0000, busy }:
-    8'h00;
+// ASC = additional sense code for Sense Key 0x05 (Illegal Request)
+// 0x0e Invalid Field
+// 0x1a Parameter Length Error
+// 0x20 Invalid Command
+// 0x21 Invalid Element
+// 0x24 Invalid Field in CDB
+// 0x25 Logical Unit Not Supported
+// 0x26 Invalid Field in Parameters
+reg [7:0] asc [2];
+
+// acsi always returns dma status on cpu_read
+// status byte TTTEEEEE 
+// TTT = target
+// EEEEE
+//   Bit 4: reserved, always 0
+//   Bit 3: busy
+//   Bit 2: condition met, always 0
+//   Bit 1: check bit (1 == error)
+//   Bit 0: reserved, always 0
+assign cpu_dout = { target, 3'b000, err, 1'b0 };
+
+// ======================= handle SCSI replies ============================
+
+// some commands can address subunits (LUNs) which we don't support
+wire [2:0] lun = cmd_parameter[1][7:5];
+
+// lba parameter for read(6), write(6) and seek(6)
+wire [31:0] lba6 = { 10'd0, cmd_parameter[1][4:0], 
+        cmd_parameter[2], cmd_parameter[3] };
+
+// lba parameter for read(10), write(10) and seek(10)
+wire [31:0] lba10 = { cmd_parameter[2], cmd_parameter[3],
+        cmd_parameter[4], cmd_parameter[5] };     
+
+// lba matching the current command
+wire [31:0] lba = (cmd_code[7:4] == 4'h2)?lba10:lba6;
+  
+// This is 16 bit since the MiSTery core's DMA uses 
+// 16 bit FIFOs which we directly write data into
+assign reply_data = (cmd_code == 8'h03)?request_sense_reply_data:
+					(cmd_code == 8'h12)?inquiry_reply_data:
+					(cmd_code == 8'h1a)?mode_sense_reply_data:
+					(cmd_code == 8'h25)?read_capacity_reply_data:
+					16'h0000;
+
+// reply word counter   
+localparam REPLY_IDLE  = 7'd127;  
+localparam REPLY_START = 7'd0;  
+reg [6:0] reply_cnt;
+assign reply_req = (reply_cnt != REPLY_IDLE);   
+
+// command reply length in 16 words. read and write a handled
+// seperately
+wire [6:0] cmd_reply_len =
+		   (cmd_code == 8'h03)?cmd_parameter[4][7:1]:
+		   (cmd_code == 8'h12)?cmd_parameter[4][7:1]:
+		   (cmd_code == 8'h1a)?7'd6:
+		   (cmd_code == 8'h25)?7'd4:
+		   (cmd_code == 8'ha0)?7'd8:
+		   7'd0;   
+		   
+// ------------------------ Request Sense ----------------------------
+
+wire current_target = target[0];
+wire [15:0] request_sense_reply_data = 
+            (reply_cnt == 0)?{1'b0, 7'h70, 8'h00 }:
+			((reply_cnt == 1) && (asc[current_target] != 0))?16'h0500:
+			(reply_cnt == 3)?16'd11:                        // 18-7
+			(reply_cnt == 6)?{ asc[current_target], 8'h00 }:
+			16'h0000;
+
+// ------------------------ Inquiry ----------------------------
+
+// string sent in inquiry reply bytes 8 to 32
+wire [7:0] inquiry_str [24];
+assign inquiry_str = "MiSTery Harddisk Image  ";
+
+wire [15:0] inquiry_reply_data =
+		   ((reply_cnt == 0) && (lun != 3'd0))?16'h7f00:
+		   (reply_cnt == 1)?16'h0100:                        // SCSI-1
+		   (reply_cnt == 2)?{cmd_parameter[4]-8'd5,8'h00}:   // length
+		   (reply_cnt >= 4 && reply_cnt < 16)?{ inquiry_str[2*(reply_cnt-4)],
+												inquiry_str[2*(reply_cnt-4)+1]}:
+		   16'h0000;
+
+// ------------------------ Read Capacity ----------------------------
+wire [31:0] current_image_size = img_size[current_target];
+wire [31:0] current_block_size = { 9'b000000000, current_image_size[31:9] };
+wire [31:0] max_block_number = current_block_size - 32'd1;   
+   
+wire [15:0] read_capacity_reply_data = 
+			(reply_cnt == 0)?max_block_number[31:16]:   // address of last block
+			(reply_cnt == 1)?max_block_number[15:0]:
+			(reply_cnt == 3)?16'd512:                     // block size in bytes
+			16'h0000;
+			
+// ------------------------ Mode Sense(6) ----------------------------
+wire [15:0] mode_sense_reply_data = 
+			(reply_cnt == 1)?16'h0008:   // size of extent descriptor list
+			(reply_cnt == 2)?{ 8'h00, current_block_size[23:16] }:
+			(reply_cnt == 3)?current_block_size[15:0]:
+			(reply_cnt == 5)?16'd512:    // block size in bytes
+			16'h0000;
+			
+// read and write commands have a lun field
+// request sense actually also contains the LUN, but reports
+// the missing LUN by itself
+wire 	cmd_has_lun =		
+		(cmd_code == 8'h00) ||   // test unit ready
+		(cmd_code == 8'h08) ||   // read(6)
+		(cmd_code == 8'h0b) ||   // seek(6)
+		(cmd_code == 8'h28) ||   // read(10)
+		(cmd_code == 8'h2b) ||   // seek(10)
+		(cmd_code == 8'h0a) ||   // write(6)
+		(cmd_code == 8'h2a);     // write(10)   
 
 // CPU write interface
 always @(posedge clk) begin
    if(reset) begin
       target <= 3'd0;
       irq <= 1'b0;
-      busy <= 1'b0;
       data_rd_req <= 2'b00;
       data_wr_req <= 2'b00;
+	  reply_cnt <= REPLY_IDLE;	  
    end else begin
-      
-      // DMA transfer has been ack'd by io controller
-      if(dma_ack && busy) begin
-		 irq <= 1'b1;   // set acsi irq			
-		 busy <= 1'd0;
-      end
-
+	  if(reply_cnt != REPLY_IDLE) begin
+		 if(reply_ack) begin
+			if(reply_cnt < cmd_reply_len) begin
+			   reply_cnt <= reply_cnt + 7'd1;
+			end else begin
+  			   reply_cnt <= REPLY_IDLE;
+			   irq <= 1'b1;   // set acsi irq to signal end of transmission
+			   asc[current_target] <= 8'h00;
+			end
+		 end
+	  end
+      	  
       // SD card has delivered data to DMA
       if(data_busy) begin
 		 data_rd_req <= 2'b00;
@@ -123,10 +220,10 @@ always @(posedge clk) begin
       if(data_next) begin
 		 // check if a read or write is to be continued		 
 		 // target can only be 0 or 1
-		 if(cmd_parameter[0][3:0] == 4'h8)
+		 if(cmd_code[3:0] == 4'h8)
 		   data_rd_req[target] <= 1'b1;
 		 
-		 if(cmd_parameter[0][3:0] == 4'ha)
+		 if(cmd_code[3:0] == 4'ha)
 		   data_wr_req[target] <= 1'b1;		 
 		 
 		 // request next sector
@@ -134,14 +231,12 @@ always @(posedge clk) begin
       end
       
       // entire DMA transfer is done
-      if(dma_done) irq <= 1'b1;	 
-
-      // DMA transfer has been rejected by io controller (no such device)
-      if(dma_nak)
-		busy <= 1'd0;
-      
+      if(dma_done) begin
+         irq <= 1'b1;	 
+         asc[current_target] <= 8'h00;		
+      end
+	  
       // cpu is accessing acsi bus -> clear acsi irq
-      // status itself is returned by the io controller with the dma_ack.
       if(clk_en && cpu_req)
 		irq <= 1'b0;
       
@@ -150,7 +245,7 @@ always @(posedge clk) begin
 		 if(!cpu_a1) begin
 			// a0 == 0 -> first command byte
 			target <= cpu_din[7:5];
-			busy <= 1'b0;
+            err <= 1'b0;
 			
 			// icd command?
 			if(cpu_din[4:0] == 5'h1f)
@@ -164,8 +259,7 @@ always @(posedge clk) begin
 			// check if this acsi device is enabled
 			if(cpu_din[7:5] < 2 && enable[cpu_din[7:5]] == 1'b1)
 			  irq <= 1'b1;
-		 end else begin
-			
+		 end else begin			
 			// further bytes
 			cmd_parameter[byte_counter] <= cpu_din;
 			byte_counter <= byte_counter + 3'd1;
@@ -174,70 +268,81 @@ always @(posedge clk) begin
 			if(enable[target] == 1'b1) begin
 			   // auto-ack first 5 bytes, 6 bytes in case of icd command
 			   if(byte_counter < parms)
-				 irq <= 1'b1;		  
+                 irq <= 1'b1;		  
 			   else begin
-				  // command complete
-				  case( cmd_parameter[0] )
-					
-					// read(6)
-					8'h08: begin
-					   // target can only be 0 or 1
-					   data_rd_req[target] <= 1'b1;
-					   // read(6) has a 21 bit sector address
-					   data_lba <= { 10'b0000000000,
-									 cmd_parameter[1][4:0],
-									 cmd_parameter[2],
-									 cmd_parameter[3] };
-					   // data length is ignored as it's implicitely encoded
-					   // in the DMA length
-					end
-					
-					// read(10)
-					8'h28: begin
-					   // target can only be 0 or 1
-					   data_rd_req[target] <= 1'b1;
-					   // read(10) has a 32 bit sector address
-					   data_lba <= { cmd_parameter[2],
-									 cmd_parameter[3],
-									 cmd_parameter[4],
-									 cmd_parameter[5] };     
-					   // data length is ignored as it's implicitely encoded
-					   // in the DMA length
-					end
-					
-					// write(6)
-					8'h0a: begin
-					   // trigger DMA read from RAM into fifo to write to
-					   // device. target can only be 0 or 1
-					   data_wr_req[target] <= 1'b1;
-					   // write(6) has a 21 bit sector address
-					   data_lba <= { 10'b0000000000,
-									 cmd_parameter[1][4:0],
-									 cmd_parameter[2],
-									 cmd_parameter[3] };
-					   // data length is ignored as it's implicitely encoded
-					   // in the DMA length
-					end
-					
-					// write(10)
-					8'h2a: begin
-					   // target can only be 0 or 1
-					   data_wr_req[target] <= 1'b1;
-					   // write(10) has a 32 bit sector address
-					   data_lba <= { cmd_parameter[2],
-									 cmd_parameter[3],
-									 cmd_parameter[4],
-									 cmd_parameter[5] };     
-					   // data length is ignored as it's implicitely encoded
-					   // in the DMA length
-					end
-					
-					default:		  
-					  // the command is now complete and we expect bytes to arrive
-					  // in the fifo and an interrupt in the end
-					  busy <= 1'b1;  // raise request io cntroller
-					
-				  endcase
+                  // command complete
+
+                  // check for sector limits of read, write and seek
+                  if((cmd_code == 8'h08 || cmd_code == 8'h0a || cmd_code == 8'h0b ||
+                      cmd_code == 8'h28 || cmd_code == 8'h2a || cmd_code == 8'h2b) &&
+                      (lba >= current_block_size)) begin
+                    // trying to access a block outside the limits
+                    err <= 1'b1;
+                    irq <= 1'b1;		  
+                    asc[current_target] <= 8'h21;   // invalid element
+                  end else begin
+
+                    // only lun 0 is supported for read/write
+                    if ((lun == 3'd0) || !cmd_has_lun ) begin
+                        case( cmd_code ) 
+                            // prepare reply transmission from ACSI into DMA buffer
+                            8'h00,   // test unit ready
+                            8'h04,   // format
+                            8'h0b,   // seek(6)
+                            8'h12,   // inquiry(6)
+                            8'h1a,   // mode sense(6)
+                            8'h1b,   // start/stop unit
+                            8'h25,   // read capacity(10)
+                            8'h2b:   // seek(10)
+                                reply_cnt <= REPLY_START;
+
+                            // request sense
+                            8'h03: begin
+                                // this is special as request sense reports an
+                                // unsuppoted LUN immediately
+                                if(lun != 3'd0)
+                                    asc[current_target] = 8'h25;
+							
+                                reply_cnt <= 7'd0;
+                            end
+						  
+                            // read(6) and read(10)
+                            8'h08, 8'h28: begin
+                                // target can only be 0 or 1
+                                data_rd_req[target] <= 1'b1;
+                                data_lba <= lba;
+                            end
+					   					   
+                            // write(6) and write(10)
+                            8'h0a, 8'h2a: begin
+                                // trigger DMA read from RAM into fifo to write to
+                                // device. target can only be 0 or 1
+                                data_wr_req[target] <= 1'b1;
+                                data_lba <= lba;
+                            end
+					   
+                            // commands to be rejected incl.
+                            // 3e read long(10)
+                            // 46 get configuration
+                            // 5a mode sense(10)
+                            // 88 read(16)
+                            // 8a write(16)
+                            // 9e 10: read capacity(16), 11: read long(16)
+                            // a8 read(12)
+                            // aa write(12)
+                            default: begin
+                                err <= 1'b1;
+                                irq <= 1'b1;		  
+                                asc[current_target] <= 8'h20;   // command not supported
+                            end
+                         endcase
+                      end else begin
+                        // lun != 0, only lun 0 is supported
+                        err <= 1'b1;
+                        irq <= 1'b1;		  
+                        asc[current_target] <= 8'h25;   // logical unit not supported
+                      end
+                  end
 			   end
 			end
 		 end

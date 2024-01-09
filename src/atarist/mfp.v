@@ -72,6 +72,8 @@ io_fifo mfp_out_fifo (
 	.out_strobe       ( serial_strobe_out ),
 	.out_enable       ( 1'b0 ),
 
+    .space            (  ),
+    .empty            (  ),
 	.full             ( serial_data_out_fifo_full ),
 	.data_available   ( serial_data_out_available )
 );
@@ -166,7 +168,9 @@ mfp_timer timer_a (
 	.PULSE_MODE ( pulse_mode[1]            ),
 	.EVENT_MODE ( event_mode[1]            ),
 	.T_I        ( t_i[0] ^ ~aer[4]         ),
-	.T_O_PULSE  ( timera_done              )
+    .T_O        (                          ),
+	.T_O_PULSE  ( timera_done              ),
+    .SET_DATA_OUT (                        )
 );
 
 wire timerb_done;
@@ -187,7 +191,10 @@ mfp_timer timer_b (
 	.PULSE_MODE ( pulse_mode[0]            ),
 	.EVENT_MODE ( event_mode[0]            ),
 	.T_I        ( t_i[1] ^ ~aer[3]         ),
-	.T_O_PULSE  ( timerb_done              )
+    .T_O        (                          ),
+	.T_O_PULSE  ( timerb_done              ),
+    .SET_DATA_OUT (                        )
+
 );
 
 wire timerc_done;
@@ -205,6 +212,10 @@ mfp_timer timer_c (
 	.DAT_I      ( din                      ),
 	.DAT_O      ( timerc_dat_o             ),
 	.DAT_WE     ( (addr == 5'h11) && write ),
+    .T_I        ( 1'b0                     ),
+    .PULSE_MODE (                          ),
+    .EVENT_MODE (                          ),
+    .T_O        (                          ),
 	.T_O_PULSE  ( timerc_done              )
 );
 
@@ -225,6 +236,10 @@ mfp_timer timer_d (
 	.DAT_O      ( timerd_dat_o             ),
 	.DAT_WE     ( (addr == 5'h12) && write ),
 	.T_O_PULSE  ( timerd_done              ),
+    .T_I        ( 1'b0                     ),
+    .PULSE_MODE (                          ),
+    .EVENT_MODE (                          ),
+    .T_O        (                          ),
 	.SET_DATA_OUT ( timerd_set_data        )
 );
 
@@ -248,6 +263,7 @@ wire [15:0] isr;
 wire [3:0] irq_in_service;
 mfp_hbit16 irq_in_service_index (
 	.value  ( isr            ),
+    .mask   (                ),
 	.index  ( irq_in_service )
 );
 

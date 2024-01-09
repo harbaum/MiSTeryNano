@@ -191,12 +191,10 @@ always @(*) begin
 end
 
 always @(posedge clkcpu) begin
-	reg [W:0] img_mountedD;
 	integer i;
-	img_mountedD <= img_mounted;
 
 	for(i = 0; i < FD_NUM; i = i+1'd1) begin
-		if (~img_mountedD[i] && img_mounted[i]) begin
+		if (img_mounted[i]) begin
 			fdn_present[i] <= |img_size;
 			fdn_sector_size_code[i] <= image_sector_size_code;
 			fdn_spt[i] <= image_spt;

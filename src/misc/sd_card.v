@@ -93,9 +93,9 @@ localparam [2:0] IDLE         = 3'd0,
 reg [2:0] state; 
 wire [7:0] inbyte_int;  
 
-// interrupt handling, TODO: make this nicer
-wire rstart_any = rstart[3] || rstart[2] | rstart[1] || rstart[0];
-wire wstart_any = wstart[3] || wstart[2] | wstart[1] || wstart[0];
+// interrupt handling
+wire rstart_any = {|{rstart}};
+wire wstart_any = {|{wstart}};
 wire start_any = rstart_any || wstart_any;
 
 wire [7:0] doutb;
@@ -166,10 +166,11 @@ always @(posedge clk) begin
       rstart_int <= 1'b0;
       wstart_int <= 1'b0;
       image_size <= 32'd0;
-      image_mounted <= 2'b00;
+      image_mounted <= 4'b0000;
       state <= IDLE;      
 	  dinb_we <=1'b0;
    end else begin
+      image_mounted <= 4'b0000;
 
       // done from sd reader acknowledges/clears start
       if(rdone) begin
@@ -203,11 +204,7 @@ always @(posedge clk) begin
 			if(command == 8'd1) begin
                // request status byte, for the MCU it doesn't matter whether
 			   // the core wants to write or to read
-			   if(byte_cnt == 4'd0) data_out <= { 4'b000, 
-					  rstart[3] || wstart[3],   // TODO: make this nicer
-					  rstart[2] || wstart[2],
-					  rstart[1] || wstart[1],
-					  rstart[0] || wstart[0] };
+			   if(byte_cnt == 4'd0) data_out <= { 4'b000, rstart | wstart };
 			   if(byte_cnt == 4'd1) data_out <= rsector[31:24];
 			   if(byte_cnt == 4'd2) data_out <= rsector[23:16];
 			   if(byte_cnt == 4'd3) data_out <= rsector[15: 8];
@@ -262,8 +259,7 @@ always @(posedge clk) begin
 			   if(byte_cnt == 4'd4) begin 
 				  image_size[7:0]   <= data_in;
 				  if(image_target <= 8'd3)  // images 0..3 are supported
-					image_mounted[image_target] <= 
-					   (image_size[31:8] != 24'd0 || data_in != 8'd0)?1'b1:1'b0;            
+					image_mounted[image_target] <= 1'b1;
 			   end
 			end
 			

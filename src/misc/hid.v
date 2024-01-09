@@ -23,7 +23,6 @@ reg [1:0] mouse_btns;
 reg [1:0] mouse_x;
 reg [1:0] mouse_y;
 
-assign dbg = { mouse_x, mouse_y };
 assign mouse = { mouse_btns, mouse_x, mouse_y };
 
 // limit the rate at which mouse movement data is sent to the

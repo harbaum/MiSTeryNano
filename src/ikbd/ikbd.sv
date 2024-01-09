@@ -22,7 +22,7 @@ module ikbd (
 		input [7:0] matrix_in,
 	     
 		// digital joystick with one fire button (FRLDU) or mouse with two buttons
-		input [4:0] joystick1, // regular joystick
+		input [4:0] joystick1,  // regular joystick
 		input [5:0] joystick0   // joystick that can replace mouse
 		);
 
@@ -51,11 +51,11 @@ module ikbd (
 			      .RW(),
 			      .AD({po4, po3}),
 			      .DO(),
-			      .DI(),
+			      .DI(8'h00),
 			      
-                              .PI1(matrix_in),
+                  .PI1(matrix_in),
 			      .PI2({po2[4], rx, ~fire_buttons, po2[0]}),
-                              .PI4(pi4),
+                  .PI4(pi4),
 			      .PO1(),
 			      .PO2(po2)
 	      );

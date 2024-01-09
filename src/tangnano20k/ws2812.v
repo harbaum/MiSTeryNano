@@ -54,7 +54,7 @@ always@(posedge clk)
 				state    <= BIT_SEND_HIGH;
 			end
 			else begin
-				data_send <= data_send + 1;
+				data_send <= data_send + 9'd1;
 				bit_send  <= 0;
 				state    <= BIT_SEND_HIGH;
 			end
@@ -87,7 +87,7 @@ always@(posedge clk)
 				else begin
 					clk_count <= 0;
 
-					bit_send <= bit_send + 1;
+					bit_send <= bit_send + 9'd1;
 					state    <= DATA_SEND;
 				end
 			else 
@@ -96,7 +96,7 @@ always@(posedge clk)
 				else begin
 					clk_count <= 0;
 					
-					bit_send <= bit_send + 1;
+					bit_send <= bit_send + 9'd1;
 					state    <= DATA_SEND;
 				end
 		end

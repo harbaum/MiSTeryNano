@@ -37,7 +37,7 @@ module atarist (
 	input [7:0] 	   sd_dout,
 	output [7:0] 	   sd_din,
 	input 		       sd_dout_strobe,
-	input [1:0] 	   sd_img_mounted,
+	input [3:0] 	   sd_img_mounted,
 	input [31:0] 	   sd_img_size,
 
     // ACSI disk/sd card interface
@@ -50,17 +50,6 @@ module atarist (
 	input [7:0] 	   acsi_sd_rd_byte,
 	output [7:0] 	   acsi_sd_wr_byte,
 	input [8:0] 	   acsi_sd_byte_addr,
-
-    // interface to the ACSI status. In the long term this
-    // should all be handled inside acsi.v and only sector
-    // IO should reach the MCU
-	output [7:0]    acsi_status_byte,
-	input [3:0]     acsi_status_byte_index,
-    input acsi_ack,
-    input acsi_nak,
-    input [7:0] acsi_dma_status,
-    input acsi_data_in_strobe,
-    input [15:0] acsi_data_in,
 
 	// MIDI UART
 	input wire 	   midi_rx,
@@ -91,8 +80,6 @@ module atarist (
 	// export all LEDs
 	output wire [1:0]  leds
 );
-
-wire [7:0] acsi_enable = 8'b00000001;  
 
 // registered reset signals
 reg         reset;
@@ -474,12 +461,12 @@ mfp mfp (
 
 	// serial/rs232 interface io-controller<->mfp
 	.serial_data_out_available (),
-	.serial_strobe_out         (),
+	.serial_strobe_out         (1'b0),
 	.serial_data_out           (),
 	.serial_status_out         (),
 
-	.serial_strobe_in          (),
-	.serial_data_in            (),
+	.serial_strobe_in          (1'b0),
+	.serial_data_in            (8'h00),
 
 	// input signals
 	.clk_ext  ( clk_mfp       ),  // 2.457MHz clock
@@ -513,6 +500,8 @@ ikbd ikbd (
     .matrix_out(keyboard_matrix_out),
     .matrix_in(keyboard_matrix_in),
 
+    .caps_lock(),
+
 	.joystick0({joy0[5:4], joy0[0], joy0[1], joy0[2], joy0[3]}),
 	.joystick1({joy1[  4], joy1[0], joy1[1], joy1[2], joy1[3]})
 );
@@ -537,6 +526,7 @@ acia kbd_acia (
 	.irq      ( kbd_acia_irq       ),
 
     .rxtxclk_sel( 1'b0             ),
+    .dout_strobe(                  ),
 
 	.rx       ( ikbd_tx            ),
 	.tx       ( ikbd_rx            )
@@ -815,6 +805,8 @@ dma dma (
 	.cpu_dout     ( dma_data_out  ),
 
 	// SD card interface for ACSI
+	.img_mounted  ( sd_img_mounted[3:2]         ), // signaling that new ACSI image has been mounted
+	.img_size     ( sd_img_size                 ), // size of image mounted
 	.acsi_rd_req  ( acsi_rd_req                 ),
 	.acsi_wr_req  ( acsi_wr_req                 ),
 	.acsi_lba     ( acsi_lba                    ),
@@ -825,20 +817,8 @@ dma dma (
 	.sd_wr_byte   ( acsi_sd_wr_byte             ),
 	.sd_byte_addr ( acsi_sd_byte_addr           ),
 
-	// IO controller interface for ACSI
-	.dio_data_in_strobe  ( acsi_data_in_strobe ),
-	.dio_data_in_reg     ( acsi_data_in ),
-	.dio_data_out_strobe ( 1'b0 ),
-	.dio_data_out_reg    ( ),
-	.dio_dma_ack         ( acsi_ack ),
-	.dio_dma_status      ( acsi_dma_status ),
-	.dio_dma_nak         ( acsi_nak ),
-	.dio_status_in       ( acsi_status_byte ),
-	.dio_status_index    ( acsi_status_byte_index ),
-
 	// additional signals for ACSI interface
 	.acsi_irq     ( acsi_irq    ),
-	.acsi_enable  ( acsi_enable ),
 
 	// FDC interface
 	.fdc_drq      ( fdc_drq  ),
@@ -871,6 +851,8 @@ fdc1772 fdc1772 (
 	.floppy_drive   ( floppy_sel_exclusive ),
 	.floppy_side    ( floppy_side      ),
 	.floppy_reset   ( ~peripheral_reset),
+    .floppy_step    (                  ),
+    .floppy_motor   ( 1'b0             ),  // unused in ST
 
 	// interrupts
 	.irq            ( fdc_irq          ),
@@ -883,20 +865,20 @@ fdc1772 fdc1772 (
 	.cpu_dout       ( fdc_dout         ),
 
 	// place any signals that need to be passed up to the top after here.
-	.img_ds         ( 1'b0             ), // "double sided" image. Unused in ST
-	.img_type       ( 3'd1             ), // Atari ST floppy type
-	.img_mounted    ( sd_img_mounted   ), // signaling that new image has been mounted
-	.img_wp         ( floppy_protected ), // write protect
-	.img_size       ( sd_img_size      ), // size of image in bytes, 737280 for 80 tracks, 9 spt double sided
+	.img_ds         ( 1'b0                ), // "double sided" image. Unused in ST
+	.img_type       ( 3'd1                ), // Atari ST floppy type
+	.img_wp         ( floppy_protected    ), // write protect
+	.img_mounted    ( sd_img_mounted[1:0] ), // signaling that new image has been mounted
+	.img_size       ( sd_img_size         ), // size of image in bytes, 737280 for 80 tracks, 9 spt double sided
 
-	.sd_lba         ( sd_lba           ), // sector requested by fdc to be read/written
-	.sd_rd          ( sd_rd            ), // read request for two floppy drives
-	.sd_wr          ( sd_wr            ), // write request for two floppy drives
-	.sd_ack         ( sd_ack           ), // ackknowledge data transfer
-	.sd_buff_addr   ( sd_buff_addr     ), // number of byte being transferred
-	.sd_dout        ( sd_dout          ), // data read by fdc
-	.sd_din         ( sd_din           ), // data written by fdc
-	.sd_dout_strobe ( sd_dout_strobe   )  // byte ready to be read by fdc
+	.sd_lba         ( sd_lba              ), // sector requested by fdc to be read/written
+	.sd_rd          ( sd_rd               ), // read request for two floppy drives
+	.sd_wr          ( sd_wr               ), // write request for two floppy drives
+	.sd_ack         ( sd_ack              ), // ackknowledge data transfer
+	.sd_buff_addr   ( sd_buff_addr        ), // number of byte being transferred
+	.sd_dout        ( sd_dout             ), // data read by fdc
+	.sd_din         ( sd_din              ), // data written by fdc
+	.sd_dout_strobe ( sd_dout_strobe      )  // byte ready to be read by fdc
 );
 
 endmodule

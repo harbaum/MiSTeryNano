@@ -13,7 +13,7 @@ module tmds_channel
     input logic [3:0] data_island_data,
     input logic [1:0] control_data,
     input logic [2:0] mode,  // Mode select (0 = control, 1 = video, 2 = video guard, 3 = island, 4 = island guard)
-    output logic [9:0] tmds = 10'b1101010100
+    output logic [9:0] tmds
 );
 
 // See Section 5.4.4.1

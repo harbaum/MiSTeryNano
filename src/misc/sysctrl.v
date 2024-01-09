@@ -26,14 +26,6 @@ module sysctrl (
   output reg [1:0]  leds, // two leds can be controlled from the MCU
   output reg [23:0] color, // a 24bit color to e.g. be used to drive the ws2812
 
-  input [7:0] acsi_status_byte,
-  output [3:0] acsi_status_byte_index,
-  output reg acsi_ack,
-  output reg acsi_nak,
-  output reg [7:0] acsi_dma_status,
-  output reg acsi_data_in_strobe,
-  output reg [15:0] acsi_data_in,
-
   // values that can be configured by the user
   output reg [1:0]  system_chipset,
   output reg	    system_memory,
@@ -55,9 +47,6 @@ wire [7:0] data_in_rev = { data_in[0], data_in[1], data_in[2], data_in[3],
 
 assign int_out_n = (int_in != 8'h00)?1'b0:1'b1;
 
-assign acsi_status_byte_index = state-3'd1;
-reg acsi_byte_toggle;
-
 // process mouse events
 always @(posedge clk) begin
    if(reset) begin
@@ -76,20 +65,13 @@ always @(posedge clk) begin
       system_volume <= 2'b00;   
       system_wide_screen <= 1'b0;   
       system_floppy_wprot <= 2'b00;   
-
-      acsi_dma_status <= 8'h00;
-      acsi_byte_toggle <= 1'b0;
    end else begin
       int_ack <= 8'h00;
-      acsi_ack <= 1'b0;
-      acsi_nak <= 1'b0;
-      acsi_data_in_strobe <= 1'b0;
 
       if(data_in_strobe) begin      
         if(data_in_start) begin
             state <= 4'd1;
             command <= data_in;
-            acsi_byte_toggle <= 1'b0;
         end else if(state != 4'd0) begin
             if(state != 4'd15) state <= state + 4'd1;
 	    
@@ -151,27 +133,6 @@ always @(posedge clk) begin
                 data_out <= int_in;
             end
 
-            // CMD 6: ACSI status. This will finally be removed and done in core
-            if(command == 8'd6) begin
-                data_out <= acsi_status_byte;
-            end
-
-            // CMD 7: ACSI  ack/nak
-            if(command == 8'd7) begin
-                if(state == 4'd1) begin
-                    if(data_in[0]) acsi_ack <= 1'b1;
-                    else           acsi_nak <= 1'b1;
-                end
-                if(state == 4'd2) acsi_dma_status <= data_in;
-            end
-
-            // CMD 8: ACSI data in
-            if(command == 8'd8) begin
-                if(!acsi_byte_toggle) acsi_data_in[15:8] <= data_in;
-                else                  acsi_data_in[ 7:0] <= data_in;
-                if(acsi_byte_toggle)  acsi_data_in_strobe <= 1'b1;
-                acsi_byte_toggle <= !acsi_byte_toggle;
-            end
          end
       end
    end

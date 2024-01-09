@@ -61,6 +61,8 @@ module dma (
 	output reg [15:0] cpu_dout,
 
 	// SD card interface for ACSI
+	input [1:0]       img_mounted,       // signaling that new ACSI image has been mounted
+	input [31:0]      img_size,          // size of image mounted
 	output [1:0] 	  acsi_rd_req,       // read request for two ACSI targets
 	output reg [1:0]  acsi_wr_req,       // write request for two ACSI targets
 	output [31:0] 	  acsi_lba,          // logical block to read or write
@@ -71,24 +73,8 @@ module dma (
 	output reg [7:0]  sd_wr_byte,        // data byte to be sent to SD card
 	input [8:0] 	  sd_byte_addr,      // address of data byte within 512 bytes sector
 
-	// TODO to be removed: 
-	// data interface for ACSI
-	input 			  dio_data_in_strobe,
-	input [15:0] 	  dio_data_in_reg,
-
-	input 			  dio_data_out_strobe,
-	output [15:0] 	  dio_data_out_reg,
-
-	input 			  dio_dma_ack,
-	input [7:0] 	  dio_dma_status,
-
-	input 			  dio_dma_nak,
-	output [7:0] 	  dio_status_in,
-	input [3:0] 	  dio_status_index,
-
 	// additional acsi control signals
 	output 			  acsi_irq,
-	input [7:0] 	  acsi_enable,
 
 	// FDC interface
 	output 			  fdc_sel,
@@ -103,22 +89,10 @@ module dma (
 	output 			  rdy_o,
 	input [15:0] 	  ram_din
 );
-   
+
 // some games access right after writing the sector count
 // then this access won't be ack'ed if the DMA already started
 assign rdy_o = cpu_sel ? cpu_rdy : ram_br;
-
-// for debug: count irqs
-
-reg [7:0] acsi_irq_count;
-always @(posedge clk or posedge reset) begin
-	reg acsi_irqD;
-	if(reset) acsi_irq_count <= 8'd0;
-	else begin
-		acsi_irqD <= acsi_irq;
-		if (~acsi_irqD & acsi_irq) acsi_irq_count <= acsi_irq_count + 8'd1;
-	end
-end
 
 reg cpu_selD;
 always @(posedge clk) if (clk_en) cpu_selD <= cpu_sel;
@@ -186,7 +160,25 @@ end
 // a reduced speed. This buffer is currently only used
 // for ACSI. Floppy has it's own buffer
 reg [7:0] buffer [512];
+
 reg [2:0] acsi_io_state;   
+reg [31:0] acsi_image_size[2];
+wire acsi_inserted_0 = (acsi_image_size[0] != 0);
+wire acsi_inserted_1 = (acsi_image_size[1] != 0);
+wire [7:0] acsi_enable = { 6'b000000, acsi_inserted_1, acsi_inserted_0 };  
+
+wire [15:0] acsi_reply_data;
+wire		acsi_reply_req;
+wire	    acsi_reply_ack = fifo_data_in_strobe;
+ // (acsi_reply_req && fifo_fill < 8)?1'b1:1'b0;  
+  
+// Check for insertion/detection of a harddisk image by the MCU. Once
+// an image is inserted, the related ACSI device is enabled and will
+// reply to requests.
+always @(posedge clk) begin
+    if(img_mounted[0]) acsi_image_size[0] <= img_size;
+    if(img_mounted[1]) acsi_image_size[1] <= img_size;
+end
 
 always @(posedge clk) begin
    // waiting for SD card to deliver the sector
@@ -371,6 +363,7 @@ acsi acsi(
 
 	  // acsi target enable
 	 .enable      ( acsi_enable           ),
+     .img_size    ( acsi_image_size       ),
 
 	 // SD card interface
 	 .data_rd_req ( acsi_rd_req           ),
@@ -380,13 +373,10 @@ acsi acsi(
 	 .data_done   ( sd_done               ),
 	 .data_next   ( acsi_request_next     ),
 
-	 // signals from/to io controller
-	 .dma_ack     ( dio_dma_ack           ),
-	 .dma_nak     ( dio_dma_nak           ),
-	 .dma_status  ( dio_dma_status        ),
-
-	 .status_sel  ( dio_status_index      ),
-	 .status_byte ( dio_status_in         ),
+     // ACSI command reply output to be written into DMA FIFO
+	 .reply_data  ( acsi_reply_data       ),
+	 .reply_req   ( acsi_reply_req        ),
+	 .reply_ack   ( acsi_reply_ack        ),
 
 	 // cpu interface, passed through dma in st
 	 .cpu_sel     ( acsi_reg_sel          ),
@@ -411,7 +401,7 @@ always @(cpu_sel, cpu_rw, cpu_a1, dma_mode, dma_scnt, fdc_dout, acsi_dout, ram_d
             if(dma_mode[3] == 1'b0)
 					cpu_dout = { 8'h00, fdc_dout };
 				else
-					cpu_dout = { 8'h00, acsi_dout };
+					cpu_dout = { 8'h00, acsi_dout };   // DMA status as being sent by IO controller
          end else
            cpu_dout = { 8'h00, dma_scnt };  // sector count register
       end
@@ -494,11 +484,15 @@ always @(posedge clk or posedge fifo_reset) begin
 	end
 end
 
-wire [15:0] fifo_data_in = acsi_is_reading?acsi_read_data:
-	    dma_direction_out?ram_din:(fdc_fifo_strobe?fdc_fifo_in:dio_data_in_reg);
+// TODO: sort 
+wire [15:0] fifo_data_in = dma_direction_out?ram_din:
+            fdc_fifo_strobe?fdc_fifo_in:
+            acsi_is_reading?acsi_read_data:
+			/* acsi_reply_req? */ acsi_reply_data;            
 
-wire fifo_data_in_strobe = acsi_is_reading?acsi_read_strobe:
-     dma_direction_out?ram_access_strobe:(dio_data_in_strobe | fdc_fifo_strobe);
+wire fifo_data_in_strobe = 
+     dma_direction_out?ram_access_strobe:
+     (fdc_fifo_strobe || acsi_read_strobe || (acsi_reply_req && fifo_fill < 8));
 
 // write to fifo on rising edge of fifo_data_in_strobe
 always @(posedge clk or posedge fifo_reset) begin
@@ -518,7 +512,6 @@ wire fifo_full_8 = fifo_fill >= 8;
 wire fifo_read_start = dma_in_progress && !dma_direction_out && !fifo_read_in_progress &&
      fifo_full_8;
    
-//     ((fifo_rptr == 4'd0 && fifo_wptr == 4'd8) || (fifo_rptr == 4'd8 && fifo_wptr == 4'd0));
 wire fifo_read_stop = !dma_direction_out && fifo_read_in_progress &&
      ram_access_strobe && (fifo_rptr == 4'd7 || fifo_rptr == 4'd15);
 
@@ -535,7 +528,7 @@ end
 
 reg [15:0] fifo_data_out;
 wire fifo_data_out_strobe = acsi_is_writing?acsi_write_strobe:
-	 dma_direction_out?(dio_data_out_strobe | fdc_fifo_strobe):ram_access_strobe;
+	 dma_direction_out?fdc_fifo_strobe:ram_access_strobe;
 
 always @(posedge clk)
    fifo_data_out <= fifo[fifo_rptr];
@@ -626,8 +619,6 @@ always @(posedge clk)
 // ====================================================================
 // ======================= Client to IO controller ====================
 // ====================================================================
-
-assign dio_data_out_reg = fifo_data_out;
 
 endmodule
 
