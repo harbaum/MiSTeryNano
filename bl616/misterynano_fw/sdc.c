@@ -70,7 +70,7 @@ int sdc_read_sector(unsigned long sector, unsigned char *buffer) {
     status = spi_tx_u08(spi, 0);
     spi_end(spi);  
   } while(status & 0x02);   // card busy?
-  
+
   sdc_spi_begin(spi);  
   spi_tx_u08(spi, SPI_SDC_MCU_READ);
   spi_tx_u08(spi, (sector >> 24) & 0xff);
@@ -112,10 +112,10 @@ int sdc_write_sector(unsigned long sector, const unsigned char *buffer) {
 
   // write sector data
   for(int i=0;i<512;i++) spi_tx_u08(spi, buffer[i]);  
-  
+
   // todo: add timeout
   while(spi_tx_u08(spi, 0));  // wait for ready
-  
+
   spi_end(spi);
 
   return 0;
@@ -218,175 +218,9 @@ int sdc_is_ready(void) {
   return sdc_ready;
 }
 
-static void acsi_send(unsigned char *buffer, int len) {
-  spi_begin(spi);  
-  spi_tx_u08(spi, SPI_TARGET_SYS);
-  spi_tx_u08(spi, 8);
-  for(int i=0;i<len;i++)
-    spi_tx_u08(spi, buffer[i]);
-  spi_end(spi);
-}
-
-static void acsi_ack(unsigned char ack, unsigned char status) {
-  spi_begin(spi);  
-  spi_tx_u08(spi, SPI_TARGET_SYS);
-  spi_tx_u08(spi, 7);
-  spi_tx_u08(spi, ack);
-  if(ack) spi_tx_u08(spi, status);  // dma status 
-  spi_end(spi);  
-}
-
-static void sdc_handle_acsi(void) {
-  // byte 0:
-  //   CMD 03 = request sense
-  //   CMD 08 = read sector
-  //   CMD 12 = inquiry
-
-  // byte 10:
-  //   bit 7:5 = target
-  //   bit 0 = busy
-
-  unsigned char acsi_cmd[16];
-  static unsigned char asc = 0;
-    
-  // poll ACSI status
-  spi_begin(spi);  
-  spi_tx_u08(spi, SPI_TARGET_SYS);
-  spi_tx_u08(spi, 6);
-  spi_tx_u08(spi, 0);
-  for(int i=0;i<16;i++) acsi_cmd[i] = spi_tx_u08(spi, 0);
-  spi_end(spi);
-
-  if(acsi_cmd[10] & 1) {
-    unsigned char target = acsi_cmd[10] >> 5;
-    unsigned char device = acsi_cmd[1] >> 5;
-    unsigned char cmd = acsi_cmd[0];
-    unsigned long lba = 256 * 256 * (acsi_cmd[1] & 0x1f) +
-      256 * acsi_cmd[2] + acsi_cmd[3];
-    unsigned short length = acsi_cmd[4];
-  
-    printf("ACSI: ");
-    hexdump(acsi_cmd, 16);
-
-    printf("ACSI%d.%d: CMD %02x\r\n", target, device, cmd);
-    printf("  lba %lu (%lx), length %u\r\n", lba, lba, length);
-    
-    // handle command
-    if(cmd == 0x00) {
-      // test drive ready
-      printf("Test Drive Ready\r\n");
-      if(device == 0) {
-        asc = 0x00;
-        acsi_ack(1, 0x00);
-      } else {
-        asc = 0x25;
-        acsi_ack(1, 0x02);
-      }
-    }
-    
-    else if(cmd == 0x03) {
-      printf("Request sense\r\n");
-      
-      unsigned char buffer[18];
-      if(device != 0) asc = 0x25;
-    
-      bzero(buffer, sizeof(buffer));
-      buffer[7] = 0x0b;
-      if(asc != 0) {
-        buffer[2] = 0x05;
-        buffer[12] = asc;
-      }
-
-      acsi_send(buffer, 18);
-      acsi_ack(1, 0x00);
-      
-      asc = 0x00;
-    }
-      
-    else if(cmd == 0x08 || cmd == 0x28) {
-      unsigned char buffer[512];
-      UINT br;
-      
-      printf("Read %d sector(s) %ld\r\n", length, lba);
-
-      if(device == 0) {
-	if(cmd == 0x28) {
-          lba = 
-            256 * 256 * 256 * acsi_cmd[2] +
-            256 * 256 * acsi_cmd[3] +
-            256 * acsi_cmd[4] + 
-            acsi_cmd[5];
-
-          length = 256 * acsi_cmd[7] + acsi_cmd[8];
-        }
-
-	
-	sdc_lock();
-	for(int i=0;i<length;i++) {
-	  
-	  if(f_lseek(&fil[2], (lba+i)*512) != FR_OK)
-	    printf("f_seek failed\r\n");
-	  
-	  // and add sector offset within cluster    
-	  unsigned long dsector = clst2sect(fil[2].clust) + (lba+i)%fs.csize;
-	  
-	  printf("ACSI: sector %lu -> %lu\r\n", lba+i, dsector);
-
-	  if(f_read(&fil[2], buffer, 512, &br) != FR_OK)
-	    printf("f_read failed\r\n");
-	  
-	  // hexdump(buffer, 512);
-	  
-	  acsi_send(buffer, 512);
-	}
-	sdc_unlock();
-	
-	acsi_ack(1, 0x00);
-	asc = 0;	
-      } else {
-        acsi_ack(1, 0x02);
-        asc = 0x25;
-      }
-    
-    }
-    
-    else if(cmd == 0x0b) {
-      printf("Seek\r\n");
-      asc = 0x00;
-      acsi_ack(1, 0x00);
-    }
-    
-    else if(cmd == 0x12) {
-      printf("Inquiry\r\n");
-      unsigned char buffer[64];
-      bzero(buffer, 64);
-      buffer[2] = 2;                                   // SCSI-2
-      buffer[4] = length-5;                            // len
-      memcpy(buffer+8,  "MiSTery ", 8);                // Vendor
-      memcpy(buffer+16, "Harddisk Image  ", 16);       // device
-
-      memcpy(buffer+32, "ATH ", 4);                    // Product revision
-      memcpy(buffer+36, "12345678", 8);                // Serial number
-      if(device != 0) buffer[0] = 0x7f;
-
-      acsi_send(buffer, length);
-      acsi_ack(1, 0x00);
-      asc = 0;
-    }
-      
-    else if(cmd == 0x1a) {
-      printf("Mode Sense\r\n");
-      asc = 0x00;
-      acsi_ack(1, 0x00);
-    }
-
-    else {
-      printf("NAK unsupported command\r\n");
-      
-      // send nak
-      acsi_ack(0, 0);
-    }
-  }
+static const char *drivename(int drive) {
+  static const char *names[] = { "A", "B", "ACSI 0", "ACSI 1" };
+  return names[drive];  
 }
 
 int sdc_handle_event(void) {
@@ -424,7 +258,7 @@ int sdc_handle_event(void) {
     // and add sector offset within cluster    
     unsigned long dsector = clst2sect(fil[drive].clust) + rsector%fs.csize;
     
-    printf("%c: sector %lu -> %lu\r\n", 'A'+drive, rsector, dsector);
+    printf("%s: lba %lu = %lu\r\n", drivename(drive), rsector, dsector);
 
     // send sector number to core, so it can read or write the right
     // sector from/to its local sd card
@@ -435,8 +269,7 @@ int sdc_handle_event(void) {
     spi_tx_u08(spi, (dsector >> 8) & 0xff);
     spi_tx_u08(spi, dsector & 0xff);
     spi_end(spi);
-  } else
-    sdc_handle_acsi();
+  }
 
   return 0;
 }
@@ -446,11 +279,12 @@ static int sdc_image_inserted(char drive, unsigned long size) {
   // to guess sector/track/side information for floppy disk images, so the
   // core can translate from floppy disk to LBA
 
-  printf("%c: inserted. Size = %d\r\n", drive?'B':'A', size);
+  printf("%s: inserted. Size = %d\r\n", drivename(drive), size);
   
   sdc_spi_begin(spi);  
   spi_tx_u08(spi, SPI_SDC_INSERTED);
-  spi_tx_u08(spi, drive);   // 0 = Disk A:, 1 = Disk B:
+  // drive 0=Disk A:, 1=Disk B:, 2=ACSI 0:, 3=ACSI 1:
+  spi_tx_u08(spi, drive);
   spi_tx_u08(spi, (size >> 24) & 0xff);
   spi_tx_u08(spi, (size >> 16) & 0xff);
   spi_tx_u08(spi, (size >> 8) & 0xff);
@@ -461,6 +295,12 @@ static int sdc_image_inserted(char drive, unsigned long size) {
 }
 
 int sdc_image_open(int drive, char *name) {
+  // tell core that the "disk" has been removed
+  sdc_image_inserted(drive, 0);
+
+  // nothing to be inserted? Do nothing!
+  if(!name) return 0;
+  
   char fname[strlen(cwd) + strlen(name) + 2];
   strcpy(fname, cwd);
   strcat(fname, "/");
@@ -468,9 +308,6 @@ int sdc_image_open(int drive, char *name) {
 
   sdc_lock();
   
-  // tell core that the "disk" has been removed
-  if(drive < 2) sdc_image_inserted(drive, 0);
-
   // close any previous image, especially free the link table
   if(fil[drive].cltbl) {
     printf("freeing link table\r\n");
@@ -521,10 +358,11 @@ int sdc_image_open(int drive, char *name) {
     }
   }
 
-  // image has successfully been opened, so report image size to core
-  if(drive < 2) sdc_image_inserted(drive, fil[drive].obj.objsize);
-  
   sdc_unlock();
+
+  // image has successfully been opened, so report image size to core
+  sdc_image_inserted(drive, fil[drive].obj.objsize);
+  
   return 0;
 }
 
@@ -688,6 +526,7 @@ int sdc_init(spi_t *p_spi) {
     sdc_image_open(0, "disk_a.st");
     sdc_image_open(1, "disk_b.st");
     sdc_image_open(2, "harddisk.hd");
+    sdc_image_open(3, NULL);
 
     // process any pending interrupt
     sdc_handle_event();

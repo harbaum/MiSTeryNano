@@ -2,7 +2,7 @@
 #include "sdc.h"
 #include "sysctrl.h"
 
-#define SPI_POLL   // enable to poll and don't use interrupts
+// #define SPI_POLL   // enable to poll and don't use interrupts
 
 // spi
 #include "bflb_mtimer.h"
