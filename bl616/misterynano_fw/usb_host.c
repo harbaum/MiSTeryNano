@@ -9,7 +9,7 @@
 #include "bflb_gpio.h"
 #include "hidparser.h"
 
-#define CHERRY_NEW     // for cu >= 10.2
+// #define CHERRY_NEW     // for cu >= 10.2
 
 #include "menu.h"    // for event codes
 
@@ -446,9 +446,12 @@ static void usbh_hid_thread(void *argument) {
 #endif
 
 	// setup urb
-	usbh_int_urb_fill(&usb->hid_info[i].class->intin_urb,
-#ifdef CHERRY_NEW	
+	usbh_int_urb_fill(
+#ifdef CHERRY_NEW
+			  &usb->hid_info[i].class->intin_urb,
 			  usb->hid_info[i].class->hport,
+#else
+			  &usb->hid_info[i].intin_urb,
 #endif
 			  usb->hid_info[i].class->intin, usb->hid_info[i].buffer,
 			  usb->hid_info[i].report.report_size + (usb->hid_info[i].report.report_id_present ? 1:0),
