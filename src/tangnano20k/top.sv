@@ -88,7 +88,8 @@ wire [1:0] system_scanlines;
 wire [1:0] system_volume;
 wire system_wide_screen;
 wire [1:0] system_floppy_wprot;
-
+wire    system_cubase_en;
+   
 /* -------------- clock generation --------------- */
 
 wire pll_lock_hdmi;
@@ -329,6 +330,7 @@ sysctrl sysctrl (
         .system_volume(system_volume),
         .system_wide_screen(system_wide_screen),
         .system_floppy_wprot(system_floppy_wprot),
+        .system_cubase_en(system_cubase_en),
         
         .int_out_n(m0s[4]),
         .int_in( { 4'b0000, sdc_int, 3'b000 }),
@@ -394,10 +396,14 @@ atarist atarist (
     .midi_rx(midi_in),
     .midi_tx(midi_out),
 
+    // interface to receive image file size/presence
+    .sd_img_mounted ( sd_img_mounted ),
+    .sd_img_size    ( sd_img_size ),
+
     // ACSI disk/sd card interface
 	.acsi_rd_req(acsi_rd_req),
 	.acsi_wr_req(acsi_wr_req),
-	.acsi_lba(acsi_lba),
+	.acsi_sd_lba(acsi_lba),
  	.acsi_sd_done(acsi_sd_done),
  	.acsi_sd_busy(acsi_sd_busy),
 	.acsi_sd_rd_byte_strobe(acsi_sd_rd_byte_strobe),
@@ -406,8 +412,6 @@ atarist atarist (
 	.acsi_sd_byte_addr(acsi_sd_byte_addr),
 
     // floppy/acsi sd card interface
-    .sd_img_mounted ( sd_img_mounted ),
-    .sd_img_size    ( sd_img_size ),
 	.sd_lba         ( sd_lba ),
 	.sd_rd          ( sd_rd ),
 	.sd_wr          ( sd_wr ),
@@ -427,6 +431,7 @@ atarist atarist (
     .ste(system_chipset >= 2'd2),           // STE (2)
     .enable_extra_ram(system_memory),       // enable extra ram
     .floppy_protected(system_floppy_wprot), // floppy write protection
+    .cubase_en(system_cubase_en),           // enable cubase dongles
 
     // interface to sdram
     .ram_ras_n(ras_n),

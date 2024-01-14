@@ -93,7 +93,8 @@ reg [7:0] asc [2];
 //   Bit 2: condition met, always 0
 //   Bit 1: check bit (1 == error)
 //   Bit 0: reserved, always 0
-assign cpu_dout = { target, 3'b000, err, 1'b0 };
+// assign cpu_dout = { target, 3'b000, err, 1'b0 };
+assign cpu_dout = { 3'b000, 3'b000, err, 1'b0 };
 
 // ======================= handle SCSI replies ============================
 
@@ -117,6 +118,7 @@ assign reply_data = (cmd_code == 8'h03)?request_sense_reply_data:
 					(cmd_code == 8'h12)?inquiry_reply_data:
 					(cmd_code == 8'h1a)?mode_sense_reply_data:
 					(cmd_code == 8'h25)?read_capacity_reply_data:
+					(cmd_code == 8'ha0)?report_luns_reply_data:
 					16'h0000;
 
 // reply word counter   
@@ -128,11 +130,11 @@ assign reply_req = (reply_cnt != REPLY_IDLE);
 // command reply length in 16 words. read and write a handled
 // seperately
 wire [6:0] cmd_reply_len =
-		   (cmd_code == 8'h03)?cmd_parameter[4][7:1]:
-		   (cmd_code == 8'h12)?cmd_parameter[4][7:1]:
-		   (cmd_code == 8'h1a)?7'd6:
-		   (cmd_code == 8'h25)?7'd4:
-		   (cmd_code == 8'ha0)?7'd8:
+		   (cmd_code == 8'h03)?cmd_parameter[4][7:1]:  // request sense
+		   (cmd_code == 8'h12)?cmd_parameter[4][7:1]:  // inquiry
+		   (cmd_code == 8'h1a)?7'd8:                   // mode sense
+		   (cmd_code == 8'h25)?7'd4:                   // read capacity
+		   (cmd_code == 8'ha0)?7'd8:                   // report luns
 		   7'd0;   
 		   
 // ------------------------ Request Sense ----------------------------
@@ -143,6 +145,11 @@ wire [15:0] request_sense_reply_data =
 			((reply_cnt == 1) && (asc[current_target] != 0))?16'h0500:
 			(reply_cnt == 3)?16'd11:                        // 18-7
 			(reply_cnt == 6)?{ asc[current_target], 8'h00 }:
+			16'h0000;
+
+// ------------------------ Report LINs ----------------------------
+wire [15:0] report_luns_reply_data = 
+            (reply_cnt == 1)?16'h0008:   // LUN list length = 8 bytes
 			16'h0000;
 
 // ------------------------ Inquiry ----------------------------
@@ -172,6 +179,7 @@ wire [15:0] read_capacity_reply_data =
 			
 // ------------------------ Mode Sense(6) ----------------------------
 wire [15:0] mode_sense_reply_data = 
+			(reply_cnt == 0)?16'h000e:
 			(reply_cnt == 1)?16'h0008:   // size of extent descriptor list
 			(reply_cnt == 2)?{ 8'h00, current_block_size[23:16] }:
 			(reply_cnt == 3)?current_block_size[15:0]:
@@ -221,10 +229,10 @@ always @(posedge clk) begin
 		 // check if a read or write is to be continued		 
 		 // target can only be 0 or 1
 		 if(cmd_code[3:0] == 4'h8)
-		   data_rd_req[target] <= 1'b1;
+		   data_rd_req[current_target] <= 1'b1;
 		 
 		 if(cmd_code[3:0] == 4'ha)
-		   data_wr_req[target] <= 1'b1;		 
+		   data_wr_req[current_target] <= 1'b1;		 
 		 
 		 // request next sector
 		 data_lba <= data_lba + 32'd1;	 
@@ -246,19 +254,20 @@ always @(posedge clk) begin
 			// a0 == 0 -> first command byte
 			target <= cpu_din[7:5];
             err <= 1'b0;
-			
-			// icd command?
-			if(cpu_din[4:0] == 5'h1f)
-			  byte_counter <= 3'd0;   // next byte will contain first command byte
-			else begin
-			   cmd_parameter[0] <= { 3'd0, cpu_din[4:0] };
-			   byte_counter <= 3'd1;   // next byte will contain second command byte
-			end
-			
+					
 			// allow ACSI target 0 and 1 only
 			// check if this acsi device is enabled
-			if(cpu_din[7:5] < 2 && enable[cpu_din[7:5]] == 1'b1)
-			  irq <= 1'b1;
+			if(cpu_din[7:5] < 2 && enable[cpu_din[7:5]] == 1'b1) begin
+                irq <= 1'b1;
+
+                // icd command?
+                if(cpu_din[4:0] == 5'h1f)
+                    byte_counter <= 3'd0;   // next byte will contain first command byte
+                else begin
+                    cmd_parameter[0] <= { 3'd0, cpu_din[4:0] };
+                    byte_counter <= 3'd1;   // next byte will contain second command byte
+                end
+            end
 		 end else begin			
 			// further bytes
 			cmd_parameter[byte_counter] <= cpu_din;
@@ -290,10 +299,12 @@ always @(posedge clk) begin
                             8'h04,   // format
                             8'h0b,   // seek(6)
                             8'h12,   // inquiry(6)
+                            8'h15,   // mode select(6)
                             8'h1a,   // mode sense(6)
                             8'h1b,   // start/stop unit
                             8'h25,   // read capacity(10)
-                            8'h2b:   // seek(10)
+                            8'h2b,   // seek(10)
+                            8'ha0:   // report LUNs
                                 reply_cnt <= REPLY_START;
 
                             // request sense
@@ -309,7 +320,7 @@ always @(posedge clk) begin
                             // read(6) and read(10)
                             8'h08, 8'h28: begin
                                 // target can only be 0 or 1
-                                data_rd_req[target] <= 1'b1;
+                                data_rd_req[current_target] <= 1'b1;
                                 data_lba <= lba;
                             end
 					   					   
@@ -317,7 +328,7 @@ always @(posedge clk) begin
                             8'h0a, 8'h2a: begin
                                 // trigger DMA read from RAM into fifo to write to
                                 // device. target can only be 0 or 1
-                                data_wr_req[target] <= 1'b1;
+                                data_wr_req[current_target] <= 1'b1;
                                 data_lba <= lba;
                             end
 					   

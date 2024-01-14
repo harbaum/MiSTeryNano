@@ -16,6 +16,8 @@
         <File path="src/atarist/mfp_timer.v" type="file.verilog" enable="1"/>
         <File path="src/atarist/stBlitter.sv" type="file.verilog" enable="1"/>
         <File path="src/atarist/ste_joypad.v" type="file.verilog" enable="1"/>
+        <File path="src/atarist/cubase2_dongle.v" type="file.verilog" enable="1"/>
+        <File path="src/atarist/cubase3_dongle.v" type="file.verilog" enable="1"/>
         <File path="src/fdc1772/fdc1772.v" type="file.verilog" enable="1"/>
         <File path="src/fdc1772/floppy.v" type="file.verilog" enable="1"/>
         <File path="src/fx68k/fx68k.sv" type="file.verilog" enable="1"/>

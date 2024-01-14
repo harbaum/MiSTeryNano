@@ -34,7 +34,8 @@ module sysctrl (
   output reg [1:0]  system_scanlines,
   output reg [1:0]  system_volume,
   output reg	    system_wide_screen,
-  output reg [1:0]  system_floppy_wprot
+  output reg [1:0]  system_floppy_wprot,
+  output reg	    system_cubase_en
 );
 
 reg [3:0] state;
@@ -64,7 +65,8 @@ always @(posedge clk) begin
       system_scanlines <= 2'b00;
       system_volume <= 2'b00;   
       system_wide_screen <= 1'b0;   
-      system_floppy_wprot <= 2'b00;   
+      system_floppy_wprot <= 2'b00;
+      system_cubase_en <= 1'b0; 
    end else begin
       int_ack <= 8'h00;
 
@@ -123,6 +125,8 @@ always @(posedge clk) begin
                     if(id == "W") system_wide_screen <= data_in[0];
                     // Value "P": floppy write protecion None(0), A(1), B(2) both(3)
                     if(id == "P") system_floppy_wprot <= data_in[1:0];
+                    // Value "Q": enable (1) or disable (0) Cubase dongle(s)
+                    if(id == "Q") system_cubase_en <= data_in[0];
                 end
             end
 

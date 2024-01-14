@@ -4,12 +4,12 @@
 
 module atarist (
 	// System clocks / reset / settings
-	input wire 	   clk_32,
-	input wire 	   porb,
-	input wire 	   resb,
+	input wire 		   clk_32,
+	input wire 		   porb,
+	input wire 		   resb,
 
 	// Video output
-	input wire 	   mono_detect,   // low for monochrome
+	input wire 		   mono_detect, // low for monochrome
 	output wire [3:0]  r,
 	output wire [3:0]  g,
 	output wire [3:0]  b,
@@ -32,36 +32,38 @@ module atarist (
 	output [31:0] 	   sd_lba,
 	output [1:0] 	   sd_rd,
 	output [1:0] 	   sd_wr,
-	input 		       sd_ack,
+	input 			   sd_ack,
 	input [8:0] 	   sd_buff_addr,
 	input [7:0] 	   sd_dout,
 	output [7:0] 	   sd_din,
-	input 		       sd_dout_strobe,
+	input 			   sd_dout_strobe,
+
+	// generic sd card services
 	input [3:0] 	   sd_img_mounted,
 	input [31:0] 	   sd_img_size,
 
     // ACSI disk/sd card interface
 	output [1:0] 	   acsi_rd_req,
 	output [1:0] 	   acsi_wr_req,
-	output [31:0] 	   acsi_lba,
- 	input 		       acsi_sd_done,
- 	input 		       acsi_sd_busy,
-	input 		       acsi_sd_rd_byte_strobe,
+	output [31:0] 	   acsi_sd_lba,
+ 	input 			   acsi_sd_done,
+ 	input 			   acsi_sd_busy,
+	input 			   acsi_sd_rd_byte_strobe,
 	input [7:0] 	   acsi_sd_rd_byte,
 	output [7:0] 	   acsi_sd_wr_byte,
 	input [8:0] 	   acsi_sd_byte_addr,
 
 	// MIDI UART
-	input wire 	   midi_rx,
+	input wire 		   midi_rx,
 	output wire 	   midi_tx,
 
     // enable STE and extra 8MB ram
-    input wire     ste,
-    input wire     enable_extra_ram,
-    input wire     blitter_en,
-
-    input [1:0]    floppy_protected, // floppy A/B write protect
-
+    input wire 		   ste,
+    input wire 		   enable_extra_ram,
+    input wire 		   blitter_en,
+    input [1:0] 	   floppy_protected, // floppy A/B write protect
+	input 			   cubase_en,
+				
 	// DRAM interface
 	output wire 	   ram_ras_n,
 	output wire 	   ram_cash_n,
@@ -76,7 +78,7 @@ module atarist (
 	output wire 	   rom_n, 
 	output wire [23:1] rom_addr,
 	input wire [15:0]  rom_data_out,
-
+				
 	// export all LEDs
 	output wire [1:0]  leds
 );
@@ -88,10 +90,14 @@ reg         mcu_reset_n = 1'b1;
 reg   [6:0] reset_cnt = 7'h7f;
 reg         cpu_reset_n_d;
 wire        ext_reset = !resb;
+
+// rom cartridge related signals
+wire 	    cart_n;   
+wire [15:0] cart_data_out;
    
 always @(posedge clk_32) begin
 
-        cpu_reset_n_d <= cpu_reset_n_o;
+    cpu_reset_n_d <= cpu_reset_n_o;
 
 	reset <= reset_cnt != 0;
 
@@ -178,7 +184,8 @@ assign      cpu_din =
               (blitter_sel ? blitter_data_out : 16'hffff) &
               (rdat_n ? 16'hffff : shifter_dout) &
               {8'hff, (mfpcs_n & mfpiack_n) ? 8'hff : mfp_data_out} &
-              (rom_n ? 16'hffff : rom_data_out) &  // TODO: handle "internal rom" like e.g. the cubase carts
+			  (cart_n ? 16'hffff : cart_data_out ) &
+              (rom_n ? 16'hffff : rom_data_out) &
               {(n6850 & rw) ? (mbus_a[2] ? midi_acia_data_out : kbd_acia_data_out) : 8'hff, 8'hff} &
               {snd_data_oe_l ? 8'hff : snd_data_out, 8'hff} &
 // STE only       {12'hfff, button_n ? 4'hf : ste_buttons} &
@@ -273,7 +280,7 @@ gstmcu gstmcu (
 	.ROM0_N     ( ),           // unused E8xxxx-EBxxxx
 	.ROM1_N     ( ),           // unused E4xxxx-E7xxxx
 	.ROM2_N     ( rom_n ),     // TOS rom E0xxxx/FCxxxx
-	.ROM3_N     ( ),           // cartridge FBxxxx
+	.ROM3_N     ( cart_n ),    // cartridge FBxxxx
 	.ROM4_N     ( ),           // cartridge FAxxxx
 	.ROM5_N     ( ),           // unused D4xxxx-D7xxxx
 	.ROM6_N     ( ),           // unused D0xxxx-D3xxxx
@@ -809,7 +816,7 @@ dma dma (
 	.img_size     ( sd_img_size                 ), // size of image mounted
 	.acsi_rd_req  ( acsi_rd_req                 ),
 	.acsi_wr_req  ( acsi_wr_req                 ),
-	.acsi_lba     ( acsi_lba                    ),
+	.acsi_lba     ( acsi_sd_lba                 ),
  	.sd_done      ( acsi_sd_done                ),
  	.sd_busy      ( acsi_sd_busy                ),
 	.sd_rd_byte_strobe ( acsi_sd_rd_byte_strobe ),
@@ -879,6 +886,44 @@ fdc1772 fdc1772 (
 	.sd_dout        ( sd_dout             ), // data read by fdc
 	.sd_din         ( sd_din              ), // data written by fdc
 	.sd_dout_strobe ( sd_dout_strobe      )  // byte ready to be read by fdc
+);
+
+/* ------------------------------------------------------------------------------ */
+/* ------------------------------- Cubase dongle  ------------------------------- */
+/* ------------------------------------------------------------------------------ */
+assign cart_data_out = { cubase_en ? cubase_dout : 8'hff, 8'hff};  
+
+wire        cubase3_d8;
+wire  [7:0] cubase2_dout;
+wire  [7:0] cubase_dout = cubase_sel ? cubase2_dout : {7'h7f, cubase3_d8};
+reg         cubase_sel; // Cubase3/2 dongle
+reg         cubase_lock;
+
+always @(posedge clk_32) begin
+	if (peripheral_reset) begin
+		cubase_sel <= 0;
+		cubase_lock <= 0;
+	end
+	else if (cubase_en & !cart_n & !cubase_lock) begin
+		cubase_sel <= |mbus_a[7:1];
+		cubase_lock <= 1;
+	end
+end
+
+cubase2_dongle cubase2_dongle (
+	.clk        ( clk_32           ),
+	.reset      ( peripheral_reset ),
+	.uds_n      ( uds_n            ),
+	.A          ( mbus_a[8:1]      ),
+	.D          ( cubase2_dout     )
+);
+
+cubase3_dongle cubase3_dongle (
+	.clk        ( clk_32           ),
+	.reset      ( peripheral_reset ),
+	.rom3_n     ( cart_n           ),
+	.a8         ( mbus_a[8]        ),
+	.d8         ( cubase3_d8       )
 );
 
 endmodule
