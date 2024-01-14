@@ -26,6 +26,7 @@ menu_variable_t variables[] = {
   { 'A', { 1 }},    // default volume = 33%
   { 'W', { 0 }},    // default normal (4:3) screen
   { 'P', { 0 }},    // default no floppy write protected
+  { 'Q', { 0 }},    // default cubase dongle not enabled
   { '\0',{ 0 }}
 };
 
@@ -40,62 +41,150 @@ menu_variable_t variables[] = {
 static const char main_form[] =
   "MiSTeryNano,;"                       // main form has no parent
   // --------
-  "S,System,1;"                         // System submenu is form 1
   "F,Disk A:,0|.st;"                    // fileselector for Disk A:
-  "F,Disk B:,1|.st;"                    // fileselector for Disk B:
-  "F,ACSI #0:,2|.hd;"                   // fileselector for HDD:
+  "S,System,1;"                         // System submenu is form 1
+  "S,Drives,2;"                         // Storage submenu
+  "S,Settings,3;"                       // Settings submenu is form 3
   "B,Reset,R;";                         // system reset
 
 static const char system_form[] =
-  "System,0;"                           // parent form is 0
+  "System,0|2;"                         // return to form 0, entry 2
   // --------
   "L,Chipset:,ST|Mega ST|STE,C;"        // selection stored in variable "C"
   "L,Memory:,4MB|8MB,M;"                // ...
   "L,Video:,Color|Mono,V;"
+  "L,Cartridge:,None|Cubase 2&3,Q;"     // Cubase dongle support
+  "B,Cold Boot,B;";                     // system reset with memory reset
+
+static const char storage_form[] =
+  "Drives,0|3;"                         // return to form 0, entry 3
+  // --------
+  "F,Disk A:,0|.st;"                    // fileselector for Disk A:
+  "F,Disk B:,1|.st;"                    // fileselector for Disk B:
+  "F,ACSI #0:,2|.hd;"                   // fileselector for ACSI 0
+  "F,ACSI #1:,3|.hd;"                   // fileselector for ACSI 1
+  "L,Disk prot.:,None|A:|B:|Both,P;";   // Enable/Disable Floppy write protection
+
+static const char settings_form[] =
+  "Settings,0|4;"                       // return to form 0, entry 4
+  // --------
   "L,Screen:,Normal|Wide,W;"
   "L,Scanlines:,None|25%|50%|75%,S;"
   "L,Volume:,Mute|33%|66%|100%,A;"
-  "L,Floppy prot.:,None|A:|B:|Both,P;"
-  "B,Cold Boot,B;"                      // system reset with memory reset
   "B,Save settings,S;";
 
 static const char *forms[] = {
   main_form,
-  system_form
+  system_form,
+  storage_form,
+  settings_form
 };
 
-static void menu_goto_form(menu_t *menu, int form) {
+static void menu_goto_form(menu_t *menu, int form, int entry) {
   menu->form = form;
-  menu->entry = 1;
+  menu->entry = entry;
   menu->entries = -1;
   menu->offset = 0;
 }
 
 #define SETTINGS_FILE  "/sd/atarist.ini"
 
-static void menu_settings_load(menu_t *menu) {
+static int iswhite(char c) {
+  return c == ' ' || c == '\r' || c == '\n' || c == '\t';
+}
+
+static int menu_settings_load(menu_t *menu) {
   printf("Read settings\r\n");
 
   sdc_lock();  // get exclusive access to the file system
 
   FIL fil;
   if(f_open(&fil, SETTINGS_FILE, FA_OPEN_EXISTING | FA_READ) == FR_OK) {    
-    char buffer[8];
+    char buffer[FF_LFN_BUF+10];
 
     printf("Settings file opened\r\n");
+    
+    // read file line by line
     while(f_gets(buffer, sizeof(buffer), &fil) != NULL) {
-      int value = atoi(buffer+1);
-      printf("  %c:%d\r\n", buffer[0], value);
+      // ignore everything after semicolon
+      char *pos = strchr(buffer, ';');
+      if(pos) *pos = '\0';
 
-      for(int i=0;menu->vars[i].id;i++)
-	if(menu->vars[i].id == buffer[0])
-	  menu->vars[i].value = value;
+      // also skip all trailing white space
+      while(strlen(buffer) > 0 && iswhite(buffer[strlen(buffer)-1]))
+	buffer[strlen(buffer)-1] = 0;
+
+      // printf("Line = '%s'\n", buffer);
+	
+      // check for old style entries which were just two characters long
+      if(strlen(buffer) == 2) {
+	int value = atoi(buffer+1);
+	printf("  %c:%d\r\n", buffer[0], value);
+
+	for(int i=0;menu->vars[i].id;i++)
+	  if(menu->vars[i].id == buffer[0])
+	    menu->vars[i].value = value;
+      } else {
+	// check for drives
+	if(strncasecmp(buffer, "drive", 5) == 0) {
+	  char * p = buffer+5;  // skip 'drive'
+	  while(*p && iswhite(*p)) p++;
+	  if(*p) {
+	    int drive = *p-'0';
+	    // skip after '='
+	    while(*p && *p != '=') p++;
+	    p++;
+	    if(*p) {
+	      // skip to begin of filename
+	      while(*p && iswhite(*p)) p++;
+	      if(*p) {
+		// tell SDC layer what images to use as default
+		printf("drive %d = %s\r\n", drive, p);		
+		sdc_set_default(drive, p);
+	      }
+	    }
+	  }
+	}
+	  
+	// check for variables
+	if(strncasecmp(buffer, "var ", 4) == 0) {
+	  
+	  // --- parse 'var x=0` style lines ---
+	  // skip "var"
+	  char *p = buffer+4;
+	  // skip to first char
+	  while(*p && iswhite(*p)) p++;
+	  if(*p) {	  
+	    char id = *p++;
+	    // skip until '='
+	    while(*p && *p != '=') p++;
+	    p++;  // skip =
+	    if(*p) {
+	      // skip all whites
+	      while(*p && iswhite(*p)) p++;
+	      if(*p) {
+		int value = atoi(p);
+		printf("var %c = %d\r\n", id, value);
+		
+		for(int i=0;menu->vars[i].id;i++)
+		  if(menu->vars[i].id == id)
+		    menu->vars[i].value = value;
+	      }
+	    }
+	  }
+	}
+	
+      }
     }
     f_close(&fil);
-  } else
-    printf("Error opening file\r\n");
+  } else {
+    printf("Error opening file %s\r\n", SETTINGS_FILE);
+    sdc_unlock();
+    return -1;
+  }
   
   sdc_unlock();
+  return 0;
 }
 
 static void menu_settings_save(menu_t *menu) {
@@ -106,11 +195,32 @@ static void menu_settings_save(menu_t *menu) {
   // saving does not work, yet, as there is no SD card write support by now
   FIL file;
   if(f_open(&file, SETTINGS_FILE, FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {
-    char str[8];
+    f_puts("; MiSTeryNano settings\n", &file);
+
+    // write variable values
+    f_puts("\n; variables\n", &file);
     for(int i=0;menu->vars[i].id;i++) {
-      sprintf(str, "%c%d\n", menu->vars[i].id, menu->vars[i].value);
+      char str[10];
+      sprintf(str, "var %c=%d\n", menu->vars[i].id, menu->vars[i].value);
       f_puts(str, &file);
     }
+
+    // write image file names
+    f_puts("\n; image files\n", &file);
+
+    for(int drive=0;drive<MAX_DRIVES;drive++) {
+      char *cwd = sdc_get_cwd(drive);
+      char *image = sdc_get_image_name(drive);
+
+      if(cwd && image) {
+	char str[strlen(cwd) + strlen(image) + 12];
+	sprintf(str, "drive%d=%s/%s\n", drive, cwd, image);
+	f_puts(str, &file);
+      }      
+    }
+    
+    f_puts("\n", &file);
+    
     f_close(&file);  
   } else
     printf("Error opening file\r\n");
@@ -128,7 +238,7 @@ menu_t *menu_init(u8g2_t *u8g2)
 
   menu.forms = forms;
   menu.vars = variables;
-  menu_goto_form(&menu, 0); // first form selected at start
+  menu_goto_form(&menu, 0, 1); // first form selected at start
       
 #ifndef SDL
   menu.osd = osd_init(spi);
@@ -150,14 +260,41 @@ menu_t *menu_init(u8g2_t *u8g2)
     printf("SD ready after %dms\r\n", (200-timeout)*10);
     
     // try to restore variables from eeprom
-    menu_settings_load(&menu);  
+    if(menu_settings_load(&menu) != 0) {
+      // if no settings could be loaded, then set default
+      // image names
+
+      static const char *default_names[] = {
+	CARD_MOUNTPOINT "/disk_a.st",
+	CARD_MOUNTPOINT "/disk_b.st",
+	CARD_MOUNTPOINT "/acsi_0.hd",
+	CARD_MOUNTPOINT "/acsi_1.hd" };
+    
+      for(int drive=0;drive<MAX_DRIVES;drive++)
+	sdc_set_default(drive, default_names[drive]);
+    }
   } else
     printf("SD wasn't ready, not loading settings\r\n");
+  
+  // try to mount (default) images
+  for(int drive=0;drive<MAX_DRIVES;drive++) {
+    char *name = sdc_get_image_name(drive);
     
+    if(name) {
+      // create a local copy as sdc_image_open frees its own copy
+      char local_name[strlen(name)+1];
+      strcpy(local_name, name);
+      
+      printf("trying %s\n", local_name);
+      sdc_image_open(drive, local_name);
+    }
+  }
+   
   // send initial values for all variables
   for(int i=0;menu.vars[i].id;i++)
     sys_set_val(menu.osd->spi, menu.vars[i].id, menu.vars[i].value);
 
+  // release the core's reset, so it can start
   // and cold reset the core, just in case ...
   sys_set_val(menu.osd->spi, 'R', 3);
   sys_set_val(menu.osd->spi, 'R', 0);
@@ -261,6 +398,7 @@ static int menu_get_options(menu_t *menu, const char *s, int n) {
 const static unsigned char icn_right_bits[]  = { 0x00,0x04,0x0c,0x1c,0x3c,0x1c,0x0c,0x04 };
 const static unsigned char icn_left_bits[]   = { 0x00,0x20,0x30,0x38,0x3c,0x38,0x30,0x20 };
 const static unsigned char icn_floppy_bits[] = { 0xff,0x81,0x83,0x81,0xbd,0xad,0x6d,0x3f };
+const static unsigned char icn_empty_bits[] =  { 0xc3,0xe7,0x7e,0x3c,0x3c,0x7e,0xe7,0xc3 };
 
 // Draw menu title. Submenu titles are selectable and can be used to return to the
 // parent menu.
@@ -310,9 +448,14 @@ static void menu_draw_entry(menu_t *menu, int y, const char *s) {
     hl_w = width/2;
   }
   
-  // some entries have a small arrow to the right    
-  if(s[0] == 'S') u8g2_DrawXBM(MENU2U8G2(menu), hl_w-8, ypos-8, 8, 8, icn_right_bits);    
-  if(s[0] == 'F') u8g2_DrawXBM(MENU2U8G2(menu), hl_w-9, ypos-8, 8, 8, icn_floppy_bits);    
+  // some entries have a small icon to the right    
+  if(s[0] == 'S')
+    u8g2_DrawXBM(MENU2U8G2(menu), hl_w-8, ypos-8, 8, 8, icn_right_bits);    
+  if(s[0] == 'F') {
+    // icon depends if floppy is inserted
+    u8g2_DrawXBM(MENU2U8G2(menu), hl_w-9, ypos-8, 8, 8,
+	sdc_get_image_name(menu_get_subint(menu, s, 2, 0))?icn_floppy_bits:icn_empty_bits);
+  }
   
   if(y+menu->offset == menu->entry)
     u8g2_DrawButtonFrame(MENU2U8G2(menu), hl_x, ypos, U8G2_BTN_INV, hl_w, 1, 1);
@@ -347,11 +490,15 @@ static void menu_fs_scroll_entry(menu_t *menu, sdc_dir_entry_t *entry) {
 static void menu_fs_draw_entry(menu_t *menu, int row, sdc_dir_entry_t *entry) {      
   static const unsigned char folder_icon[] = { 0x70,0x8e,0xff,0x81,0x81,0x81,0x81,0x7e };
   static const unsigned char up_icon[] =     { 0x04,0x0e,0x1f,0x0e,0xfe,0xfe,0xfe,0x00 };
+  static const unsigned char empty_icon[] =  { 0xc3,0xe7,0x7e,0x3c,0x3c,0x7e,0xe7,0xc3 };
   
   char str[strlen(entry->name)+1];
   int y =  13 + 12 * (row+1);
+
+  // ignore leading / used by special entries
+  if(entry->name[0] == '/') strcpy(str, entry->name+1);
+  else                      strcpy(str, entry->name);
   
-  strcpy(str, entry->name);
   int width = u8g2_GetDisplayWidth(MENU2U8G2(menu));
   
   // properly ellipsize string
@@ -374,20 +521,31 @@ static void menu_fs_draw_entry(menu_t *menu, int row, sdc_dir_entry_t *entry) {
   
   // draw folder icon in front of directories
   if(entry->is_dir)
-    u8g2_DrawXBM(MENU2U8G2(menu), 1, y-8, 8, 8, strcmp(entry->name, "..")?folder_icon:up_icon);
+    u8g2_DrawXBM(MENU2U8G2(menu), 1, y-8, 8, 8,
+		 (entry->name[0] == '/')?empty_icon:
+		 strcmp(entry->name, "..")?folder_icon:
+		 up_icon);
 
   if(menu->entry == row+menu->offset+1)
     u8g2_DrawButtonFrame(MENU2U8G2(menu), 0, y, U8G2_BTN_INV, width, 1, 1);     
 }
 
-static void menu_fileselector(menu_t *menu, int state) {
+// file selector events
+#define FSEL_INIT   0
+#define FSEL_DRAW   1
+#define FSEL_DOWN   2
+#define FSEL_UP     3
+#define FSEL_SELECT 4
+
+// process file selector events
+static void menu_fileselector(menu_t *menu, int event) {
   static sdc_dir_t *dir = NULL;
   const static char *s;
   static int parent;
   static int drive;
   static char ext[5];   // extension to filter for
   
-  if(state == 0) {
+  if(event == FSEL_INIT) {
     // init
     s = menu->forms[menu->form];
     for(int i=0;i<menu->entry;i++) s = strchr(s, ';')+1;
@@ -395,13 +553,33 @@ static void menu_fileselector(menu_t *menu, int state) {
     strcpy(ext, menu_get_substr(menu, s, 2, 1));
     
     // scan files
-    dir = sdc_readdir(NULL, ext);
+    drive = menu_get_subint(menu, s, 2, 0);
+    
+    dir = sdc_readdir(drive, NULL, ext);
+
     menu->entry = 1;               // start by highlighting first file entry
     menu->entries = dir->len + 1;  // incl. title
     menu->offset = 0;
     parent = menu->form;
-    drive = menu_get_subint(menu, s, 2, 0);
-  } else if(state == 1) {
+    menu->form = MENU_FORM_FSEL;
+
+    // try to jump to current file. Get the current image name and path
+    char *name = sdc_get_image_name(drive);
+    if(name) {
+      // try to find name in file list
+      for(int i=0;i<dir->len;i++) {
+	if(strcmp(dir->files[i].name, name) == 0) {
+	  // file found, adjust entry and offset
+	  menu->entry = i+1;
+	  
+	  if(menu->entries > 5 && menu->entry > 3) {
+	    if(menu->entry < menu->entries-2) menu->offset = menu->entry - 3;
+	    else                              menu->offset = menu->entries-5;
+	  }
+	}
+      }
+    }
+  } else if(event == FSEL_DRAW) {
     // draw
     menu_draw_title(menu, menu_get_str(menu, s, MENU_ENTRY_INDEX_LABEL));
 
@@ -413,22 +591,55 @@ static void menu_fileselector(menu_t *menu, int state) {
     
     for(int i=0;i<((dir->len<4)?dir->len:4);i++)
       menu_fs_draw_entry(menu, i, &(dir->files[i+menu->offset]));
-  } else if(state == 4) {
+  } else if(event == FSEL_SELECT) {
 
-    if(!menu->entry) 
-      menu_goto_form(menu, parent);
+    if(!menu->entry)
+      menu_goto_form(menu, parent, 1);
     else {
       sdc_dir_entry_t *entry = &(dir->files[menu->entry - 1]);
 
       if(entry->is_dir) {
-	dir = sdc_readdir(entry->name, ext);
-	menu->entry = 1;               // start by highlighting first file entry
-	menu->entries = dir->len + 1;  // incl. title
-	menu->offset = 0;
+	if(entry->name[0] == '/') {
+	  // User selected the "No Disk" entry
+	  // Eject it and return to parent menu
+	  menu_goto_form(menu, parent, 1);
+	  sdc_image_open(drive, NULL);
+	} else {	
+	  // check if we are going up one dir and try to select the
+	  // directory we are coming from
+	  char *prev = NULL; 
+	  if(strcmp(entry->name, "..") == 0) {
+	    prev = strrchr(sdc_get_cwd(drive), '/');
+	    if(prev) prev++;
+	  }
+	  
+	  menu->entry = 1;               // start by highlighting '..'
+	  menu->offset = 0;
+	  dir = sdc_readdir(drive, entry->name, ext);	
+	  menu->entries = dir->len + 1;  // incl. title
+	  
+	  // prev is still valid, since sdc_readdir doesn't free the old string when going
+	  // up one directory. Instead it just terminates it in the middle	
+	  if(prev) {	
+	    // try to find previous dir entry in current dir	  
+	    for(int i=0;i<dir->len;i++) {
+	      if(dir->files[i].is_dir && strcmp(dir->files[i].name, prev) == 0) {
+		// file found, adjust entry and offset
+		menu->entry = i+1;
+		
+		if(menu->entries > 5 && menu->entry > 3) {
+		  if(menu->entry < menu->entries-2) menu->offset = menu->entry - 3;
+		  else                              menu->offset = menu->entries-5;
+		}
+	      }
+	    }
+	  }
+	}
       } else {
 	// request insertion of this image
-	sdc_image_open(drive, entry->name);	
-	menu_goto_form(menu, parent);
+	sdc_image_open(drive, entry->name);
+	// return to parent form
+	menu_goto_form(menu, parent, 1);
       }
     }
   }   
@@ -445,6 +656,13 @@ static void menu_draw_form(menu_t *menu, const char *s) {
 
       for(const char *p = s;*p && strchr(p, ';');p=strchr(p, ';')+1)
 	menu->entries++;
+
+      // this is a newly opened form and we just determined the number
+      // of menu entries. Therefore, adjust the scroll offset if needed
+      if(menu->entries > 5 && menu->entry > 3) {
+	if(menu->entry < menu->entries-2) menu->offset = menu->entry - 3;
+	else                              menu->offset = menu->entries-5;
+      }
     }
 
     // -------- draw title -----------
@@ -464,14 +682,14 @@ static void menu_draw_form(menu_t *menu, const char *s) {
       s = strchr(s, ';')+1;      // skip to next entry
     }
   } else if(menu->form == MENU_FORM_FSEL)
-    menu_fileselector(menu, 1);
+    menu_fileselector(menu, FSEL_DRAW);
   
   u8g2_SendBuffer(MENU2U8G2(menu));
 }
 
 static void menu_select(menu_t *menu) {
   if(menu->form == MENU_FORM_FSEL) {
-    menu_fileselector(menu, 4);
+    menu_fileselector(menu, FSEL_SELECT);
     return;
   }
     
@@ -483,22 +701,24 @@ static void menu_select(menu_t *menu) {
 
   // if the title was selected, then goto parent form
   if(!menu->entry) {
-    menu_goto_form(menu, menu_get_int(menu, s, 1));
+    printf("parent\n");
+    menu_goto_form(menu, menu_get_subint(menu, s, 1,0), menu_get_subint(menu, s, 1,1));
     return;
   }
   
   switch(*s) {
   case 'F':
-    menu_fileselector(menu, 0);   // init
-    menu->form = MENU_FORM_FSEL;
-    menu->entry = 1;
+    // user has choosen a file selector
+    menu_fileselector(menu, FSEL_INIT);
     break;
     
   case 'S':
-    menu_goto_form(menu, menu_get_int(menu, s, MENU_ENTRY_INDEX_FORM));
+    // user has choosen a submenu
+    menu_goto_form(menu, menu_get_int(menu, s, MENU_ENTRY_INDEX_FORM), 1);
     break;
 
   case 'L': {
+    // user has choosen a selection list
     int value = menu_variable_get(menu, s) + 1;
     int max_value = menu_get_options(menu, s, MENU_ENTRY_INDEX_OPTIONS)-1;
     if(value > max_value) value = 0;    
@@ -506,6 +726,7 @@ static void menu_select(menu_t *menu) {
   } break;
 
   case 'B': {
+    // user has choosen a button
     char id = menu_get_chr(menu, s, 2);
     
     if(id == 'S')
@@ -576,12 +797,14 @@ static void menu_entry_go(menu_t *menu, int step) {
     
     // give file selector a chance to adjust scroll
     if(menu->form == MENU_FORM_FSEL)
-      menu_fileselector(menu, (step>0)?2:3);
+      menu_fileselector(menu, (step>0)?FSEL_DOWN:FSEL_UP);
     
   } while(!menu_entry_is_usable(menu));
 }
 
 void menu_do(menu_t *menu, int event) {
+  // -1 is a timer event used to scroll the current file name if it's to long
+  // for the OSD
   if(event < 0) {
     if((menu->form == MENU_FORM_FSEL) && (menu->fs_scroll_entry))
       menu_fs_scroll_entry(menu, menu->fs_scroll_entry);

@@ -26,21 +26,34 @@ static FIL fil;
 // simple sd image read by fatfs
 static int sdc_status() { return 0; }
 static int sdc_initialize() { return 0; }
-static int sdc_write(const BYTE *buff, LBA_t sector, UINT count) { assert(0 != 0); return 0; }
 
-static int sdc_read(BYTE *buff, LBA_t sector, UINT count) {
-  static FILE *img = NULL;
+static FILE *img = NULL;
 
+static void check_img(void) {
   if(!img) {
-    img = fopen("sd.img", "rb");
+    img = fopen("sd.img", "r+b");
     if(!img) {
       perror("sd.img not loaded:");
       exit(-1);
     }
   }
-  
-  fseek(img, 512*sector, SEEK_SET);
+}
 
+static int sdc_write(const BYTE *buff, LBA_t sector, UINT count) {
+  check_img();
+  
+  printf("sdc_write(%d, %p, %d)\n", sector, buff, count);
+  fseek(img, 512*sector, SEEK_SET);
+  fwrite(buff, 512, count, img);
+  
+  return 0;
+}
+
+static int sdc_read(BYTE *buff, LBA_t sector, UINT count) {
+  check_img();
+  
+  printf("sdc_read(%d, %p, %d)\n", sector, buff, count);
+  fseek(img, 512*sector, SEEK_SET);
   fread(buff, 512, count, img);
   
   return 0;
@@ -52,7 +65,10 @@ void sdc_lock(void) {}
 void sdc_unlock(void) {}
 int sdc_is_ready(void) { return 1; }
 
-static int sdc_ioctl(BYTE cmd, void *buff) { assert(0 != 0); return 0; }
+static int sdc_ioctl(BYTE cmd, void *buff) {
+  printf("sdc_ioctl(%d, %p)\n", cmd, buff);
+  return 0;
+}
  
 static DSTATUS Translate_Result_Code(int result) { return result; }
 
@@ -79,28 +95,65 @@ static int fs_init() {
 
 #include "sdc.h"
 
-static char *cwd = NULL;
+static char *cwd[MAX_DRIVES] = { NULL, NULL, NULL, NULL };
+static char *image_name[MAX_DRIVES] = { NULL, NULL, NULL, NULL };
+
+char *sdc_get_image_name(int drive) {
+  return image_name[drive];
+}
+
+char *sdc_get_cwd(int drive) {
+  return cwd[drive];
+}
+
+void sdc_set_default(int drive, const char *name) {
+  // a valid filename will currently always begin with /sd
+  if(strncasecmp(name, CARD_MOUNTPOINT, strlen(CARD_MOUNTPOINT)) == 0) {
+    // name should consist of path and image name
+    char *p = strrchr(name+strlen(CARD_MOUNTPOINT), '/');
+    if(p && *p) {
+      if(cwd[drive]) free(cwd[drive]);
+      cwd[drive] = strndup(name, p-name);
+      if(image_name[drive]) free(image_name[drive]);
+      image_name[drive] = strdup(p+1);
+    }
+  }
+}
 
 int sdc_image_open(int drive, char *name) {
-  char fname[strlen(cwd) + strlen(name) + 2];
-  strcpy(fname, cwd);
+  // forget about any previous name
+  if(image_name[drive]) {
+    free(image_name[drive]);
+    image_name[drive] = NULL;
+  }
+
+  if(!name) return 0;
+  
+  char fname[strlen(cwd[drive]) + strlen(name) + 2];
+  strcpy(fname, cwd[drive]);
   strcat(fname, "/");
   strcat(fname, name);
 
+  printf("opening image %s\n", fname);
+  
   if(f_open(&fil, fname, FA_OPEN_EXISTING | FA_READ) != 0) {
     printf("file open failed\n");
     return -1;
   }
  
   printf("file opened, cl=%d\n", fil.obj.sclust);
+
+  // remember current image name
+  image_name[drive] = strdup(name);
+
   return 0;
 }
 
-sdc_dir_t *sdc_readdir(char *name, char *ext) {
+sdc_dir_t *sdc_readdir(int drive, char *name, char *ext) {
   static sdc_dir_t sdc_dir = { 0, NULL };
 
   // set default path
-  if(!cwd) cwd = strdup("/sd");
+  if(!cwd[drive]) cwd[drive] = strdup(CARD_MOUNTPOINT);
 
   int dir_compare(const void *p1, const void *p2) {
     sdc_dir_entry_t *d1 = (sdc_dir_entry_t *)p1;
@@ -130,14 +183,14 @@ sdc_dir_t *sdc_readdir(char *name, char *ext) {
   if(name) {
     if(strcmp(name, "..")) {
       // alloc a longer string to fit new cwd
-      char *n = malloc(strlen(cwd)+strlen(name)+2);  // both strings + '/' and '\0'
-      strcpy(n, cwd); strcat(n, "/"); strcat(n, name);
-      free(cwd);
-      cwd = n;
+      char *n = malloc(strlen(cwd[drive])+strlen(name)+2);  // both strings + '/' and '\0'
+      strcpy(n, cwd[drive]); strcat(n, "/"); strcat(n, name);
+      free(cwd[drive]);
+      cwd[drive] = n;
     } else {
       // no real need to free here, the unused parts will be free'd
-      // once the cwd length increaes
-      strrchr(cwd, '/')[0] = 0;
+      // once the cwd length increases. The menu relies on this!!!
+      strrchr(cwd[drive], '/')[0] = 0;
     }
   }
   
@@ -152,17 +205,22 @@ sdc_dir_t *sdc_readdir(char *name, char *ext) {
   }
 
   // add "<UP>" entry for anything but root
-  if(strcmp(cwd, "/sd") != 0) {
+  if(strcmp(cwd[drive], "/sd") != 0) {
     strcpy(fno.fname, "..");
     fno.fattrib = AM_DIR;
     append(&sdc_dir, &fno);
+  } else {
+    // the root also gets a special entry for "eject"
+    strcpy(fno.fname, "/No Disk");
+    fno.fattrib = AM_DIR;
+    append(&sdc_dir, &fno);    
   }
 
   printf("max name len = %d\n", FF_LFN_BUF);
 
-  int ret = f_opendir(&dir, cwd);
+  int ret = f_opendir(&dir, cwd[drive]);
 
-  printf("opendir(%s)=%d\n", cwd, ret);
+  printf("opendir(%d, %s)=%d\n", drive, cwd[drive], ret);
   
   do {
     f_readdir(&dir, &fno);

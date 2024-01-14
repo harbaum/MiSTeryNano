@@ -17,13 +17,8 @@ static SemaphoreHandle_t sdc_sem;
 
 static FATFS fs;
 
-// up to four image files can be open. E.g. two
-// floppy disks and two ACSI hard drives
-#define MAX_DRIVES  4
 static FIL fil[MAX_DRIVES];
 static DWORD *lktbl[MAX_DRIVES];
-
-#define CARD_MOUNTPOINT "/sd"
 
 static void sdc_spi_begin(spi_t *spi) {
   spi_begin(spi);  
@@ -211,8 +206,31 @@ static int fs_init() {
 
 // -------------- higher layer routines provided to the firmware ----------------
  
-// keep track of working directory
-static char *cwd = NULL;
+// keep track of working directory for each drive
+static char *cwd[MAX_DRIVES] = { NULL, NULL, NULL, NULL };
+static char *image_name[MAX_DRIVES] = { NULL, NULL, NULL, NULL };
+
+void sdc_set_default(int drive, const char *name) {
+  // a valid filename will currently always begin with /sd
+  if(strncasecmp(name, CARD_MOUNTPOINT, strlen(CARD_MOUNTPOINT)) == 0) {
+    // name should consist of path and image name
+    char *p = strrchr(name+strlen(CARD_MOUNTPOINT), '/');
+    if(p && *p) {
+      if(cwd[drive]) free(cwd[drive]);
+      cwd[drive] = strndup(name, p-name);
+      if(image_name[drive]) free(image_name[drive]);
+      image_name[drive] = strdup(p+1);
+    }
+  }
+}
+
+char *sdc_get_image_name(int drive) {
+  return image_name[drive];
+}
+
+char *sdc_get_cwd(int drive) {
+  return cwd[drive];
+}
 
 int sdc_is_ready(void) {
   return sdc_ready;
@@ -224,7 +242,7 @@ static const char *drivename(int drive) {
 }
 
 int sdc_handle_event(void) {
-  //  printf("Handling SDC event\r\n");
+  // printf("Handling SDC event\r\n");
 
   // read sd status
   sdc_spi_begin(spi);  
@@ -281,7 +299,7 @@ static int sdc_image_inserted(char drive, unsigned long size) {
 
   printf("%s: inserted. Size = %d\r\n", drivename(drive), size);
   
-  sdc_spi_begin(spi);  
+  sdc_spi_begin(spi);
   spi_tx_u08(spi, SPI_SDC_INSERTED);
   // drive 0=Disk A:, 1=Disk B:, 2=ACSI 0:, 3=ACSI 1:
   spi_tx_u08(spi, drive);
@@ -298,11 +316,18 @@ int sdc_image_open(int drive, char *name) {
   // tell core that the "disk" has been removed
   sdc_image_inserted(drive, 0);
 
+  // forget about any previous name
+  if(image_name[drive]) {
+    free(image_name[drive]);
+    image_name[drive] = NULL;
+  }
+  
   // nothing to be inserted? Do nothing!
   if(!name) return 0;
-  
-  char fname[strlen(cwd) + strlen(name) + 2];
-  strcpy(fname, cwd);
+
+  // assemble full name incl. path
+  char fname[strlen(cwd[drive]) + strlen(name) + 2];
+  strcpy(fname, cwd[drive]);
   strcat(fname, "/");
   strcat(fname, name);
 
@@ -353,20 +378,23 @@ int sdc_image_open(int drive, char *name) {
 
 	sdc_unlock();
 	return -1;
-      } else
+      } else 
 	printf("Link table ok\r\n");
     }
   }
 
   sdc_unlock();
 
+  // remember current image name
+  image_name[drive] = strdup(name);
+  
   // image has successfully been opened, so report image size to core
   sdc_image_inserted(drive, fil[drive].obj.objsize);
   
   return 0;
 }
 
-sdc_dir_t *sdc_readdir(char *name, char *ext) {
+sdc_dir_t *sdc_readdir(int drive, char *name, char *ext) {
   static sdc_dir_t sdc_dir = { 0, NULL };
 
   int dir_compare(const void *p1, const void *p2) {
@@ -394,18 +422,21 @@ sdc_dir_t *sdc_readdir(char *name, char *ext) {
   DIR dir;
   FILINFO fno;
 
+  // setup path if unset
+  if(!cwd[drive]) cwd[drive] = strdup(CARD_MOUNTPOINT);
+  
   // assemble name before we free it
   if(name) {
     if(strcmp(name, "..")) {
       // alloc a longer string to fit new cwd
-      char *n = malloc(strlen(cwd)+strlen(name)+2);  // both strings + '/' and '\0'
-      strcpy(n, cwd); strcat(n, "/"); strcat(n, name);
-      free(cwd);
-      cwd = n;
+      char *n = malloc(strlen(cwd[drive])+strlen(name)+2);  // both strings + '/' and '\0'
+      strcpy(n, cwd[drive]); strcat(n, "/"); strcat(n, name);
+      free(cwd[drive]);
+      cwd[drive] = n;
     } else {
       // no real need to free here, the unused parts will be free'd
-      // once the cwd length increaes
-      strrchr(cwd, '/')[0] = 0;
+      // once the cwd length increases. The menu relies on this!!!!!
+      strrchr(cwd[drive], '/')[0] = 0;
     }
   }
   
@@ -420,26 +451,31 @@ sdc_dir_t *sdc_readdir(char *name, char *ext) {
   }
 
   // add "<UP>" entry for anything but root
-  if(strcmp(cwd, CARD_MOUNTPOINT) != 0) {
+  if(strcmp(cwd[drive], CARD_MOUNTPOINT) != 0) {
     strcpy(fno.fname, "..");
     fno.fattrib = AM_DIR;
     append(&sdc_dir, &fno);
+  } else {
+    // the root also gets a special entry for "eject" or No Disk
+    // It's identified by the leading /, so the name can be changed
+    strcpy(fno.fname, "/No Disk");
+    fno.fattrib = AM_DIR;
+    append(&sdc_dir, &fno);    
   }
 
   printf("max name len = %d\r\n", FF_LFN_BUF);
 
   sdc_lock();
   
-  int ret = f_opendir(&dir, cwd);
-
-  printf("opendir(%s)=%d\r\n", cwd, ret);
+  int ret = f_opendir(&dir, cwd[drive]);
+  printf("opendir(%s)=%d\r\n", cwd[drive], ret);
   
   do {
     f_readdir(&dir, &fno);
     if(fno.fname[0] != 0 && !(fno.fattrib & (AM_HID|AM_SYS)) ) {
       // printf("%s %s, len=%d\r\n", (fno.fattrib & AM_DIR) ? "dir: ":"file:", fno.fname, fno.fsize);
 
-      // only accept directories or .ST files
+      // only accept directories or .ST/.HD files
       if((fno.fattrib & AM_DIR) ||
 	 (strlen(fno.fname) > 3 && strcasecmp(fno.fname+strlen(fno.fname)-3, ext) == 0))
 	append(&sdc_dir, &fno);
@@ -519,21 +555,15 @@ int sdc_init(spi_t *p_spi) {
     }
 #endif
     
-    // set default path
-    if(!cwd) cwd = strdup(CARD_MOUNTPOINT);
-
-    // try to open default images
-    sdc_image_open(0, "disk_a.st");
-    sdc_image_open(1, "disk_b.st");
-    sdc_image_open(2, "harddisk.hd");
-    sdc_image_open(3, NULL);
-
     // process any pending interrupt
-    sdc_handle_event();
+    if(sys_irq_ctrl(spi, 0xff) & 0x08)
+      sdc_handle_event();
 
     // signal that we are ready, so other threads may e.g. continue as
     // a config stored on sd card has now been read
     sdc_ready = 1;
+
+    printf("SD card is ready\r\n");
   }
     
   return 0;

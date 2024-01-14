@@ -20,11 +20,9 @@ uint8_t u8x8_d_mn_128x64(u8x8_t *u8g2, uint8_t msg, uint8_t arg_int, void *arg_p
   switch(msg)
   {
     case U8X8_MSG_DISPLAY_SETUP_MEMORY:
-      printf("U8X8_MSG_DISPLAY_SETUP_MEMORY\r\n");
       u8x8_d_helper_display_setup_memory(u8g2, &u8x8_mn_128x64_info);
       break;
     case U8X8_MSG_DISPLAY_INIT:
-      printf("U8X8_MSG_DISPLAY_INIT\r\n");
       u8x8_d_helper_display_init(u8g2);
       break;
     case U8X8_MSG_DISPLAY_SET_POWER_SAVE:
@@ -46,7 +44,6 @@ uint8_t u8x8_d_mn_128x64(u8x8_t *u8g2, uint8_t msg, uint8_t arg_int, void *arg_p
 	spi_t *spi = (spi_t *)u8g2_GetUserPtr(u8g2);     
         c = ((u8x8_tile_t *)arg_ptr)->cnt;
         ptr = ((u8x8_tile_t *)arg_ptr)->tile_ptr;
-	// printf("DRAW TILE %d: %d %d %d\r\n", arg_int, x, y, c); 
 
 	spi_begin(spi);
       

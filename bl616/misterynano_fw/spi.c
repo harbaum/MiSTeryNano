@@ -133,6 +133,8 @@ spi_t *spi_init(void) {
   bflb_gpio_irq_attach(SPI_PIN_IRQ, spi_isr);
   bflb_irq_enable(gpio->irq_num);
 
+  printf("IRQ enabled\r\n");
+  
   return &spi;
 }
 
