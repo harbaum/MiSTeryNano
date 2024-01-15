@@ -25,7 +25,13 @@ The MiSTeryNano is a work in progress. Current features are:
     * Joystick via USB or dedicated IO pins of Tang Nano 20k
   * Floppy disk images
     * Read and write support for drive A: and drive B:
-    * Images stored on regular FAT/exFAT formatted SD card
+    * Images stored in .ST format on regular FAT/exFAT formatted SD card
+  * ACSI harddisks
+    * Read and write support for ACSI 0 and 1
+    * Tested with AHDI, PP's driver and HDDriver 12.03
+    * Images stored in .HD format
+  * MIDI
+    * Physical MIDI-IN and OUT
 
 ## Videos
 
@@ -69,12 +75,11 @@ key will open the on screen display.
 
 ### Wiring
 
-Since version 1.2.2 MiSTeryNano the [M0S/BL616
-MCU](https://github.com/harbaum/MiSTeryNano/tree/main/bl616)
-has an additional IRQ connection to the FPGA for faster
-response times.
+Since version 1.2.3 the MiSTeryNano exposes physical
+MIDI IN and OUT to be used with appropriate interfacing
+(output driver + resistors, input via optocoupler).
 
 A digital DB9 joystick can be attached directly to the board.
 
-![MiSTeryNano wiring](images/wiring_spi_irq.png)
+![MiSTeryNano wiring](images/wiring_spi_midi.png)
 
