@@ -49,8 +49,13 @@ module acsi (
 	output 			  reply_req,
 	input 			  reply_ack,
 			 
-	output reg 		  irq
+	output reg 		  irq,
+
+    output [1:0]      leds
 );
+
+reg [15:0] led_counter [2];
+assign leds = { |led_counter[1], |led_counter[0] };
 
 reg cpu_selD;
 always @(posedge clk) if (clk_en) cpu_selD <= cpu_sel;
@@ -206,7 +211,13 @@ always @(posedge clk) begin
       data_rd_req <= 2'b00;
       data_wr_req <= 2'b00;
 	  reply_cnt <= REPLY_IDLE;	  
+      led_counter[0] <= 16'd0;
+      led_counter[1] <= 16'd0;
    end else begin
+
+      if(led_counter[0]) led_counter[0] <= led_counter[0] - 16'd1;
+      if(led_counter[1]) led_counter[1] <= led_counter[1] - 16'd1;
+
 	  if(reply_cnt != REPLY_IDLE) begin
 		 if(reply_ack) begin
 			if(reply_cnt < cmd_reply_len) begin
@@ -322,6 +333,7 @@ always @(posedge clk) begin
                                 // target can only be 0 or 1
                                 data_rd_req[current_target] <= 1'b1;
                                 data_lba <= lba;
+                                led_counter[current_target] <= 16'hffff;
                             end
 					   					   
                             // write(6) and write(10)
@@ -330,6 +342,7 @@ always @(posedge clk) begin
                                 // device. target can only be 0 or 1
                                 data_wr_req[current_target] <= 1'b1;
                                 data_lba <= lba;
+                                led_counter[current_target] <= 16'hffff;
                             end
 					   
                             // commands to be rejected incl.

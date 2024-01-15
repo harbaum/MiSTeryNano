@@ -443,7 +443,7 @@ atarist atarist (
     .ram_data_in(mdout),
     .ram_data_out(mdin),
 
-    .leds(leds[1:0])
+    .leds(leds[3:0])     // HDD 1:0 / FDC 1:0
   );
 
 video video (
@@ -479,8 +479,7 @@ video video (
    
 // -------------------------- SD card -------------------------------
 
-// assign leds[5:2] = { system_leds, sd_rd };
-assign leds[5:2] = { spi_ext, 1'b0, sd_rd };
+assign leds[5:4] = system_leds[1:0];
 
 // Give MCU some time to open a default disk image before booting the core
 // image_size != 0 means card is initialized. Wait up to 2 seconds for this before

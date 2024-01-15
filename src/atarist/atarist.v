@@ -80,7 +80,7 @@ module atarist (
 	input wire [15:0]  rom_data_out,
 				
 	// export all LEDs
-	output wire [1:0]  leds
+	output wire [3:0]  leds
 );
 
 // registered reset signals
@@ -788,7 +788,7 @@ end
 /* ------------------------------------- DMA ------------------------------------ */
 /* ------------------------------------------------------------------------------ */
 
-assign     leds = floppy_sel ^ 2'b11;   
+assign     leds[1:0] = floppy_sel ^ 2'b11;   
 wire       fdc_drq;
 wire [1:0] fdc_addr;
 wire       fdc_sel;
@@ -838,7 +838,9 @@ dma dma (
 	// ram interface
 	.rdy_i        ( rdy_i        ),
 	.rdy_o        ( rdy_o        ),
-	.ram_din      ( shifter_dout )
+	.ram_din      ( shifter_dout ),
+
+    .hdd_leds     ( leds[3:2] )
 );
 
 // Some broken software selects both drives at the same time. On real hardware this

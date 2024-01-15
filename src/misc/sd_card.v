@@ -219,7 +219,7 @@ always @(posedge clk) begin
                // can wait for 0 to be read when waiting for
                // sector data to become available
                if(byte_cnt <= 4'd3) data_out <= 8'hff;
-               else	            data_out <= { 7'd0, rstart_int ||  wstart_int };
+               else	                data_out <= { 7'd0, rstart_int ||  wstart_int };
 			   
                if(byte_cnt == 4'd0) lsector[31:24] <= data_in;
                if(byte_cnt == 4'd1) lsector[23:16] <= data_in;
@@ -232,20 +232,23 @@ always @(posedge clk) begin
 				  if(wstart_any) wstart_int <= 1'b1;
                end
 			   
-			   // If sector has been requested from sd card, rstart_int
-			   // has thus been set and all data has arrived, so
-               // rstart_int is reset again, then start mcu transfer
-			   if(byte_cnt >= 4'd4) begin
-                  if(!rstart_int) begin
-                     state <= MCU_READ_TX;
-                     mcu_tx_cnt <= 9'd0;
-                  end
+               // MCU has requested a sector. Start returning data once it arrives
+               if(command == 8'd3) begin
+                    // If sector has been requested from sd card, rstart_int
+                    // has thus been set and all data has arrived, so
+                    // rstart_int is reset again, then start mcu transfer
+                    if(byte_cnt >= 4'd4) begin
+                        if(!rstart_int) begin
+                            state <= MCU_READ_TX;
+                            mcu_tx_cnt <= 9'd0;
+                        end
 				  
-                  if(state == MCU_READ_TX) begin
-                     data_out <= doutb;					 
-                     mcu_tx_cnt <= mcu_tx_cnt + 9'd1;
-                  end
-               end	       
+                        if(state == MCU_READ_TX) begin
+                            data_out <= doutb;					 
+                            mcu_tx_cnt <= mcu_tx_cnt + 9'd1;
+                        end
+                    end
+                end	       
 			end
 			
 			// SDC CMD 4: INSERTED

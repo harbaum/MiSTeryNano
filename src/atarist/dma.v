@@ -87,7 +87,9 @@ module dma (
 	// ram interface for dma engine
 	input 			  rdy_i,
 	output 			  rdy_o,
-	input [15:0] 	  ram_din
+	input [15:0] 	  ram_din,
+
+    output [1:0]      hdd_leds
 );
 
 // some games access right after writing the sector count
@@ -383,7 +385,9 @@ acsi acsi(
 	 .cpu_a1      ( dma_mode[1]           ),
 	 .cpu_rw      ( cpu_rw                ),
 	 .cpu_din     ( cpu_din[7:0]          ),
-	 .cpu_dout    ( acsi_dout             )
+	 .cpu_dout    ( acsi_dout             ),
+
+     .leds        ( hdd_leds              )
 );
 
 wire [15:0] ram_dout;

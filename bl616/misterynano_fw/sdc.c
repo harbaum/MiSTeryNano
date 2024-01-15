@@ -271,7 +271,6 @@ int sdc_handle_event(void) {
     // translate sector into a cluster number inside image
     sdc_lock();
     f_lseek(&fil[drive], (rsector+1)*512);
-    sdc_unlock();
 
     // and add sector offset within cluster    
     unsigned long dsector = clst2sect(fil[drive].clust) + rsector%fs.csize;
@@ -286,7 +285,15 @@ int sdc_handle_event(void) {
     spi_tx_u08(spi, (dsector >> 16) & 0xff);
     spi_tx_u08(spi, (dsector >> 8) & 0xff);
     spi_tx_u08(spi, dsector & 0xff);
+
+    // wait while core is busy to make sure we don't start
+    // requesting data for ourselves while the core is still
+    // doing its own io
+    while(spi_tx_u08(spi, 0) & 1);
+    
     spi_end(spi);
+
+    sdc_unlock();
   }
 
   return 0;
