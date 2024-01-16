@@ -62,7 +62,7 @@ I will only explain the programming not the compiling so:
 
  
 
-“device.png”
+![](https://github.com/dna2496/MiSTeryNano/blob/main/images/device.png)
 
  
 
@@ -88,11 +88,9 @@ I will only explain the programming not the compiling so:
 
  
 
-“flash_atarist_fs.png”
+![](https://github.com/dna2496/MiSTeryNano/blob/main/images/flash_tos_104.png)
 
-“flash_tos_104.png”
-
-“flash_tos_206.png”
+![](https://github.com/dna2496/MiSTeryNano/blob/main/images/flash_tos_206.png)
 
  
 
@@ -108,7 +106,7 @@ I will only explain the programming not the compiling so:
 
  
 
-“flash_success.png”
+![](https://github.com/dna2496/MiSTeryNano/blob/main/images/flash_success.png)
 
  
 
@@ -145,7 +143,7 @@ I use an external BL616 (makes live a lot easier)
 
  
 
-“buffstart.png”
+![](https://github.com/dna2496/MiSTeryNano/blob/main/images/buffstart.png)
 
  
 
@@ -161,7 +159,7 @@ I use an external BL616 (makes live a lot easier)
 
  
 
-“bufffinish.png”
+![](https://github.com/dna2496/MiSTeryNano/blob/main/images/bufffinish.png)
 
  
 
