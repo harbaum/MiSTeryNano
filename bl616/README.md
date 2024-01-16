@@ -1,13 +1,15 @@
 # BL616
 
-The Tang Nano 20k contains a [BL616 MCU](https://en.bouffalolab.com/product/?type=detail&id=25) which is equipped with a firmware that emulates a [FT2232D](https://ftdichip.com/products/ft2232d/) to act as a USB debug and flash interface to the FPGA and its SPI flash.
+The [Bouffalow Lab BL616](https://en.bouffalolab.com/product/?type=detail&id=25) is a Risc V microcontroller. It's comparable with the ESP32 and comes with integrated WiFi, Bluetooth, USB device, USB host and various other peripherals. In combination with a FPGA the BL616 can perform sopport tasks like handling SD card and their file systems or dealing with USB peripherals.
 
-Additionally, seperate [BL616 based board like the M0S Dock](https://wiki.sipeed.com/hardware/en/maixzero/m0s/m0s.html) are available which can be connected to the Tang Nano 20k.
+The Tang Nano 20k contains a [on-board BL616 MCU](https://en.bouffalolab.com/product/?type=detail&id=25) which is equipped with a firmware that emulates a [FT2232D](https://ftdichip.com/products/ft2232d/) to act as a USB debug and flash interface to the FPGA and its SPI flash.
+
+Separate BL616 based boards like the [M0S Dock](https://wiki.sipeed.com/hardware/en/maixzero/m0s/m0s.html) are available which can be connected to the Tang Nano 20k. This can be helpful to avoid messing with the on-board BL616 of the Tang Nano 20K.
 
 This directory contains:
 
-  * [misterynano_fw](misterynano_fw) is the current firmware for use with MiSTeryNano. It's currently meant to be used with a seperate [M0S Dock/BL616](https://wiki.sipeed.com/hardware/en/maixzero/m0s/m0s.html)  board and is currently not meant to be used with the internal BL616 of the Tang Nano 20k (read below for more details).
-  * [usb_hid](usb_hid) is an early version of a BL616 firmware that acts as a USB host for USB keyboards and mice and translates their input to the PS2 protocol. It can be used to interface USB keyboards and mice to FPGAs boards that expect PS2 keyboards and mice. Early versions of MiSTeryNano used it. This has been replaced by [misterynano_fw](misterynano_fw).
+  * [misterynano_fw](misterynano_fw) is the current firmware for use with MiSTeryNano. It's currently meant to be used with a seperate [M0S Dock/BL616](https://wiki.sipeed.com/hardware/en/maixzero/m0s/m0s.html) board and is not yet meant to be used with the internal BL616 of the Tang Nano 20k (read below for more details).
+  * [usb_hid](usb_hid) is an early version of a BL616 firmware that acts as a USB host for USB keyboards and mice and translates their input data to the older PS2 protocol. It can be used to interface USB keyboards and mice to FPGA boards that expect PS2 keyboards and mice. Early versions of MiSTeryNano used it. This has been replaced by [misterynano_fw](misterynano_fw) and is still here for reference only.
   * [friend_20k](friend_20k) is the original firmware shipped with the BL616 in the Tang Nano 20k. It can be used to restore the BL616 to the factory state if e.g. [misterynano_fw](misterynano_fw) or [usb_hid](usb_hid) have been flashed onto the Tang Nano 20K's internal BL616 MCU. You'll need the [friend_20k_bl616.bin](https://raw.githubusercontent.com/harbaum/MiSTeryNano/main/bl616/friend_20k/friend_20k_bl616.bin) and its [config file](https://raw.githubusercontent.com/harbaum/MiSTeryNano/main/bl616/friend_20k/friend_20k_cfg.ini).
 
 ## BL616 on the Tang Nano 20K
@@ -79,16 +81,13 @@ usb 2-1.7.3.3: Manufacturer: Bouffalo
 cdc_acm 2-1.7.3.3:1.0: ttyACM3: USB ACM device
 ```
 
-Once it shows up that way it can be flashed. If you have built the firmware yourself and have
-the SDK installed you can simply enter the following command:
+Once it shows up that way it can be flashed. If you have built the firmware yourself and have the SDK installed you can simply enter the following command:
 
 ```
 BL_SDK_BASE=<where you downloaded the sdk>/bouffalo_sdk/ make CHIP=bl616 COMX=/dev/ttyACM3 flash
 ```
 
-If you have downloaded the firmware from the [release page](https://github.com/harbaum/MiSTeryNano/releases)
-you can use the graphical [BLFlashCube too](https://github.com/bouffalolab/bouffalo_sdk/tree/master/tools/bflb_tools/bouffalo_flash_cube)
-tool usinfg the ```misterynano_fw_bl616_cfg.ini``` file.
+If you have downloaded the firmware from the [release page](https://github.com/harbaum/MiSTeryNano/releases) you can use the graphical [BLFlashCube too](https://github.com/bouffalolab/bouffalo_sdk/tree/master/tools/bflb_tools/bouffalo_flash_cube) tool usinfg the ```misterynano_fw_bl616_cfg.ini``` file.
 
 After successful download you need to unplug the device again and reinsert it *without* the BOOT button pressed to boot into the newly installed firmware.
 
@@ -131,12 +130,7 @@ the Rii X1 and the Rapoo E2710.
 ### USB HID with the internal BL616 MCU of the Tang Nano 20k
 
 While it's recommanded to use an external M0S Dock it's also possible to repurpose
-the internal BL616 MCU to handle mouse and keyboard.
-
-The MiSTeryNano needs to be configured to accept keyboard and mouse
-data on pins connected to the internal BL616 instead of external
-signals coming from the M0S Dock. This is done by closing the
-```PS2_INT``` configuration option.
+the internal BL616 MCU to handle mouse and keyboard. This possibility is a work in progress and not every release of the firmware may be ready to be used on the internal BL616 MCU. 
 
 Before compiling the new firmware as described above, the
 ```M0S_DOCK``` define has to be commented in
@@ -145,5 +139,4 @@ to make sure that the generated code works for the internal BL616 MCU.
 
 Finally the BL616 MCU is re-flashed with the USB HID firmware. This way you'll
 loose the ability to flash the FPGA! Before being able to re-flash the FPGA
-you need to re-install the original firmware which is not publicly available at
-the moment!
+you need to re-install the original firmware. The original firmware is available [here](friend_20k).
