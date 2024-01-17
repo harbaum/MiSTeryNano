@@ -65,8 +65,9 @@ In order to use the MiSTeryNano the following things are needed:
 
 ## Installation
 
-The installation of MiSTeryNano on the Tang Nano 20k using a Linux PC is described
-[here](INSTALLATION_LINUX.md). Instructions for Windows will follow later.
+The installation of MiSTeryNano on the Tang Nano 20k using can be done
+using a [Linux PC](INSTALLATION_LINUX.md) or a
+[Windows PC](INSTALLATION_WINDOWS.md).
 
 #### Changing the floppy disk image
 
