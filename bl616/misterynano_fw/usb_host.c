@@ -9,6 +9,8 @@
 #include "bflb_gpio.h"
 #include "hidparser.h"
 
+#include "sysctrl.h"   // for core_id
+
 // #define CHERRY_NEW     // for cu >= 10.2
 
 #include "menu.h"    // for event codes
@@ -56,7 +58,21 @@ static struct usb_config {
   
 USB_NOCACHE_RAM_SECTION USB_MEM_ALIGNX uint8_t hid_buffer[CONFIG_USBHOST_MAX_HID_CLASS][MAX_REPORT_SIZE];
 
+// include the keyboard mappings
 #include "atari_st.h"
+#include "cbm.h"
+
+const unsigned char *keymap[] = {
+  NULL,             // id 0: unknown core
+  keymap_atarist,   // id 1: atari st
+  keymap_cbm        // id 2: c64
+};
+
+const unsigned char *modifier[] = {
+  NULL,             // id 0: unknown core
+  modifier_atarist, // id 1: atari st
+  modifier_cbm      // id 2: c64
+};
 
 void kbd_tx(struct hid_info_S *hid, unsigned char byte) {
   spi_t *spi = hid->usb->spi;
@@ -77,13 +93,13 @@ void kbd_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
   // check if modifier have changed
   if((buffer[0] != hid->keyboard.last_report[0]) && !osd_is_visible(usb_config.osd)) {
     for(int i=0;i<8;i++) {
-      if(modifier_atarist[i]) {      
+      if(modifier[core_id][i]) {      
 	// modifier released?
 	if((hid->keyboard.last_report[0] & (1<<i)) && !(buffer[0] & (1<<i)))
-	  kbd_tx(hid, 0x80 | modifier_atarist[i]);
+	  kbd_tx(hid, 0x80 | modifier[core_id][i]);
 	// modifier pressed?
 	if(!(hid->keyboard.last_report[0] & (1<<i)) && (buffer[0] & (1<<i)))
-	  kbd_tx(hid, modifier_atarist[i]);
+	  kbd_tx(hid, modifier[core_id][i]);
       }
     }
   }
@@ -93,7 +109,7 @@ void kbd_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
     if(buffer[2+i] != hid->keyboard.last_report[2+i]) {
       // key released?
       if(hid->keyboard.last_report[2+i] && !osd_is_visible(usb_config.osd))
-	kbd_tx(hid, 0x80 | keymap_atarist[hid->keyboard.last_report[2+i]]);
+	kbd_tx(hid, 0x80 | keymap[core_id][hid->keyboard.last_report[2+i]]);
       
       // key pressed?
       if(buffer[2+i])  {
@@ -111,7 +127,7 @@ void kbd_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
 	  msg = osd_is_visible(usb_config.osd)?MENU_EVENT_HIDE:MENU_EVENT_SHOW;
 	else {
 	  if(!osd_is_visible(usb_config.osd))
-	    kbd_tx(hid, keymap_atarist[buffer[2+i]]);
+	    kbd_tx(hid, keymap[core_id][buffer[2+i]]);
 	  else {
 	    // check if cursor up/down or space has been pressed
 	    if(buffer[2+i] == 0x51) msg = MENU_EVENT_DOWN;      
@@ -493,4 +509,18 @@ void usb_host(spi_t *spi) {
   }
 
   xTaskCreate(usbh_hid_thread, (char *)"usb_task", 2048, &usb_config, configMAX_PRIORITIES-3, &usb_handle);
+}
+
+// hid event triggered by FPGA
+void hid_handle_event(void) {
+  spi_t *spi = usb_config.spi;
+  
+  spi_begin(spi);
+  spi_tx_u08(spi, SPI_TARGET_HID);
+  spi_tx_u08(spi, SPI_HID_GET_DB9);
+  spi_tx_u08(spi, 0x00);
+  uint8_t db9 = spi_tx_u08(spi, 0x00);
+  spi_end(spi);
+
+  printf("DB9: %02x\r\n", db9);
 }

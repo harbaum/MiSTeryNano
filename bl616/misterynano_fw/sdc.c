@@ -304,7 +304,8 @@ static int sdc_image_inserted(char drive, unsigned long size) {
   // to guess sector/track/side information for floppy disk images, so the
   // core can translate from floppy disk to LBA
 
-  printf("%s: inserted. Size = %d\r\n", drivename(drive), size);
+  if(size) printf("%s: inserted. Size = %d\r\n", drivename(drive), size);
+  else     printf("%s: ejected\r\n", drivename(drive));
   
   sdc_spi_begin(spi);
   spi_tx_u08(spi, SPI_SDC_INSERTED);
@@ -563,9 +564,12 @@ int sdc_init(spi_t *p_spi) {
 #endif
     
     // process any pending interrupt
-    if(sys_irq_ctrl(spi, 0xff) & 0x08)
-      sdc_handle_event();
-
+    sys_handle_interrupts(sys_irq_ctrl(spi, 0xff));
+    // by default, DB9 interrupts are disabled. Reading
+    // the DB9 state enables them. This is what hid_handle_event
+    // does.
+    hid_handle_event();
+    
     // signal that we are ready, so other threads may e.g. continue as
     // a config stored on sd card has now been read
     sdc_ready = 1;

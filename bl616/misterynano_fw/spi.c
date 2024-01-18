@@ -40,6 +40,9 @@ extern struct bflb_device_s *gpio;
 static TaskHandle_t spi_task_handle;
 void spi_isr(uint8_t pin) {
   if (pin == SPI_PIN_IRQ) {
+    // disable further interrupts until thread has processed the current message
+    bflb_irq_disable(gpio->irq_num);
+    
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     vTaskNotifyGiveFromISR( spi_task_handle, &xHigherPriorityTaskWoken );
     portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
@@ -58,19 +61,20 @@ static void spi_task(void *parms) {
   
   while(1) {
 #ifdef SPI_POLL
-    ulTaskNotifyTake( pdTRUE, pdMS_TO_TICKS(100));
-    sys_irq_ctrl(spi, 0xff);
-    sdc_handle_event();
+    // polling simply means that we run a timout and
+    // request the interrupt state manually every 100ms
+    ulTaskNotifyTake( pdTRUE, pdMS_TO_TICKS(10000));
 #else
     ulTaskNotifyTake( pdTRUE, portMAX_DELAY );
+#endif
 
     // get pending interrupts and ack them all
-    int pending = sys_irq_ctrl(spi, 0xff);
-    if(pending & 0x08) {  // irq 3 = SDC
-      // pending interrupt for sdc target
-      sdc_handle_event();
-    }
+    unsigned char pending = sys_irq_ctrl(spi, 0xff);
+#ifdef SPI_POLL
+    printf("IRQ = %02x\r\n", pending);
 #endif
+    if(pending) sys_handle_interrupts(pending);
+    bflb_irq_enable(gpio->irq_num);   // resume interrupt processing
   }
 }
 
@@ -129,7 +133,7 @@ spi_t *spi_init(void) {
   /* interrupt input */
   bflb_irq_disable(gpio->irq_num);
   bflb_gpio_init(gpio, SPI_PIN_IRQ, GPIO_INPUT | GPIO_PULLUP | GPIO_SMT_EN);
-  bflb_gpio_int_init(gpio, SPI_PIN_IRQ, GPIO_INT_TRIG_MODE_SYNC_FALLING_EDGE);
+  bflb_gpio_int_init(gpio, SPI_PIN_IRQ, GPIO_INT_TRIG_MODE_SYNC_LOW_LEVEL);
   bflb_gpio_irq_attach(SPI_PIN_IRQ, spi_isr);
   bflb_irq_enable(gpio->irq_num);
 

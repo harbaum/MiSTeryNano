@@ -17,19 +17,6 @@
 
 #define MENU2U8G2(a)  (&(a->osd->u8g2))
 
-// variable ids must match the ones in the menu string
-menu_variable_t variables[] = {
-  { 'C', { 0 }},    // default chipset = ST
-  { 'M', { 0 }},    // default memory = 4MB
-  { 'V', { 0 }},    // default video = color
-  { 'S', { 0 }},    // default scanlines = none
-  { 'A', { 1 }},    // default volume = 33%
-  { 'W', { 0 }},    // default normal (4:3) screen
-  { 'P', { 0 }},    // default no floppy write protected
-  { 'Q', { 0 }},    // default cubase dongle not enabled
-  { '\0',{ 0 }}
-};
-
 #define MENU_FORM_FSEL           -1
 
 #define MENU_ENTRY_INDEX_ID       0
@@ -38,7 +25,11 @@ menu_variable_t variables[] = {
 #define MENU_ENTRY_INDEX_OPTIONS  2
 #define MENU_ENTRY_INDEX_VARIABLE 3
 
-static const char main_form[] =
+// ------------------------------------------------------------------
+// ---------------------  Atari ST menu -----------------------------
+// ------------------------------------------------------------------
+
+static const char main_form_atari_st[] =
   "MiSTeryNano,;"                       // main form has no parent
   // --------
   "F,Disk A:,0|.st;"                    // fileselector for Disk A:
@@ -47,16 +38,17 @@ static const char main_form[] =
   "S,Settings,3;"                       // Settings submenu is form 3
   "B,Reset,R;";                         // system reset
 
-static const char system_form[] =
+static const char system_form_atari_st[] =
   "System,0|2;"                         // return to form 0, entry 2
   // --------
   "L,Chipset:,ST|Mega ST|STE,C;"        // selection stored in variable "C"
   "L,Memory:,4MB|8MB,M;"                // ...
   "L,Video:,Color|Mono,V;"
   "L,Cartridge:,None|Cubase 2&3,Q;"     // Cubase dongle support
+  "L,Connector:,Joystick|Mouse,J;"      // DB9 port mapping
   "B,Cold Boot,B;";                     // system reset with memory reset
 
-static const char storage_form[] =
+static const char storage_form_atari_st[] =
   "Drives,0|3;"                         // return to form 0, entry 3
   // --------
   "F,Disk A:,0|.st;"                    // fileselector for Disk A:
@@ -65,7 +57,7 @@ static const char storage_form[] =
   "F,ACSI #1:,3|.hd;"                   // fileselector for ACSI 1
   "L,Disk prot.:,None|A:|B:|Both,P;";   // Enable/Disable Floppy write protection
 
-static const char settings_form[] =
+static const char settings_form_atari_st[] =
   "Settings,0|4;"                       // return to form 0, entry 4
   // --------
   "L,Screen:,Normal|Wide,W;"
@@ -73,11 +65,43 @@ static const char settings_form[] =
   "L,Volume:,Mute|33%|66%|100%,A;"
   "B,Save settings,S;";
 
-static const char *forms[] = {
-  main_form,
-  system_form,
-  storage_form,
-  settings_form
+static const char *forms_atari_st[] = {
+  main_form_atari_st,
+  system_form_atari_st,
+  storage_form_atari_st,
+  settings_form_atari_st
+};
+
+// variable ids must match the ones in the menu string
+menu_variable_t variables_atari_st[] = {
+  { 'C', { 0 }},    // default chipset = ST
+  { 'M', { 0 }},    // default memory = 4MB
+  { 'V', { 0 }},    // default video = color
+  { 'S', { 0 }},    // default scanlines = none
+  { 'A', { 1 }},    // default volume = 33%
+  { 'W', { 0 }},    // default normal (4:3) screen
+  { 'P', { 0 }},    // default no floppy write protected
+  { 'Q', { 0 }},    // default cubase dongle not enabled
+  { 'J', { 0 }},    // default connector acts as joystick port
+  { '\0',{ 0 }}
+};
+
+// ------------------------------------------------------------------
+// ------------------------  C64 menu -------------------------------
+// ------------------------------------------------------------------
+
+static const char main_form_c64[] =
+  "C64Nano,;"                           // main form has no parent
+  // --------
+  "B,Reset,R;";                         // system reset
+
+static const char *forms_c64[] = {
+  main_form_c64
+};
+
+menu_variable_t variables_c64[] = {
+  { 'S', { 0 }},    // default scanlines = none
+  { '\0',{ 0 }}
 };
 
 static void menu_goto_form(menu_t *menu, int form, int entry) {
@@ -236,8 +260,17 @@ menu_t *menu_init(u8g2_t *u8g2)
 {
   static menu_t menu;
 
-  menu.forms = forms;
-  menu.vars = variables;
+  if(core_id == CORE_ID_ATARI_ST) {
+    menu.vars = variables_atari_st;
+    menu.forms = forms_atari_st;
+  } else if(core_id == CORE_ID_C64) {
+    menu.vars = variables_c64;
+    menu.forms = forms_c64;
+  } else {
+    menu.vars = NULL;
+    menu.forms = NULL;
+  }
+  
   menu_goto_form(&menu, 0, 1); // first form selected at start
       
 #ifndef SDL
@@ -285,7 +318,6 @@ menu_t *menu_init(u8g2_t *u8g2)
       char local_name[strlen(name)+1];
       strcpy(local_name, name);
       
-      printf("trying %s\n", local_name);
       sdc_image_open(drive, local_name);
     }
   }

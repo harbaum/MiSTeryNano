@@ -6,6 +6,12 @@
 
 #include "sysctrl.h"
 
+unsigned char core_id = 0;
+
+static const char *core_names[] = {
+  "<unset>", "Atari ST", "C64"
+};
+
 static void sys_begin(spi_t *spi, unsigned char cmd) {
   spi_begin(spi);  
   spi_tx_u08(spi, SPI_TARGET_SYS);
@@ -17,11 +23,13 @@ int sys_status_is_valid(spi_t *spi) {
   spi_tx_u08(spi, 0);
   unsigned char b0 = spi_tx_u08(spi, 0);
   unsigned char b1 = spi_tx_u08(spi, 0);
-  unsigned char b2 = spi_tx_u08(spi, 0);
+  core_id = spi_tx_u08(spi, 0);
   spi_end(spi);  
 
-  if((b0 == 0x5c) && (b1 == 0x42))  
-    printf("Core ID: %02x\r\n", b2);
+  if((b0 == 0x5c) && (b1 == 0x42)) {
+    printf("Core ID: %02x\r\n", core_id);
+    if(core_id < 3) printf("Core: %s\r\n", core_names[core_id]);
+  }
   
   return((b0 == 0x5c) && (b1 == 0x42));
 }
@@ -63,8 +71,16 @@ void sys_set_val(spi_t *spi, char id, uint8_t value) {
 unsigned char sys_irq_ctrl(spi_t *spi, unsigned char ack) {
   sys_begin(spi, SPI_SYS_IRQ_CTRL);
   spi_tx_u08(spi, ack);
-  unsigned char ret = spi_tx_u08(spi, ack);
+  unsigned char ret = spi_tx_u08(spi, 0);
   spi_end(spi);  
-
   return ret;
 }
+
+void sys_handle_interrupts(unsigned char pending) {
+  if(pending & 0x02) // irq 1 = HID
+    hid_handle_event();
+  
+  if(pending & 0x08) // irq 3 = SDC
+    sdc_handle_event();
+}
+

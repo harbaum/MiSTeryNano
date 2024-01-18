@@ -19,6 +19,7 @@
 #define SPI_HID_KEYBOARD  1
 #define SPI_HID_MOUSE     2
 #define SPI_HID_JOYSTICK  3
+#define SPI_HID_GET_DB9   4
 
 #define SPI_TARGET_OSD    2   // on-screen-display
 #define SPI_OSD_ENABLE    1
@@ -42,5 +43,9 @@ spi_t *spi_init(void);
 void spi_begin(spi_t *spi);
 unsigned char spi_tx_u08(spi_t *spi, unsigned char b);
 void spi_end(spi_t *spi);
+
+// this is still on usb_host.c but should eventially go
+// into a separate hid.c
+extern void hid_handle_event(void);
 
 #endif // SPI_H
