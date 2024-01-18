@@ -22,8 +22,8 @@ module ikbd (
 		input [7:0] matrix_in,
 	     
 		// digital joystick with one fire button (FRLDU) or mouse with two buttons
-		input [4:0] joystick1,  // regular joystick
-		input [5:0] joystick0   // joystick that can replace mouse
+		input [5:0] joystick0,  // joystick port usually used with a mouse
+		input [4:0] joystick1   // regular joystick port
 		);
 
    // this implements the 74ls244. This is technically not needed in the FPGA since

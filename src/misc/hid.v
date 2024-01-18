@@ -13,6 +13,12 @@ module hid (
   input [7:0]      data_in,
   output reg [7:0] data_out,
 
+  // input local db9 port events to be sent to MCU
+  input  [5:0]    db9_port,
+  output reg	  irq,
+  input			  iack,
+
+  // output HID data received from USB
   output [5:0]     mouse,
   output reg [7:0] keyboard[14:0],
   output reg [7:0] joystick0,
@@ -34,12 +40,17 @@ reg [7:0] device;   // used for joystick
    
 reg [7:0] mouse_x_cnt;
 reg [7:0] mouse_y_cnt;
-     
+
+reg irq_enable;
+reg [5:0] db9_portD;
+
 // process mouse events
 always @(posedge clk) begin
    if(reset) begin
       state <= 4'd0;
       mouse_div <= 14'd0;
+      irq <= 1'b0;
+      irq_enable <= 1'b0;
 
       // reset entire keyboard to 1's
       keyboard[ 0] <= 8'hff; keyboard[ 1] <= 8'hff; keyboard[ 2] <= 8'hff;
@@ -49,6 +60,19 @@ always @(posedge clk) begin
       keyboard[12] <= 8'hff; keyboard[13] <= 8'hff; keyboard[14] <= 8'hff;      
 
    end else begin
+      // monitor db9 port for changes and raise interrupt
+      if(irq_enable) begin
+        db9_portD <= db9_port;
+        if(db9_portD != db9_port) begin
+            // irq_enable prevents further interrupts until
+            // the db9 state has actually been read by the MCU
+            irq <= 1'b1;
+            irq_enable <= 1'b0;
+        end
+      end
+
+      if(iack) irq <= 1'b0;      // iack clears interrupt
+
       if(data_in_strobe) begin      
         if(data_in_start) begin
             state <= 4'd1;
@@ -75,7 +99,7 @@ always @(posedge clk) begin
                 if(state == 4'd3) mouse_y_cnt <= mouse_y_cnt + data_in;
             end
 
-            // CMD 3: digital joystick data
+            // CMD 3: receive digital joystick data
             if(command == 8'd3) begin
                 if(state == 4'd1) device <= data_in;
                 if(state == 4'd2) begin
@@ -83,6 +107,13 @@ always @(posedge clk) begin
                     if(device == 8'd1) joystick1 <= data_in;
                 end 
             end
+
+            // CMD 4: send digital joystick data to MCU
+            if(command == 8'd4) begin
+                if(state == 4'd1) irq_enable <= 1'b1;    // (re-)enable interrupt
+                data_out <= {2'b00, db9_port };               
+            end
+
         end
       end else begin // if (data_in_strobe)
         mouse_div <= mouse_div + 14'd1;      

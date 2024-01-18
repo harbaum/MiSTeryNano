@@ -89,6 +89,7 @@ wire [1:0] system_volume;
 wire system_wide_screen;
 wire [1:0] system_floppy_wprot;
 wire    system_cubase_en;
+wire    system_port_mouse;
    
 /* -------------- clock generation --------------- */
 
@@ -263,10 +264,16 @@ mcu_spi mcu (
 
 // joy0 is usually used for the mouse, joy1 for the joystick. The
 // joystick can either be driven from the external MCU or via FPGA IO pins
-wire [5:0] joy0;
-wire [7:0] hid_joy1;
-wire [4:0] joy1 = hid_joy1[4:0] | { !io[0], !io[2], !io[1], !io[4], !io[3] };
-assign io[7:5] = 3'bzzz;   // three unused IO pins
+wire [5:0] hid_mouse;   // USB/HID mouse with four directions and two buttons
+wire [7:0] hid_joy;     // USB/HID joystick with four directions and four buttons
+
+// external DB9 joystick port
+wire [5:0] db9_joy = { !io[5], !io[0], !io[2], !io[1], !io[4], !io[3] };
+assign io[7:6] = 2'bzz;   // two unused IO pins
+
+// Mix HID mouse/joystick and DB9 joystick
+wire [5:0] joy0 = hid_mouse     | ( system_port_mouse?db9_joy[5:0]:6'b000000);
+wire [4:0] joy1 = hid_joy[4:0]  | (!system_port_mouse?db9_joy[4:0]: 5'b00000);
 
 // The keyboard matrix is maintained inside HID
 wire [7:0] keyboard[14:0];
@@ -291,6 +298,9 @@ wire [7:0] keyboard_matrix_in =
 
 // decode SPI/MCU data received for human input devices (HID) and
 // convert into ST compatible mouse and keyboard signals
+wire [7:0] int_ack;
+wire hid_int;
+wire hid_iack = int_ack[1];
 
 hid hid (
         .clk(clk_32),
@@ -302,15 +312,20 @@ hid hid (
         .data_in(mcu_data_out),
         .data_out(hid_data_out),
 
-        .mouse(joy0),
+        // input local db9 port events to be sent to MCU. Changes also trigger
+        // an interrupt, so the MCU doesn't have to poll for joystick events
+        .db9_port( db9_joy ),
+        .irq( hid_int ),
+        .iack( hid_iack ),
+
+        .mouse(hid_mouse),
         .keyboard(keyboard),
-        .joystick0(hid_joy1),
+        .joystick0(hid_joy),
         .joystick1()
          );   
 
 wire sdc_int;
 wire sdc_iack = int_ack[3];
-wire [7:0] int_ack;
 
 sysctrl sysctrl (
         .clk(clk_32),
@@ -331,9 +346,10 @@ sysctrl sysctrl (
         .system_wide_screen(system_wide_screen),
         .system_floppy_wprot(system_floppy_wprot),
         .system_cubase_en(system_cubase_en),
+        .system_port_mouse(system_port_mouse),
         
         .int_out_n(m0s[4]),
-        .int_in( { 4'b0000, sdc_int, 3'b000 }),
+        .int_in( { 4'b0000, sdc_int, 1'b0, hid_int, 1'b0 }),
         .int_ack( int_ack ),
 
         .buttons( {reset, user} ),
