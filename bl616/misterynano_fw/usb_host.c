@@ -86,6 +86,50 @@ void kbd_tx(struct hid_info_S *hid, unsigned char byte) {
   spi_end(spi);
 }
 
+// the c64 core can use the numerical pad on the keyboard to
+// emulate a joystick
+void kbd_num2joy(struct hid_info_S *hid, char state, unsigned char code) {
+  static unsigned char kbd_joy_state = 0;
+  static unsigned char kbd_joy_state_last = 0;
+  
+  // mapping:
+  // keycode 55 = KP * = selects port
+  // keycode 5a = KP 2 = down
+  // keycode 5c = KP 4 = left
+  // keycode 5e = KP 6 = right
+  // keycode 60 = KP 8 = up
+  // keycode 62 = KP 0 = fire
+
+  if(state == 0)
+    // start parsing a new set of keys
+    kbd_joy_state = 0;
+  else if(state == 1) {
+    // collect key/btn states
+    if(code == 0x5e) kbd_joy_state |= 0x01;
+    if(code == 0x5c) kbd_joy_state |= 0x02;
+    if(code == 0x5a) kbd_joy_state |= 0x04;
+    if(code == 0x60) kbd_joy_state |= 0x08;
+    if(code == 0x62) kbd_joy_state |= 0x10;
+    if(code == 0x55) kbd_joy_state |= 0x20;
+  } else if(state == 2) {
+    // submit if state has changed
+    if(kbd_joy_state != kbd_joy_state_last) {
+      
+      printf("KP Joy: %02x\r\n", kbd_joy_state);
+  
+      spi_t *spi = hid->usb->spi;  
+      spi_begin(spi);
+      spi_tx_u08(spi, SPI_TARGET_HID);
+      spi_tx_u08(spi, SPI_HID_JOYSTICK);
+      spi_tx_u08(spi, 4);             // report this as joystick 4 as js0-3 are USB joysticks
+      spi_tx_u08(spi, kbd_joy_state);
+      spi_end(spi);
+      
+      kbd_joy_state_last = kbd_joy_state;
+    }
+  }
+}
+  
 void kbd_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
   // we expect boot mode packets which are exactly 8 bytes long
   if(nbytes != 8) return;
@@ -104,8 +148,14 @@ void kbd_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
     }
   }
 
+  // prepare for parsing numpad joystick
+  if(core_id == CORE_ID_C64) kbd_num2joy(hid, 0, 0);
+  
   // check if regular keys have changed
   for(int i=0;i<6;i++) {
+    // C64 uses some keys for joystick emulation
+    if(core_id == CORE_ID_C64) kbd_num2joy(hid, 1, buffer[2+i]);
+    
     if(buffer[2+i] != hid->keyboard.last_report[2+i]) {
       // key released?
       if(hid->keyboard.last_report[2+i] && !osd_is_visible(usb_config.osd))
@@ -145,6 +195,9 @@ void kbd_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
     }    
   }
   memcpy(hid->keyboard.last_report, buffer, 8);
+
+  // check if numpad joystick has changed state and send message if so
+  if(core_id == CORE_ID_C64) kbd_num2joy(hid, 2, 0);
 }
 
 // collect bits from byte stream and assemble them into a signed word

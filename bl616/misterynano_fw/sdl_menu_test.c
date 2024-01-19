@@ -15,10 +15,13 @@
 #include <assert.h>
 #include "ff.h"
 #include "diskio.h"
+#include "sysctrl.h"
 
 #include "menu.h"
 
 u8g2_t u8g2;
+
+unsigned char core_id = CORE_ID_C64;  // see sysctrl.h
 
 static FATFS fs;
 static FIL fil;

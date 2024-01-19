@@ -516,7 +516,7 @@ int sdc_init(spi_t *p_spi) {
       do {
 	f_readdir(&dir, &fno);
 	if(fno.fname[0] != 0 && !(fno.fattrib & (AM_HID|AM_SYS)) ) {
-	  printf("%s %s, len=%d\r\n", (fno.fattrib & AM_DIR) ? "dir: ":"file:", fno.fname, fno.fsize);
+	  printf("%s %s, len=%ld\r\n", (fno.fattrib & AM_DIR) ? "dir: ":"file:", fno.fname, fno.fsize);
 	}
       } while(fno.fname[0] != 0);
       f_closedir(&dir);

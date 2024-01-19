@@ -93,6 +93,7 @@ menu_variable_t variables_atari_st[] = {
 static const char main_form_c64[] =
   "C64Nano,;"                           // main form has no parent
   // --------
+  "F,Floppy 8:,0|.d64;"                 // fileselector for Floppy 8:
   "B,Reset,R;";                         // system reset
 
 static const char *forms_c64[] = {
@@ -111,7 +112,11 @@ static void menu_goto_form(menu_t *menu, int form, int entry) {
   menu->offset = 0;
 }
 
-#define SETTINGS_FILE  "/sd/atarist.ini"
+static const char *settings_file[] = {
+  NULL,
+  CARD_MOUNTPOINT "/atarist.ini",  // core id = 1
+  CARD_MOUNTPOINT "/c64.ini"       // core id = 2
+};
 
 static int iswhite(char c) {
   return c == ' ' || c == '\r' || c == '\n' || c == '\t';
@@ -123,7 +128,7 @@ static int menu_settings_load(menu_t *menu) {
   sdc_lock();  // get exclusive access to the file system
 
   FIL fil;
-  if(f_open(&fil, SETTINGS_FILE, FA_OPEN_EXISTING | FA_READ) == FR_OK) {    
+  if(f_open(&fil, settings_file[core_id], FA_OPEN_EXISTING | FA_READ) == FR_OK) {    
     char buffer[FF_LFN_BUF+10];
 
     printf("Settings file opened\r\n");
@@ -202,7 +207,7 @@ static int menu_settings_load(menu_t *menu) {
     }
     f_close(&fil);
   } else {
-    printf("Error opening file %s\r\n", SETTINGS_FILE);
+    printf("Error opening file %s\r\n", settings_file[core_id]);
     sdc_unlock();
     return -1;
   }
@@ -218,7 +223,7 @@ static void menu_settings_save(menu_t *menu) {
   
   // saving does not work, yet, as there is no SD card write support by now
   FIL file;
-  if(f_open(&file, SETTINGS_FILE, FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {
+  if(f_open(&file, settings_file[core_id], FA_WRITE | FA_CREATE_ALWAYS) == FR_OK) {
     f_puts("; MiSTeryNano settings\n", &file);
 
     // write variable values
@@ -297,14 +302,19 @@ menu_t *menu_init(u8g2_t *u8g2)
       // if no settings could be loaded, then set default
       // image names
 
-      static const char *default_names[] = {
-	CARD_MOUNTPOINT "/disk_a.st",
-	CARD_MOUNTPOINT "/disk_b.st",
-	CARD_MOUNTPOINT "/acsi_0.hd",
-	CARD_MOUNTPOINT "/acsi_1.hd" };
-    
-      for(int drive=0;drive<MAX_DRIVES;drive++)
-	sdc_set_default(drive, default_names[drive]);
+      if(core_id == CORE_ID_ATARI_ST) {
+	static const char *default_names[] = {
+	  CARD_MOUNTPOINT "/disk_a.st",
+	  CARD_MOUNTPOINT "/disk_b.st",
+	  CARD_MOUNTPOINT "/acsi_0.hd",
+	  CARD_MOUNTPOINT "/acsi_1.hd" };
+	
+	for(int drive=0;drive<MAX_DRIVES;drive++)
+	  sdc_set_default(drive, default_names[drive]);
+      } else if(core_id == CORE_ID_C64) {
+	// the C64 core supports only one floppy drive
+	sdc_set_default(0, CARD_MOUNTPOINT "/disk8.d64");
+      }      
     }
   } else
     printf("SD wasn't ready, not loading settings\r\n");
