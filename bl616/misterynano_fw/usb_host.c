@@ -121,7 +121,7 @@ void kbd_num2joy(struct hid_info_S *hid, char state, unsigned char code) {
       spi_begin(spi);
       spi_tx_u08(spi, SPI_TARGET_HID);
       spi_tx_u08(spi, SPI_HID_JOYSTICK);
-      spi_tx_u08(spi, 4);             // report this as joystick 4 as js0-3 are USB joysticks
+      spi_tx_u08(spi, 0x80);  // report this as joystick 0x80 as js0-x are USB joysticks
       spi_tx_u08(spi, kbd_joy_state);
       spi_end(spi);
       
