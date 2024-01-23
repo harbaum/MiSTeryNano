@@ -33,7 +33,7 @@ assign mouse = { mouse_btns, mouse_x, mouse_y };
 
 // limit the rate at which mouse movement data is sent to the
 // ikbd
-reg [13:0] mouse_div;
+reg [14:0] mouse_div;
 reg [3:0] state;
 reg [7:0] command;  
 reg [7:0] device;   // used for joystick
@@ -48,7 +48,7 @@ reg [5:0] db9_portD;
 always @(posedge clk) begin
    if(reset) begin
       state <= 4'd0;
-      mouse_div <= 14'd0;
+      mouse_div <= 15'd0;
       irq <= 1'b0;
       irq_enable <= 1'b0;
 
@@ -116,8 +116,8 @@ always @(posedge clk) begin
 
         end
       end else begin // if (data_in_strobe)
-        mouse_div <= mouse_div + 14'd1;      
-        if(mouse_div == 14'd0) begin
+        mouse_div <= mouse_div + 15'd1;      
+        if(mouse_div == 15'd0) begin
             if(mouse_x_cnt != 8'd0) begin
                 if(mouse_x_cnt[7]) begin
                     mouse_x_cnt <= mouse_x_cnt + 8'd1;

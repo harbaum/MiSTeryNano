@@ -36,7 +36,7 @@ module sysctrl (
   output reg	    system_wide_screen,
   output reg [1:0]  system_floppy_wprot,
   output reg	    system_cubase_en,
-  output reg	    system_port_mouse
+  output reg [1:0]  system_port_mouse
 );
 
 reg [3:0] state;
@@ -128,8 +128,8 @@ always @(posedge clk) begin
                     if(id == "P") system_floppy_wprot <= data_in[1:0];
                     // Value "Q": enable (1) or disable (0) Cubase dongle(s)
                     if(id == "Q") system_cubase_en <= data_in[0];
-                    // Value "J": use DB9 for joystick(0) or mouse(1)
-                    if(id == "J") system_port_mouse <= data_in[0];
+                    // Value "J": USB Mouse(0), DB9/Atari ST(1) or DB9/Amiga(2)
+                    if(id == "J") system_port_mouse <= data_in[1:0];
                 end
             end
 
