@@ -40,7 +40,7 @@ US TOS 1.00 (60 Hz NTSC video) and german TOS 1.04 and TOS 2.06 (both
 50 Hz PAL video).
 
 This needs to be flashed into the flash ROM of the Tang Nano 20k at
-1MB offset:
+1MB (1048576 bytes) offset:
 
 ```
 $ openFPGALoader --external-flash -o 1048576 tos104de.img
@@ -75,6 +75,16 @@ $ openFPGALoader --external-flash -o 1310720 tos206de.img
 ```
 
 This TOS image is always use when STE mode is selected.
+
+For ST as well as STE an alternate TOS slot can be selected
+in the OSD. The addresses for all TOS are:
+
+| Address | TOS slot  |
+|---------|-----------|
+| 1048576 | Primary ST TOS |
+| 1310720 | Primary STE TOS |
+| 1582864 | Secondary ST TOS |
+| 1835008 | Secondary STE TOS |
 
 ### Step 3: Installation of the MCU firmware
 
