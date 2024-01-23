@@ -51,7 +51,10 @@ git clone https://github.com/bouffalolab/bouffalo_sdk.git
 Compile the firmware:
 
 ```
-$ CROSS_COMPILE=<where you downloaded the toolchain>/toolchain_gcc_t-head_linux/bin/riscv64-unknown-elf- BL_SDK_BASE=<where you downloaded the sdk>/bouffalo_sdk/ make
+git submodule init
+git submodule update
+cd bl616/misterynano_fw
+CROSS_COMPILE=<where you downloaded the toolchain>/toolchain_gcc_t-head_linux/bin/riscv64-unknown-elf- BL_SDK_BASE=<where you downloaded the sdk>/bouffalo_sdk/ make
 ```
 
 ### Flashing the firmware
