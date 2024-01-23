@@ -45,8 +45,11 @@ git clone https://gitee.com/bouffalolab/toolchain_gcc_t-head_linux.git
 And the Bouffalo SDK:
 
 ```
-git clone https://github.com/bouffalolab/bouffalo_sdk.git
+git clone --recurse-submodules https://github.com/harbaum/bouffalo_sdk.git
 ```
+
+This is a fork of the original Bouffalo SDK with the CherryUSB stack updated
+to a more recent version.
 
 Compile the firmware:
 
