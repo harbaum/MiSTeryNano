@@ -2,6 +2,7 @@
 
 #include <FreeRTOS.h>
 #include <queue.h>
+#include <hardware/bl616.h>
 
 #include "usb.h"
 #include "usbh_core.h"
@@ -10,8 +11,6 @@
 #include "hidparser.h"
 
 #include "sysctrl.h"   // for core_id
-
-// #define CHERRY_NEW     // for cu >= 10.2
 
 #include "menu.h"    // for event codes
 
@@ -26,6 +25,7 @@ extern QueueHandle_t xQueue;
 #define STATE_FAILED    3
 
 extern struct bflb_device_s *gpio;
+struct usbh_bus *usbh_bus0;   // global, so the usb core has access to it
 
 static struct usb_config {
   osd_t *osd;  
@@ -35,9 +35,6 @@ static struct usb_config {
     int index;
     int state;
     struct usbh_hid *class;
-#ifndef CHERRY_NEW
-    struct usbh_urb intin_urb;
-#endif
     uint8_t *buffer;
     int nbytes;
     hid_report_t report;
@@ -454,11 +451,7 @@ static void usbh_hid_client_thread(void *argument) {
   printf("HID client #%d: thread started\r\n", hid->index);
 
   while(1) {
-#ifndef CHERRY_NEW
-    int ret = usbh_submit_urb(&hid->intin_urb);
-#else
     int ret = usbh_submit_urb(&hid->class->intin_urb);
-#endif
     if (ret < 0)
       printf("HID client #%d: submit failed\r\n", hid->index);
     else {
@@ -516,12 +509,8 @@ static void usbh_hid_thread(void *argument) {
 
 	// setup urb
 	usbh_int_urb_fill(
-#ifdef CHERRY_NEW
 			  &usb->hid_info[i].class->intin_urb,
 			  usb->hid_info[i].class->hport,
-#else
-			  &usb->hid_info[i].intin_urb,
-#endif
 			  usb->hid_info[i].class->intin, usb->hid_info[i].buffer,
 			  usb->hid_info[i].report.report_size + (usb->hid_info[i].report.report_id_present ? 1:0),
 			  0, usbh_hid_callback, &usb->hid_info[i]);
@@ -548,7 +537,9 @@ void usb_host(spi_t *spi) {
 
   printf("init usb hid host\r\n");
 
-  usbh_initialize();  
+  usbh_bus0 = usbh_alloc_bus(0, USB_BASE);
+  usbh_initialize(usbh_bus0);
+  
   usb_config.spi = spi;
   usb_config.osd = NULL;
   

@@ -45,7 +45,7 @@ static const char system_form_atari_st[] =
   "L,Memory:,4MB|8MB,M;"                // ...
   "L,Video:,Color|Mono,V;"
   "L,Cartridge:,None|Cubase 2&3,Q;"     // Cubase dongle support
-  "L,Connector:,Joystick|Mouse,J;"      // DB9 port mapping
+  "L,Mouse:,USB|Atari ST|Amiga,J;"      // Mouse (DB9) mapping
   "B,Cold Boot,B;";                     // system reset with memory reset
 
 static const char storage_form_atari_st[] =
@@ -82,7 +82,7 @@ menu_variable_t variables_atari_st[] = {
   { 'W', { 0 }},    // default normal (4:3) screen
   { 'P', { 0 }},    // default no floppy write protected
   { 'Q', { 0 }},    // default cubase dongle not enabled
-  { 'J', { 0 }},    // default connector acts as joystick port
+  { 'J', { 0 }},    // default mouse USB, DB9 connector joystick
   { '\0',{ 0 }}
 };
 
