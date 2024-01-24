@@ -90,6 +90,7 @@ wire       system_wide_screen;
 wire [1:0] system_floppy_wprot;
 wire       system_cubase_en;
 wire [1:0] system_port_mouse;
+wire       system_tos_slot;
    
 /* -------------- clock generation --------------- */
 
@@ -120,8 +121,9 @@ flash flash (
     .busy(),
 
     // cpu expects ROM to start at $fc0000 and it is in fact is at $100000 in
-    // ST mode and at $140000 in STE mode
-    .address( { 4'b0010, (system_chipset >= 2'd2)?1'b1:1'b0, rom_addr[17:1] } ),
+    // ST mode and at $140000 in STE mode. $180000 and $1c0000 are the secondary
+    // slots which can be selected from the OSD
+    .address( { 3'b001, system_tos_slot, (system_chipset >= 2'd2)?1'b1:1'b0, rom_addr[17:1] } ),
     .cs( !rom_n ),
     .dout(rom_dout),
 
@@ -270,21 +272,21 @@ wire [5:0] hid_mouse;   // USB/HID mouse with four directions and two buttons
 wire [7:0] hid_joy;     // USB/HID joystick with four directions and four buttons
 
 // external DB9 joystick port
-wire [4:0] db9_joy   = {               !io[0], !io[2], !io[1], !io[4], !io[3] };
-wire [5:0] db9_mouse_atari = { !io[5], !io[0], !io[2], !io[1], !io[4], !io[3] };
-wire [5:0] db9_mouse_amiga = { !io[5], !io[0], !io[3], !io[1], !io[4], !io[2] };
+wire [5:0] db9_atari = { !io[5], !io[0], !io[2], !io[1], !io[4], !io[3] };
+wire [5:0] db9_amiga = { !io[5], !io[0], !io[3], !io[1], !io[4], !io[2] };
 assign io[7:6] = 2'bzz;   // two unused IO pins
 
 // any db9 mouse replaces usb mouse as mice will keep some signals
 // permanently active and can thus not just be wired together
 wire [5:0] joy0 = (system_port_mouse == 2'd0)?hid_mouse:
-                  (system_port_mouse == 2'd1)?db9_mouse_atari:
-                  (system_port_mouse == 2'd2)?db9_mouse_amiga:
+                  (system_port_mouse == 2'd1)?db9_atari:
+                  (system_port_mouse == 2'd2)?db9_amiga:
                   6'b000000;
 
 // Joystick ports are just wired together and can be used in parallel
 // DB9 is used for joystick, whenever the mouse is mapped to USB
-wire [4:0] joy1 = hid_joy[4:0]  | ((system_port_mouse==2'd0)?db9_joy: 5'b00000);
+wire [5:0] db9_joy = (system_port_mouse==2'd0)?db9_atari: 6'b000000;
+wire [4:0] joy1 = hid_joy[4:0] | db9_joy[4:0];
 
 // The keyboard matrix is maintained inside HID
 wire [7:0] keyboard[14:0];
@@ -348,6 +350,7 @@ sysctrl sysctrl (
         .data_in(mcu_data_out),
         .data_out(sys_data_out),
 
+        // values controlled by the OSD
         .system_chipset(system_chipset),
         .system_memory(system_memory),
         .system_video(system_video),
@@ -358,6 +361,7 @@ sysctrl sysctrl (
         .system_floppy_wprot(system_floppy_wprot),
         .system_cubase_en(system_cubase_en),
         .system_port_mouse(system_port_mouse),
+        .system_tos_slot(system_tos_slot),
         
         .int_out_n(m0s[4]),
         .int_in( { 4'b0000, sdc_int, 1'b0, hid_int, 1'b0 }),

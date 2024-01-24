@@ -36,7 +36,8 @@ module sysctrl (
   output reg	    system_wide_screen,
   output reg [1:0]  system_floppy_wprot,
   output reg	    system_cubase_en,
-  output reg [1:0]  system_port_mouse
+  output reg [1:0]  system_port_mouse,
+  output reg        system_tos_slot
 );
 
 reg [3:0] state;
@@ -68,6 +69,8 @@ always @(posedge clk) begin
       system_wide_screen <= 1'b0;   
       system_floppy_wprot <= 2'b00;
       system_cubase_en <= 1'b0; 
+      system_port_mouse <= 2'b00;
+      system_tos_slot <= 1'b0; 
    end else begin
       int_ack <= 8'h00;
 
@@ -130,6 +133,8 @@ always @(posedge clk) begin
                     if(id == "Q") system_cubase_en <= data_in[0];
                     // Value "J": USB Mouse(0), DB9/Atari ST(1) or DB9/Amiga(2)
                     if(id == "J") system_port_mouse <= data_in[1:0];
+                    // Value "T": Primary(0) TOS slot or Secondary(1)
+                    if(id == "T") system_tos_slot <= data_in[0];
                 end
             end
 
