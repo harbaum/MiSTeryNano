@@ -83,7 +83,7 @@ in the OSD. The addresses for all TOS are:
 |---------|-----------|
 | 1048576 | Primary ST TOS |
 | 1310720 | Primary STE TOS |
-| 1582864 | Secondary ST TOS |
+| 1572864 | Secondary ST TOS |
 | 1835008 | Secondary STE TOS |
 
 ### Step 3: Installation of the MCU firmware
