@@ -46,6 +46,7 @@ static const char system_form_atari_st[] =
   "L,Video:,Color|Mono,V;"
   "L,Cartridge:,None|Cubase 2&3,Q;"     // Cubase dongle support
   "L,Mouse:,USB|Atari ST|Amiga,J;"      // Mouse (DB9) mapping
+  "L,TOS Slot:,Primary|Secondary,T;"    // Select TOS
   "B,Cold Boot,B;";                     // system reset with memory reset
 
 static const char storage_form_atari_st[] =
@@ -83,6 +84,7 @@ menu_variable_t variables_atari_st[] = {
   { 'P', { 0 }},    // default no floppy write protected
   { 'Q', { 0 }},    // default cubase dongle not enabled
   { 'J', { 0 }},    // default mouse USB, DB9 connector joystick
+  { 'T', { 0 }},    // default primary TOS slot
   { '\0',{ 0 }}
 };
 
@@ -417,10 +419,10 @@ static void menu_variable_set(menu_t *menu, const char *s, int val) {
       // also set this in the core
       sys_set_val(menu->osd->spi, id, val);
 
-      // trigger cold reset if memory or chipset have been changed a
+      // trigger cold reset if memory, chipset or TOS have been changed a
       // video change will also trigger a reset, but that's handled by
       // the ST itself
-      if((id == 'C') || (id == 'M') ) {
+      if((id == 'C') || (id == 'M') || (id == 'T')) {
 	sys_set_val(menu->osd->spi, 'R', 3);
 	sys_set_val(menu->osd->spi, 'R', 0);
       }

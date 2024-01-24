@@ -17,7 +17,8 @@
 // queue to send messages to OSD thread
 extern QueueHandle_t xQueue;
 
-#define MAX_REPORT_SIZE 8
+#define MAX_REPORT_SIZE   8
+#define XBOX_REPORT_SIZE 20
 
 #define STATE_NONE      0 
 #define STATE_DETECTED  1 
@@ -31,6 +32,17 @@ static struct usb_config {
   osd_t *osd;  
   spi_t *spi;
   
+  struct xbox_info_S {
+    int index;
+    int state;
+    struct usbh_hid *class;
+    uint8_t *buffer;
+    struct usb_config *usb;
+    SemaphoreHandle_t sem;
+    TaskHandle_t task_handle;    
+    unsigned char last_state;
+  } xbox_info[CONFIG_USBHOST_MAX_XBOX_CLASS];
+    
   struct hid_info_S {
     int index;
     int state;
@@ -54,6 +66,7 @@ static struct usb_config {
 } usb_config;
   
 USB_NOCACHE_RAM_SECTION USB_MEM_ALIGNX uint8_t hid_buffer[CONFIG_USBHOST_MAX_HID_CLASS][MAX_REPORT_SIZE];
+USB_NOCACHE_RAM_SECTION USB_MEM_ALIGNX uint8_t xbox_buffer[CONFIG_USBHOST_MAX_XBOX_CLASS][XBOX_REPORT_SIZE];
 
 // include the keyboard mappings
 #include "atari_st.h"
@@ -351,15 +364,21 @@ void usbh_hid_callback(void *arg, int nbytes) {
   hid->nbytes = nbytes;
 }  
 
-static void usbh_hid_update(struct usb_config *usb) {
-  // check for active devices
+void usbh_xbox_callback(void *arg, int nbytes) {
+  struct xbox_info_S *xbox = (struct xbox_info_S *)arg;
+  if(nbytes == XBOX_REPORT_SIZE)
+    xSemaphoreGiveFromISR(xbox->sem, NULL);
+}  
+
+static void usbh_update(struct usb_config *usb) {
+  // check for active hid devices
   for(int i=0;i<CONFIG_USBHOST_MAX_HID_CLASS;i++) {
     char *dev_str = "/dev/inputX";
     dev_str[10] = '0' + i;
     usb->hid_info[i].class = (struct usbh_hid *)usbh_find_class_instance(dev_str);
     
     if(usb->hid_info[i].class && usb->hid_info[i].state == STATE_NONE) {
-      printf("NEW %d\r\n", i);
+      printf("NEW HID %d\r\n", i);
 
       printf("Interval: %d\r\n", usb->hid_info[i].class->hport->config.intf[i].altsetting[0].ep[0].ep_desc.bInterval);
 	 
@@ -386,6 +405,32 @@ static void usbh_hid_update(struct usb_config *usb) {
     }
   }
 
+  // check for active xbox devices
+  for(int i=0;i<CONFIG_USBHOST_MAX_XBOX_CLASS;i++) {
+    char *dev_str = "/dev/xboxX";
+    dev_str[9] = '0' + i;
+    usb->xbox_info[i].class = (struct usbh_hid *)usbh_find_class_instance(dev_str);
+    
+    if(usb->xbox_info[i].class && usb->xbox_info[i].state == STATE_NONE) {
+      printf("NEW XBOX %d\r\n", i);
+
+      printf("Interval: %d\r\n", usb->xbox_info[i].class->hport->config.intf[i].altsetting[0].ep[0].ep_desc.bInterval);
+	 
+      printf("Interface %d\r\n", usb->xbox_info[i].class->intf);
+      printf("  class %d\r\n", usb->xbox_info[i].class->hport->config.intf[i].altsetting[0].intf_desc.bInterfaceClass);
+      printf("  subclass %d\r\n", usb->xbox_info[i].class->hport->config.intf[i].altsetting[0].intf_desc.bInterfaceSubClass);
+      printf("  protocol %d\r\n", usb->xbox_info[i].class->hport->config.intf[i].altsetting[0].intf_desc.bInterfaceProtocol);
+	
+      usb->xbox_info[i].state = STATE_DETECTED;
+    }
+    
+    else if(!usb->xbox_info[i].class && usb->xbox_info[i].state != STATE_NONE) {
+      printf("LOST %d\r\n", i);
+      vTaskDelete( usb->xbox_info[i].task_handle );
+      usb->xbox_info[i].state = STATE_NONE;
+    }
+  }
+
   // check for number of mice and keyboards and update leds
   int mice = 0, keyboards = 0;  
   for(int i=0;i<CONFIG_USBHOST_MAX_HID_CLASS;i++) {
@@ -402,7 +447,7 @@ static void usbh_hid_update(struct usb_config *usb) {
 
 static void hid_parse(struct hid_info_S *hid) {
 #if 0
-  USB_LOG_RAW("CB%d: ", hid->index);
+  USB_LOG_RAW("HID%d: ", hid->index);
   
   // just dump the report
   for (size_t i = 0; i < hid->nbytes; i++) 
@@ -443,6 +488,44 @@ static void hid_parse(struct hid_info_S *hid) {
   }
 }
 
+static void xbox_parse(struct xbox_info_S *xbox) {
+#if 0
+  USB_LOG_RAW("XBOX%d: ", xbox->index);
+  
+  // just dump the report
+  for (size_t i = 0; i < 20; i++) 
+    USB_LOG_RAW("0x%02x ", xbox->buffer[i]);
+  USB_LOG_RAW("\r\n");
+#endif
+
+  // verify length field
+  if(xbox->buffer[0] != 0 || xbox->buffer[1] != 20)
+    return;
+
+  // the xbox controller sends the direction bits in exactly the
+  // reversed order than we expect ...
+  unsigned char state =
+    ((xbox->buffer[2] & 0x01)<<3) | ((xbox->buffer[2] & 0x02)<<1) |
+    ((xbox->buffer[2] & 0x04)>>1) | ((xbox->buffer[2] & 0x08)>>3) |
+    (xbox->buffer[3] & 0xf0);
+  
+  // submit if state has changed
+  if(state != xbox->last_state) {
+    
+      printf("XBOX Joy: %02x\r\n", state);
+  
+      spi_t *spi = xbox->usb->spi;  
+      spi_begin(spi);
+      spi_tx_u08(spi, SPI_TARGET_HID);
+      spi_tx_u08(spi, SPI_HID_JOYSTICK);
+      spi_tx_u08(spi, 0);
+      spi_tx_u08(spi, state);
+      spi_end(spi);
+      
+      xbox->last_state = state;
+    }
+}
+
 // each HID client gets itws own thread which submits urbs
 // and waits for the interrupt to succeed
 static void usbh_hid_client_thread(void *argument) {
@@ -459,6 +542,27 @@ static void usbh_hid_client_thread(void *argument) {
       xSemaphoreTake(hid->sem, 0xffffffffUL);
       if(hid->nbytes > 0) hid_parse(hid);
       hid->nbytes = 0;
+    }      
+
+    // todo: honour binterval which is in milliseconds for low speed
+    vTaskDelay(pdMS_TO_TICKS(10));
+  }
+}
+
+// ... and XBOX clients as well
+static void usbh_xbox_client_thread(void *argument) {
+  struct xbox_info_S *xbox = (struct xbox_info_S *)argument;
+
+  printf("XBOX client #%d: thread started\r\n", xbox->index);
+
+  while(1) {
+    int ret = usbh_submit_urb(&xbox->class->intin_urb);
+    if (ret < 0)
+      printf("XBOX client #%d: submit failed\r\n", xbox->index);
+    else {
+      // Wait for result
+      xSemaphoreTake(xbox->sem, 0xffffffffUL);
+      xbox_parse(xbox);
     }      
 
     // todo: honour binterval which is in milliseconds for low speed
@@ -484,11 +588,11 @@ static void usbh_hid_thread(void *argument) {
   spi_end(usb->spi);
 
   while (1) {
-    usbh_hid_update(usb);
+    usbh_update(usb);
 
     for(int i=0;i<CONFIG_USBHOST_MAX_HID_CLASS;i++) {
       if(usb->hid_info[i].state == STATE_DETECTED) {
-	printf("NEW device %d\r\n", i);
+	printf("NEW HID device %d\r\n", i);
 	usb->hid_info[i].state = STATE_RUNNING; 
 
 #if 0
@@ -508,25 +612,41 @@ static void usbh_hid_thread(void *argument) {
 #endif
 
 	// setup urb
-	usbh_int_urb_fill(
-			  &usb->hid_info[i].class->intin_urb,
+	usbh_int_urb_fill(&usb->hid_info[i].class->intin_urb,
 			  usb->hid_info[i].class->hport,
 			  usb->hid_info[i].class->intin, usb->hid_info[i].buffer,
 			  usb->hid_info[i].report.report_size + (usb->hid_info[i].report.report_id_present ? 1:0),
 			  0, usbh_hid_callback, &usb->hid_info[i]);
 	
 	// start a new thread for the new device
-	xTaskCreate(usbh_hid_client_thread, (char *)"usb_task", 2048, &usb->hid_info[i], configMAX_PRIORITIES-3, &usb->hid_info[i].task_handle );
+	xTaskCreate(usbh_hid_client_thread, (char *)"hid_task", 2048,
+		    &usb->hid_info[i], configMAX_PRIORITIES-3, &usb->hid_info[i].task_handle );
       }
     }
+    
+    for(int i=0;i<CONFIG_USBHOST_MAX_XBOX_CLASS;i++) {
+      if(usb->xbox_info[i].state == STATE_DETECTED) {
+	printf("NEW XBOX device %d\r\n", i);
+	usb->xbox_info[i].state = STATE_RUNNING; 
+
+	// setup urb
+	usbh_int_urb_fill(&usb->xbox_info[i].class->intin_urb,
+			  usb->xbox_info[i].class->hport,
+			  usb->xbox_info[i].class->intin, usb->xbox_info[i].buffer,
+			  XBOX_REPORT_SIZE,
+			  0, usbh_xbox_callback, &usb->xbox_info[i]);
+	
+	// start a new thread for the new device
+	xTaskCreate(usbh_xbox_client_thread, (char *)"xbox_task", 2048,
+		    &usb->xbox_info[i], configMAX_PRIORITIES-3, &usb->xbox_info[i].task_handle );
+      }
+    }
+
     // this thread only handles new devices and thus doesn't have to run very
     // often
     vTaskDelay(pdMS_TO_TICKS(100));
   }
 }
-
-void usbh_hid_run(struct usbh_hid *hid_class) { }
-void usbh_hid_stop(struct usbh_hid *hid_class) { }
 
 void usb_register_osd(osd_t *osd) {
   usb_config.osd = osd;
@@ -550,6 +670,15 @@ void usb_host(spi_t *spi) {
     usb_config.hid_info[i].buffer = hid_buffer[i];      
     usb_config.hid_info[i].usb = &usb_config;
     usb_config.hid_info[i].sem = xSemaphoreCreateBinary();
+  }
+  
+  // initialize all XBOX info entries
+  for(int i=0;i<CONFIG_USBHOST_MAX_XBOX_CLASS;i++) {
+    usb_config.xbox_info[i].index = i;
+    usb_config.xbox_info[i].state = 0;
+    usb_config.xbox_info[i].buffer = xbox_buffer[i];      
+    usb_config.xbox_info[i].usb = &usb_config;
+    usb_config.xbox_info[i].sem = xSemaphoreCreateBinary();
   }
 
   xTaskCreate(usbh_hid_thread, (char *)"usb_task", 2048, &usb_config, configMAX_PRIORITIES-3, &usb_handle);
