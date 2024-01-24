@@ -4,6 +4,8 @@ The MiSTeryNano is a port of the
 [MiSTery Atari STE FPGA core](https://github.com/gyurco/MiSTery) to the
 [Tang Nano 20k FPGA board](https://wiki.sipeed.com/nano20k).
 
+For support and more information please visit the [Atari forum](https://www.atari-forum.com/viewtopic.php?p=457209).
+
 ![MiSTeryNano photo](images/misterynano.jpeg)
 
 ## Current state
