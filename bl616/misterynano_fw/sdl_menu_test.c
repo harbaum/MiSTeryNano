@@ -152,7 +152,7 @@ int sdc_image_open(int drive, char *name) {
   return 0;
 }
 
-sdc_dir_t *sdc_readdir(int drive, char *name, char *ext) {
+sdc_dir_t *sdc_readdir(int drive, char *name, char *exts) {
   static sdc_dir_t sdc_dir = { 0, NULL };
 
   // set default path
@@ -177,6 +177,32 @@ sdc_dir_t *sdc_readdir(int drive, char *name, char *ext) {
     dir->files[dir->len].name = strdup(fno->fname);
     dir->files[dir->len].is_dir = (fno->fattrib & AM_DIR)?1:0;
     dir->len++;
+  }
+
+  // check if a file name matches any of the extensions given
+  char ext_match(char *name, char *exts) {
+    // check if name has an extension at all
+    char *dot = strchr(name, '.');
+    if(!dot) return 0;
+
+    // iterate over all extensions
+    char *ext = exts;
+    while(1) {
+      char *p = ext;
+      while(*p && *p != '+') p++;  // search of end of ext
+      int len = p-ext;
+
+      // check if length would match
+      if(strlen(dot+1) == len)
+	if(!strncasecmp(dot+1, ext, len))
+	  return 1;  // it's a match
+      
+      // end of extension string reached: nothing found
+      if(!*p) return 0;
+      
+      ext = p+1;
+    }
+    return 0;
   }
   
   DIR dir;
@@ -228,10 +254,9 @@ sdc_dir_t *sdc_readdir(int drive, char *name, char *ext) {
   do {
     f_readdir(&dir, &fno);
     if(fno.fname[0] != 0 && !(fno.fattrib & (AM_HID|AM_SYS)) ) {
-      printf("%s %s, len=%d\n", (fno.fattrib & AM_DIR) ? "dir: ":"file:", fno.fname, fno.fsize);
-      // only accept directories or .ST files
-      if((fno.fattrib & AM_DIR) ||
-	 (strlen(fno.fname) > 3 && strcasecmp(fno.fname+strlen(fno.fname)-3, ext) == 0))	
+      printf("%s %s, len=%ld\n", (fno.fattrib & AM_DIR) ? "dir: ":"file:", fno.fname, fno.fsize);
+      // only accept directories or matching files
+      if((fno.fattrib & AM_DIR) || ext_match(fno.fname, exts))
 	append(&sdc_dir, &fno);
     }
   } while(fno.fname[0] != 0);

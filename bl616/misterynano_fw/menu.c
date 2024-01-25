@@ -32,7 +32,7 @@
 static const char main_form_atari_st[] =
   "MiSTeryNano,;"                       // main form has no parent
   // --------
-  "F,Disk A:,0|.st;"                    // fileselector for Disk A:
+  "F,Disk A:,0|st;"                     // fileselector for Disk A:
   "S,System,1;"                         // System submenu is form 1
   "S,Drives,2;"                         // Storage submenu
   "S,Settings,3;"                       // Settings submenu is form 3
@@ -52,10 +52,10 @@ static const char system_form_atari_st[] =
 static const char storage_form_atari_st[] =
   "Drives,0|3;"                         // return to form 0, entry 3
   // --------
-  "F,Disk A:,0|.st;"                    // fileselector for Disk A:
-  "F,Disk B:,1|.st;"                    // fileselector for Disk B:
-  "F,ACSI #0:,2|.hd;"                   // fileselector for ACSI 0
-  "F,ACSI #1:,3|.hd;"                   // fileselector for ACSI 1
+  "F,Disk A:,0|st;"                     // fileselector for Disk A:
+  "F,Disk B:,1|st;"                     // fileselector for Disk B:
+  "F,ACSI #0:,2|hd+img;"                // fileselector for ACSI 0
+  "F,ACSI #1:,3|hd+img;"                // fileselector for ACSI 1
   "L,Disk prot.:,None|A:|B:|Both,P;";   // Enable/Disable Floppy write protection
 
 static const char settings_form_atari_st[] =
@@ -95,7 +95,7 @@ menu_variable_t variables_atari_st[] = {
 static const char main_form_c64[] =
   "C64Nano,;"                           // main form has no parent
   // --------
-  "F,Floppy 8:,0|.d64;"                 // fileselector for Floppy 8:
+  "F,Floppy 8:,0|d64+g64;"              // fileselector for Floppy 8:
   "B,Reset,R;";                         // system reset
 
 static const char *forms_c64[] = {
@@ -358,8 +358,12 @@ const char *strchrs(const char *str, char *chrs) {
 
 // get the n'th substring in colon separated string
 static char *menu_get_str(menu_t *menu, const char *s, int n) {
-  while(n--) s = strchr(s, ',')+1;   // skip n substrings
-
+  while(n--) {
+    s = strchr(s, ',');   // skip n substrings
+    if(!s) return NULL;
+    s = s + 1;
+  }
+    
   const char *sub = strchrs(s, ";,");
   if(!sub)
     strcpy(menu->buffer, s);
@@ -373,14 +377,27 @@ static char *menu_get_str(menu_t *menu, const char *s, int n) {
 
 // get the n'th char in colon separated string
 static char menu_get_chr(menu_t *menu, const char *s, int n) {
-  while(n--) s = strchr(s, ',')+1;   // skip n substrings
+  while(n--) {
+    s = strchr(s, ',');   // skip n substrings
+    if(!s) return '\0';
+    s = s + 1;
+  }
   return s[0];
 }
 
 // get the n'th substring in | separated string in a colon string
 static char *menu_get_substr(menu_t *menu, const char *s, int n, int m) {
-  while(n--) s = strchr(s, ',')+1;   // skip n substrings
-  while(m--) s = strchr(s, '|')+1;   // skip m subsubstrings
+  while(n--) {
+    s = strchr(s, ',');   // skip n substrings
+    if(!s) return NULL;
+    s = s + 1;
+  }
+  
+  while(m--) {
+    s = strchr(s, '|');   // skip m subsubstrings
+    if(!s) return NULL;
+    s = s + 1;
+  }
 
   const char *sub = strchrs(s, ";,|");
   strncpy(menu->buffer, s, sub-s);  // copy characters
@@ -391,16 +408,19 @@ static char *menu_get_substr(menu_t *menu, const char *s, int n, int m) {
   
 static int menu_get_int(menu_t *menu, const char *s, int n) {
   char *str = menu_get_str(menu, s, n);
+  if(!str) return(-1);  
   return atoi(str);
 }
 
 static int menu_get_subint(menu_t *menu, const char *s, int n, int m) {
   char *str = menu_get_substr(menu, s, n, m);
+  if(!str) return(-1);
   return atoi(str);
 }
 
 static int menu_variable_get(menu_t *menu, const char *s) {
   char id = menu_get_chr(menu, s, MENU_ENTRY_INDEX_VARIABLE);
+  if(id == -1) return -1;
 
   for(int i=0;menu->vars[i].id;i++)
     if(menu->vars[i].id == id)
@@ -411,6 +431,7 @@ static int menu_variable_get(menu_t *menu, const char *s) {
 
 static void menu_variable_set(menu_t *menu, const char *s, int val) {
   char id = menu_get_chr(menu, s, MENU_ENTRY_INDEX_VARIABLE);
+  if(id == -1) return;
   
   for(int i=0;menu->vars[i].id;i++) {
     if(menu->vars[i].id == id) {
@@ -587,19 +608,20 @@ static void menu_fileselector(menu_t *menu, int event) {
   const static char *s;
   static int parent;
   static int drive;
-  static char ext[5];   // extension to filter for
+  static char exts[16];  // max 16 bytes for the ext string
   
   if(event == FSEL_INIT) {
     // init
     s = menu->forms[menu->form];
     for(int i=0;i<menu->entry;i++) s = strchr(s, ';')+1;
 
-    strcpy(ext, menu_get_substr(menu, s, 2, 1));
-    
+    // copy extensions
+    strcpy(exts, menu_get_substr(menu, s, 2, 1));
+
     // scan files
     drive = menu_get_subint(menu, s, 2, 0);
     
-    dir = sdc_readdir(drive, NULL, ext);
+    dir = sdc_readdir(drive, NULL, exts);
 
     menu->entry = 1;               // start by highlighting first file entry
     menu->entries = dir->len + 1;  // incl. title
@@ -659,7 +681,7 @@ static void menu_fileselector(menu_t *menu, int event) {
 	  
 	  menu->entry = 1;               // start by highlighting '..'
 	  menu->offset = 0;
-	  dir = sdc_readdir(drive, entry->name, ext);	
+	  dir = sdc_readdir(drive, entry->name, exts);	
 	  menu->entries = dir->len + 1;  // incl. title
 	  
 	  // prev is still valid, since sdc_readdir doesn't free the old string when going
