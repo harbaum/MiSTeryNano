@@ -31,6 +31,7 @@ struct usbh_bus *usbh_bus0;   // global, so the usb core has access to it
 static struct usb_config {
   osd_t *osd;  
   spi_t *spi;
+  unsigned js_map;   // map of joysticks
   
   struct xbox_info_S {
     int index;
@@ -41,6 +42,7 @@ static struct usb_config {
     SemaphoreHandle_t sem;
     TaskHandle_t task_handle;    
     unsigned char last_state;
+    unsigned char js_index;
   } xbox_info[CONFIG_USBHOST_MAX_XBOX_CLASS];
     
   struct hid_info_S {
@@ -60,6 +62,7 @@ static struct usb_config {
       struct { } mouse;
       struct {
 	unsigned char last_state;
+	unsigned char js_index;
       } joystick;
     };
   } hid_info[CONFIG_USBHOST_MAX_HID_CLASS];
@@ -103,13 +106,15 @@ void kbd_num2joy(struct hid_info_S *hid, char state, unsigned char code) {
   static unsigned char kbd_joy_state_last = 0;
   
   // mapping:
-  // keycode 55 = KP * = selects port
   // keycode 5a = KP 2 = down
   // keycode 5c = KP 4 = left
   // keycode 5e = KP 6 = right
   // keycode 60 = KP 8 = up
   // keycode 62 = KP 0 = fire
-
+  // keycode 63 = KP . and delete = 2nd trigger button
+  // keycode 44 = F11 = Restore Key
+  // keycode 4b = Page Up = Tape Play Key
+  
   if(state == 0)
     // start parsing a new set of keys
     kbd_joy_state = 0;
@@ -120,7 +125,9 @@ void kbd_num2joy(struct hid_info_S *hid, char state, unsigned char code) {
     if(code == 0x5a) kbd_joy_state |= 0x04;
     if(code == 0x60) kbd_joy_state |= 0x08;
     if(code == 0x62) kbd_joy_state |= 0x10;
-    if(code == 0x55) kbd_joy_state |= 0x20;
+    if(code == 0x63) kbd_joy_state |= 0x20;
+    if(code == 0x44) kbd_joy_state |= 0x40;
+    if(code == 0x4b) kbd_joy_state |= 0x80;
   } else if(state == 2) {
     // submit if state has changed
     if(kbd_joy_state != kbd_joy_state_last) {
@@ -326,13 +333,13 @@ void joystick_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
 
   if(joy != hid->joystick.last_state) {  
     hid->joystick.last_state = joy;
-    printf("JOY: %02x\r\n", joy);
+    printf("JOY%d: %02x\r\n", hid->joystick.js_index, joy);
   
     spi_t *spi = hid->usb->spi;  
     spi_begin(spi);
     spi_tx_u08(spi, SPI_TARGET_HID);
     spi_tx_u08(spi, SPI_HID_JOYSTICK);
-    spi_tx_u08(spi, 0);
+    spi_tx_u08(spi, hid->joystick.js_index);
     spi_tx_u08(spi, joy);
     spi_end(spi);
   }
@@ -352,7 +359,7 @@ void rii_joy_parse(struct hid_info_S *hid, unsigned char *buffer) {
   spi_begin(spi);
   spi_tx_u08(spi, SPI_TARGET_HID);
   spi_tx_u08(spi, SPI_HID_JOYSTICK);
-  spi_tx_u08(spi, 0);
+  spi_tx_u08(spi, 0);  // Rii joystick always report as joystick 0
   spi_tx_u08(spi, b);
   spi_end(spi);
 }
@@ -399,9 +406,14 @@ static void usbh_update(struct usb_config *usb) {
     }
     
     else if(!usb->hid_info[i].class && usb->hid_info[i].state != STATE_NONE) {
-      printf("LOST %d\r\n", i);
+      printf("HID LOST %d\r\n", i);
       vTaskDelete( usb->hid_info[i].task_handle );
       usb->hid_info[i].state = STATE_NONE;
+
+      if(usb->hid_info[i].report.type == REPORT_TYPE_JOYSTICK) {
+	printf("Joystick %d gone\r\n", usb->hid_info[i].joystick.js_index);
+	usb->js_map &= ~(1<<usb->hid_info[i].joystick.js_index);
+      }
     }
   }
 
@@ -425,9 +437,12 @@ static void usbh_update(struct usb_config *usb) {
     }
     
     else if(!usb->xbox_info[i].class && usb->xbox_info[i].state != STATE_NONE) {
-      printf("LOST %d\r\n", i);
+      printf("XBOX %d\r\n", i);
       vTaskDelete( usb->xbox_info[i].task_handle );
       usb->xbox_info[i].state = STATE_NONE;
+      
+      printf("Joystick %d gone\r\n", usb->xbox_info[i].js_index);
+      usb->js_map &= ~(1<<usb->xbox_info[i].js_index);
     }
   }
 
@@ -512,18 +527,18 @@ static void xbox_parse(struct xbox_info_S *xbox) {
   // submit if state has changed
   if(state != xbox->last_state) {
     
-      printf("XBOX Joy: %02x\r\n", state);
+    printf("XBOX Joy%d: %02x\r\n", xbox->js_index, state);
   
-      spi_t *spi = xbox->usb->spi;  
-      spi_begin(spi);
-      spi_tx_u08(spi, SPI_TARGET_HID);
-      spi_tx_u08(spi, SPI_HID_JOYSTICK);
-      spi_tx_u08(spi, 0);
-      spi_tx_u08(spi, state);
-      spi_end(spi);
-      
-      xbox->last_state = state;
-    }
+    spi_t *spi = xbox->usb->spi;  
+    spi_begin(spi);
+    spi_tx_u08(spi, SPI_TARGET_HID);
+    spi_tx_u08(spi, SPI_HID_JOYSTICK);
+    spi_tx_u08(spi, xbox->js_index);
+    spi_tx_u08(spi, state);
+    spi_end(spi);
+    
+    xbox->last_state = state;
+  }
 }
 
 // each HID client gets itws own thread which submits urbs
@@ -595,6 +610,16 @@ static void usbh_hid_thread(void *argument) {
 	printf("NEW HID device %d\r\n", i);
 	usb->hid_info[i].state = STATE_RUNNING; 
 
+	if( usb->hid_info[i].report.type == REPORT_TYPE_JOYSTICK ) {	
+	  // search for free joystick slot
+	  usb->hid_info[i].joystick.js_index = 0;
+	  while(usb->js_map & (1<<usb->hid_info[i].joystick.js_index))
+	    usb->hid_info[i].joystick.js_index++;
+	  
+	  printf("  -> joystick %d\r\n", usb->hid_info[i].joystick.js_index);
+	  usb->js_map |= 1<<usb->hid_info[i].joystick.js_index;
+	}
+	  
 #if 0
 	// set report protocol 1 if subclass != BOOT_INTF
 	// CherryUSB doesn't report the InterfaceSubClass (HID_BOOT_INTF_SUBCLASS)
@@ -629,6 +654,14 @@ static void usbh_hid_thread(void *argument) {
 	printf("NEW XBOX device %d\r\n", i);
 	usb->xbox_info[i].state = STATE_RUNNING; 
 
+	// search for free joystick slot
+	usb->xbox_info[i].js_index = 0;
+	while(usb->js_map & (1<<usb->xbox_info[i].js_index))
+	  usb->xbox_info[i].js_index++;
+
+	printf("  -> joystick %d\r\n", usb->xbox_info[i].js_index);
+	usb->js_map |= 1<<usb->xbox_info[i].js_index;
+	
 	// setup urb
 	usbh_int_urb_fill(&usb->xbox_info[i].class->intin_urb,
 			  usb->xbox_info[i].class->hport,
@@ -662,6 +695,7 @@ void usb_host(spi_t *spi) {
   
   usb_config.spi = spi;
   usb_config.osd = NULL;
+  usb_config.js_map = 0;   // no joysticks yet
   
   // initialize all HID info entries
   for(int i=0;i<CONFIG_USBHOST_MAX_HID_CLASS;i++) {

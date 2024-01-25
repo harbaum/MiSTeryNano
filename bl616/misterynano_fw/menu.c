@@ -96,14 +96,45 @@ static const char main_form_c64[] =
   "C64Nano,;"                           // main form has no parent
   // --------
   "F,Floppy 8:,0|d64+g64;"              // fileselector for Floppy 8:
+  "S,System,1;"                         // System submenu is form 1
+  "S,Settings,2;"                       // Settings submenu is form 2
   "B,Reset,R;";                         // system reset
 
+static const char system_form_c64[] =
+  "System,0|2;"                         // return to form 0, entry 2
+  // --------
+  "L,Disk prot.:,None|8:,P;"            // Enable/Disable Floppy write protection
+  "L,Joyport 1:,DB9|USB|Numpad|DS2|Mouse|Off,Q;" // Joystick port 1 mapping
+  "L,Joyport 2:,DB9|USB|Numpad|DS2|Mouse|Off,J;" // Joystick port 2 mapping, default c64 Joystick port
+  "L,REU:,Off|512k|2MB|16MB,V;"                   // none, 512K, 2MB (512KB wrap), 16MB
+  "B,Cold Boot,B;"; 
+// DualShock Analog Paddle 
+// Video Standard,PAL,NTSC
+// Turbo,Off,Software Switchable,On
+// Reset Disk Drive
+
+static const char settings_form_c64[] =
+  "Settings,0|3;"                       // return to form 0, entry 3
+  // --------
+  "L,Screen:,Normal|Wide,W;"
+  "L,Scanlines:,None|25%|50%|75%,S;"
+  "L,Volume:,Mute|33%|66%|100%,A;"
+  "B,Save settings,S;";
+
 static const char *forms_c64[] = {
-  main_form_c64
+  main_form_c64,
+  system_form_c64,
+  settings_form_c64
 };
 
 menu_variable_t variables_c64[] = {
+  { 'V', { 0 }},    // default REU = disabled
   { 'S', { 0 }},    // default scanlines = none
+  { 'A', { 2 }},    // default volume = 66%
+  { 'W', { 0 }},    // default normal (4:3) screen
+  { 'P', { 0 }},    // default no floppy write protected
+  { 'Q', { 0 }},    // Joystick port 1 mapping
+  { 'J', { 1 }},    // Joystick port 2 mapping, DB9
   { '\0',{ 0 }}
 };
 
