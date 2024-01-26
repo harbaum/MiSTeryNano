@@ -13,25 +13,33 @@ module video (
 	      input [3:0]  g_in,
 	      input [3:0]  b_in,
 
-              input [15:0] audio_l,
-              input [15:0] audio_r,
+          input [15:0] audio_l,
+          input [15:0] audio_r,
 
           // (spi) interface from MCU
-              input	   mcu_start,
-              input	   mcu_osd_strobe,
-              input [7:0]  mcu_data,
+          input	   mcu_start,
+          input	   mcu_osd_strobe,
+          input [7:0]  mcu_data,
 
           // values that can be configure by the user via osd          
-              input [1:0]  system_scanlines,
-              input [1:0]  system_volume,
+          input [1:0]  system_scanlines,
 	      input	   system_wide_screen, 	      
-		 
+
+          // digital video out for lcd
+          output lcd_clk,
+          output lcd_hs_n,
+          output lcd_vs_n,
+          output lcd_de,
+          output [4:0] lcd_r,
+          output [5:0] lcd_g,
+          output [4:0] lcd_b,
+
 	      // hdmi/tdms
 	      output	   tmds_clk_n,
 	      output	   tmds_clk_p,
 	      output [2:0] tmds_d_n,
 	      output [2:0] tmds_d_p  
-	      );
+);
    
 wire clk_pixel_x5;   // 160 MHz HDMI clock
 wire clk_pixel;      // at 800x576@50Hz the pixel clock is 32 MHz
@@ -134,21 +142,57 @@ osd_u8g2 osd_u8g2 (
         .b_out(osd_b)
 );   
 
+assign lcd_clk = clk_pixel;
+assign lcd_hs_n = sd_hs_n;
+assign lcd_vs_n = sd_vs_n;
+assign lcd_r = osd_r[5:1];
+assign lcd_g = osd_g;
+assign lcd_b = osd_b[5:1];
+
+reg [9:0] hcnt;   // max 1023
+reg [9:0] vcnt;   // max 626
+
+// generate lcd de signal
+// this needs adjustment for each ST video mode
+localparam XNTSC = 10'd920;
+localparam YNTSC = 10'd990;
+localparam XPAL  = 10'd920;
+localparam YPAL  = 10'd930;
+localparam XHIGH = 10'd955;
+localparam YHIGH = 10'd0;
+
+assign lcd_de = (hcnt < 10'd800) && (vcnt < 10'd480);
+
+// after scandoubler (with dim lines), ste video is 3*6 bits
+// lcd r and b are only 5 bits, so there may be some color
+// offset
+   
+always @(posedge clk_pixel) begin
+   reg 	     last_vs_n, last_hs_n;
+
+   last_hs_n <= lcd_hs_n;   
+
+   // rising edge/end of hsync
+   if(lcd_hs_n && !last_hs_n) begin
+      hcnt <= 
+        (vmode == 2'd0)?XNTSC:
+        (vmode == 2'd1)?XPAL:
+                        XHIGH;
+      
+      last_vs_n <= lcd_vs_n;   
+      if(lcd_vs_n && !last_vs_n) begin
+        vcnt <=
+        (vmode == 2'd0)?YNTSC:
+        (vmode == 2'd1)?YPAL:
+                        YHIGH;
+      end else
+	vcnt <= vcnt + 10'd1;    
+   end else
+      hcnt <= hcnt + 10'd1;    
+end
+
 wire [2:0] tmds;
 wire tmds_clock;
-
-// scale audio for valume by signed division
-wire [15:0] audio_vol_l = 
-    (system_volume == 2'd0)?16'd0:
-    (system_volume == 2'd1)?{ {2{audio_l[15]}}, audio_l[15:2] }:
-    (system_volume == 2'd2)?{ audio_l[15], audio_l[15:1] }:
-    audio_l;
-
-wire [15:0] audio_vol_r = 
-    (system_volume == 2'd0)?16'd0:
-    (system_volume == 2'd1)?{ {2{audio_r[15]}}, audio_r[15:2] }:
-    (system_volume == 2'd2)?{ audio_r[15], audio_r[15:1] }:
-    audio_r;
 
 hdmi #(
     .AUDIO_RATE(48000), .AUDIO_BIT_WIDTH(16),
@@ -158,7 +202,7 @@ hdmi #(
   .clk_pixel_x5(clk_pixel_x5),
   .clk_pixel(clk_pixel),
   .clk_audio(clk_audio),
-  .audio_sample_word( { audio_vol_l, audio_vol_r } ),
+  .audio_sample_word( { audio_l, audio_r } ),
   .tmds(tmds),
   .tmds_clock(tmds_clock),
 
