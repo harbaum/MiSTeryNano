@@ -7,9 +7,11 @@
 
 module misterynano (
   input			clk,
-
   input			reset, // S2
   input			user, // S1
+
+  output        clk32,
+  output        por,
 
   output [5:0]	leds_n,
   output		ws2812,
@@ -34,11 +36,15 @@ module misterynano (
   output [1:0]	sdram_ba,    // two banks
   output [3:0]	sdram_dqm,   // 32/4
 
+  // MCU interface
+  input         mcu_sclk,
+  input         mcu_csn,
+  output        mcu_miso,     // from FPGA to MCU
+  input         mcu_mosi,     // from MCU to FPGA
+  output        mcu_intn,
+
   // generic IO, used for mouse/joystick/...
   inout [7:0]	io,
-
-  // interface to external BL616/M0S
-  inout [5:0]	m0s,
 
   // MIDI
   input			midi_in,
@@ -49,13 +55,6 @@ module misterynano (
   inout			sd_cmd, // MOSI
   inout [3:0]	sd_dat, // 0: MISO
 	   
-  // SPI connection to ob-board BL616. By default an external
-  // connection is used with a M0S Dock
-  input			spi_sclk, // in... 
-  input			spi_csn, // in (io?)
-  output		spi_dir, // out
-  input			spi_dat, // in (io?)
-
   // scandoubled digital video to be
   // used with lcds
   output lcd_clk,
@@ -82,6 +81,7 @@ assign leds_n = ~leds;
 wire sys_resetn;
 
 wire clk_32;
+assign clk32 = clk_32;
 
 // connect to ws2812 led
 wire [23:0] ws2812_color;
@@ -111,6 +111,7 @@ wire       system_tos_slot;
 wire pll_lock_hdmi;
 wire pll_lock_flash;   
 wire pll_lock = pll_lock_hdmi && pll_lock_flash;
+assign por = !pll_lock;
 
 wire clk_flash;      // 100.265 MHz SPI flash clock
 flash_pll flash_pll (
@@ -219,30 +220,6 @@ wire [14:0] audio_r;
 
 // ----------------- SPI input parser ----------------------
 
-// map output data onto both spi outputs
-wire spi_io_dout;
-assign spi_dir = spi_io_dout;   // spi_dir has filter cap and pulldown any basically doesn't work
-assign m0s[5:0] = { 5'bzzzzz, spi_io_dout };
-
-// by default the internal SPI is being used. Once there is
-// a select from the external spi, then the connection is
-// being switched
-reg spi_ext;
-always @(posedge clk_32) begin
-    if(!pll_lock)
-        spi_ext = 1'b0;
-    else begin
-        if(m0s[2] == 1'b0)
-            spi_ext = 1'b1;
-    end
-end
-
-// switch between internal SPI connected to the on-board bl616
-// or to the external one possibly connected to a M0S Dock
-wire spi_io_din = spi_ext?m0s[1]:spi_dat;
-wire spi_io_ss = spi_ext?m0s[2]:spi_csn;
-wire spi_io_clk = spi_ext?m0s[3]:spi_sclk;
-
 wire       mcu_sys_strobe;
 wire       mcu_hid_strobe;
 wire       mcu_osd_strobe;
@@ -260,10 +237,10 @@ mcu_spi mcu (
         .clk(clk_32),
         .reset(!pll_lock),
 
-        .spi_io_ss(spi_io_ss),
-        .spi_io_clk(spi_io_clk),
-        .spi_io_din(spi_io_din),
-        .spi_io_dout(spi_io_dout),
+        .spi_io_ss(mcu_csn),
+        .spi_io_clk(mcu_sclk),
+        .spi_io_din(mcu_mosi),
+        .spi_io_dout(mcu_miso),
 
         .mcu_sys_strobe(mcu_sys_strobe),
         .mcu_hid_strobe(mcu_hid_strobe),
@@ -376,7 +353,7 @@ sysctrl sysctrl (
         .system_port_mouse(system_port_mouse),
         .system_tos_slot(system_tos_slot),
         
-        .int_out_n(m0s[4]),
+        .int_out_n(mcu_intn),
         .int_in( { 4'b0000, sdc_int, 1'b0, hid_int, 1'b0 }),
         .int_ack( int_ack ),
 

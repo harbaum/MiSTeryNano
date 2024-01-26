@@ -281,7 +281,7 @@ module HD63701_SCI
 	 
 	    // sync rx clock on first falling data (start bit)
 	    last_rx <= rx;
-	    rxcnt <= rxcnt + 1;	 
+	    rxcnt <= rxcnt + 8'd1;	 
 	    if((rxsr == 9'h1ff) && last_rx && !rx)
 	       rxcnt <= 8'h00;	    
 
@@ -321,7 +321,7 @@ module HD63701_SCI
 	    end
 	 end
 
-	 txcnt <= txcnt + 1;
+	 txcnt <= txcnt + 12'd1;
 	 if(txcnt == 12'haff) txcnt <= 12'h000;
 	 if(txcnt[7:0] == 8'hff) begin
 	    // if txsr == 0x000 then no transmission is in progress
@@ -395,7 +395,7 @@ always @( posedge mcu_clx2 or posedge mcu_rst ) begin
 		rmc <= 8'h40;
 	end
 	else begin
-		frc <= frc+1;
+		frc <= frc+17'd1;
 		if (mcu_wr) begin
 			case (mcu_ad)
 				16'h08: oce <= mcu_do[3];

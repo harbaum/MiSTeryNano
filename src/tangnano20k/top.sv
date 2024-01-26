@@ -58,7 +58,10 @@ module top(
   output		spi_dir, // out
   input			spi_dat, // in (io?)
 
+  // spi_dir has a low-pass filter which makes it impossible to use
+  // we thus use jtag_tck as a replacement
 //  output    jtag_tck,
+//  input     jtag_tdi,    // this is being used for interrupt
 
   // hdmi/tdms
   output		tmds_clk_n,
@@ -67,13 +70,62 @@ module top(
   output [2:0]	tmds_d_p
 );
 
-// assign jtag_tck = spi_dir;
+wire clk32;
+wire por;
+
+// TODO: move tmds encoder here
+
+// On the Tang Nano 20k we support two different MCU setups. Once uses the internal
+// BL616 of the Tang Nano 20k and one uses an external M0S Dock. The MCU control signals
+// of the MiSTeryNano have to be connected to both of them. This is simple for signals
+// being sent out of the FPGA as these are simply connected to both MCU ports (even
+// if no M0S may actually be connected at all). But for the input signals coming from
+// the MCUs, the active one needs to be selected. This happens here.
+
+// map output data onto both spi outputs
+wire spi_io_dout;
+wire spi_intn;
+
+// intn and dout are outputs driven by the FPGA to the MCU
+// din, ss and clk are inputs coming from the MCU
+
+assign spi_dir = spi_io_dout;   // spi_dir has filter cap and pulldown any basically doesn't work
+// assign jtag_tck = spi_io_dout;
+assign m0s[5:0] = { 1'bz, spi_intn, 3'bzzz, spi_io_dout };
+// assign jtag_tdi = spi_intn;
+
+// by default the internal SPI is being used. Once there is
+// a select from the external spi, then the connection is
+// being switched
+reg spi_ext;
+always @(posedge clk32) begin
+    if(por)
+        spi_ext = 1'b0;
+    else begin
+        // spi_ext is activated once the m0s pins 2 (ss or csn) is
+        // driven low by the m0s dock. This means that a m0s dock
+        // is connected and the FPGA switches its inputs to the
+        // m0s. Until then the inputs of the internal BL616 are
+        // being used.
+        if(m0s[2] == 1'b0)
+            spi_ext = 1'b1;
+    end
+end
+
+// switch between internal SPI connected to the on-board bl616
+// or to the external one possibly connected to a M0S Dock
+wire spi_io_din = spi_ext?m0s[1]:spi_dat;
+wire spi_io_ss = spi_ext?m0s[2]:spi_csn;
+wire spi_io_clk = spi_ext?m0s[3]:spi_sclk;
 
 misterynano misterynano (
   .clk   ( clk ),
-
   .reset ( reset ),
   .user  ( user ),
+
+  // clock and power on reset from system
+  .clk32 ( clk32 ),
+  .por   ( por ),  
 
   .leds_n ( leds_n ),
   .ws2812 ( ws2812 ),
@@ -101,8 +153,12 @@ misterynano misterynano (
   // generic IO, used for mouse/joystick/...
   .io ( io ),
 
-  // interface to external BL616/M0S
-  .m0s ( m0s ),
+  // mcu interface
+  .mcu_sclk ( spi_io_clk  ),
+  .mcu_csn  ( spi_io_ss   ),
+  .mcu_miso ( spi_io_dout ), // from FPGA to MCU
+  .mcu_mosi ( spi_io_din  ), // from MCU to FPGA
+  .mcu_intn ( spi_intn    ),
 
   // MIDI
   .midi_in  ( midi_in  ),
@@ -113,13 +169,6 @@ misterynano misterynano (
   .sd_cmd ( sd_cmd ), // MOSI
   .sd_dat ( sd_dat ), // 0: MISO
 	   
-  // SPI connection to ob-board BL616. By default an external
-  // connection is used with a M0S Dock
-  .spi_sclk ( spi_sclk ), // in... 
-  .spi_csn  ( spi_csn  ), // in (io?)
-  .spi_dir  ( spi_dir  ), // out
-  .spi_dat  ( spi_dat  ), // in (io?)
-
   // scandoubled digital video to be
   // used with lcds
   .lcd_clk  ( ),
