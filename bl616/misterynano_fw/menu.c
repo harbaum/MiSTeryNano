@@ -106,14 +106,16 @@ static const char system_form_c64[] =
   "L,Disk prot.:,None|8:,P;"            // Enable/Disable Floppy write protection
   "L,Joyport 1:,DB9|USB J1|Numpad|DS2|Mouse|Off,Q;" // Joystick port 1 mapping
   "L,Joyport 2:,DB9|USB J1|Numpad|DS2|Mouse|Off,J;" // Joystick port 2 mapping, default c64 Joystick port
-  "L,REU:,Off|512k,V;"                  // REU enable
-  "L,c1541 ROM:,Dolphin|Factory|SpeedD|JiffD,D;"  // c1541 compatibility
+  "L,REU 1750:,Off|On,V;"                  // REU enable
+  "L,c1541 ROM:,Dolphin|Factory|SpeedD|JiffyD,D;"  // c1541 compatibility
+  "L,Audio filter:,On|Off,U;"
+  "L,Turbo mode:,Off|C128|Smart,X;"
+	"L,Turbo speed:,2x|3x|4x,Y;"
   "B,c1541 Reset,Z;" 
   "B,Cold Boot,B;"; 
 // DualShock Analog Paddle 
 // Video Standard,PAL,NTSC
 // Turbo,Off,Software Switchable,On
-// Reset Disk Drive
 
 static const char settings_form_c64[] =
   "Settings,0|3;"                       // return to form 0, entry 3
@@ -130,14 +132,17 @@ static const char *forms_c64[] = {
 };
 
 menu_variable_t variables_c64[] = {
-  { 'D', { 0 }},    // default c1541 dos = DolphinDos
-  { 'V', { 0 }},    // default REU = disabled
+  { 'U', { 1 }},    // default sid filter = active
+  { 'X', { 0 }},    // default turbo mode = off
+  { 'Y', { 0 }},    // default turbo speed = 2x
+  { 'D', { 0 }},    // default c1541 dos = dolphin
+  { 'V', { 0 }},    // default reu = disabled
   { 'S', { 0 }},    // default scanlines = none
   { 'A', { 2 }},    // default volume = 66%
   { 'W', { 0 }},    // default normal (4:3) screen
   { 'P', { 0 }},    // default no floppy write protected
-  { 'Q', { 0 }},    // Joystick port 1 mapping
-  { 'J', { 1 }},    // Joystick port 2 mapping, DB9
+  { 'Q', { 3 }},    // Joystick port 1 mapping, DS2
+  { 'J', { 0 }},    // Joystick port 2 mapping, DB9
   { '\0',{ 0 }}
 };
 
@@ -376,7 +381,11 @@ menu_t *menu_init(u8g2_t *u8g2)
   // and cold reset the core, just in case ...
   sys_set_val(menu.osd->spi, 'R', 3);
   sys_set_val(menu.osd->spi, 'R', 0);
-  
+
+  // c64 core, c1541 reset at power-up
+  sys_set_val(menu.osd->spi, 'Z', 1);
+  sys_set_val(menu.osd->spi, 'Z', 0);
+
   return &menu;
 }
 
@@ -849,6 +858,7 @@ static void menu_select(menu_t *menu) {
     // c64 core, c1541 reset
     if(id == 'Z') {    
       sys_set_val(menu->osd->spi, 'Z', 1);
+      sys_set_val(menu->osd->spi, 'Z', 0);
       osd_enable(menu->osd, OSD_INVISIBLE);  // hide OSD
     }
   } break;
