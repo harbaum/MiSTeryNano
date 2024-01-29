@@ -69,7 +69,6 @@
         <File path="src/misc/video_analyzer.v" type="file.verilog" enable="1"/>
         <File path="src/misterynano.sv" type="file.verilog" enable="1"/>
         <File path="src/tangnano20k/flash_dspi.v" type="file.verilog" enable="1"/>
-        <File path="src/tangnano20k/gowin_clkdiv/gowin_clkdiv.v" type="file.verilog" enable="1"/>
         <File path="src/tangnano20k/gowin_dpb/fdc_dpram.v" type="file.verilog" enable="1"/>
         <File path="src/tangnano20k/gowin_dpb/sector_dpram.v" type="file.verilog" enable="1"/>
         <File path="src/tangnano20k/gowin_rpll/flash_pll.v" type="file.verilog" enable="1"/>
