@@ -382,10 +382,11 @@ menu_t *menu_init(u8g2_t *u8g2)
   sys_set_val(menu.osd->spi, 'R', 3);
   sys_set_val(menu.osd->spi, 'R', 0);
 
-  // c64 core, c1541 reset at power-up
-  sys_set_val(menu.osd->spi, 'Z', 1);
-  sys_set_val(menu.osd->spi, 'Z', 0);
-
+  if(core_id == CORE_ID_C64) {  // c64 core, c1541 reset at power-up
+    sys_set_val(menu.osd->spi, 'Z', 1);
+    sys_set_val(menu.osd->spi, 'Z', 0);
+  }
+    
   return &menu;
 }
 
@@ -483,12 +484,14 @@ static void menu_variable_set(menu_t *menu, const char *s, int val) {
       // also set this in the core
       sys_set_val(menu->osd->spi, id, val);
 
-      // trigger cold reset if memory, chipset or TOS have been changed a
-      // video change will also trigger a reset, but that's handled by
-      // the ST itself
-      if((id == 'C') || (id == 'M') || (id == 'T')) {
-	sys_set_val(menu->osd->spi, 'R', 3);
-	sys_set_val(menu->osd->spi, 'R', 0);
+      if(core_id == CORE_ID_ATARI_ST) {      
+	// trigger cold reset if memory, chipset or TOS have been changed a
+	// video change will also trigger a reset, but that's handled by
+	// the ST itself
+	if((id == 'C') || (id == 'M') || (id == 'T')) {
+	  sys_set_val(menu->osd->spi, 'R', 3);
+	  sys_set_val(menu->osd->spi, 'R', 0);
+	}
       }
     }
   }
