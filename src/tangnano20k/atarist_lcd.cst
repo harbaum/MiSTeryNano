@@ -1,14 +1,3 @@
-
-// digital video
-//IO_LOC "tmds_clk_p" 33,34;
-//IO_PORT "tmds_clk_p" PULL_MODE=NONE DRIVE=8;
-//IO_LOC "tmds_d_p[0]" 35,36;
-//IO_PORT "tmds_d_p[0]" PULL_MODE=NONE DRIVE=8;
-//IO_LOC "tmds_d_p[1]" 37,38;
-//IO_PORT "tmds_d_p[1]" PULL_MODE=NONE DRIVE=8;
-//IO_LOC "tmds_d_p[2]" 39,40;
-//IO_PORT "tmds_d_p[2]" PULL_MODE=NONE DRIVE=8;
-
 // the six on-board leds
 IO_LOC "leds_n[5]" 20;
 IO_PORT "leds_n[5]" PULL_MODE=UP DRIVE=8 IO_TYPE=LVCMOS33;
@@ -22,6 +11,10 @@ IO_LOC "leds_n[1]" 16;
 IO_PORT "leds_n[1]" PULL_MODE=UP DRIVE=8 IO_TYPE=LVCMOS33;
 IO_LOC "leds_n[0]" 15;
 IO_PORT "leds_n[0]" PULL_MODE=UP DRIVE=8 IO_TYPE=LVCMOS33;
+
+// ws2812 led
+IO_LOC "ws2812" 79;
+IO_PORT "ws2812" DRIVE=8 IO_TYPE=LVCMOS33;
 
 // SPI flash
 IO_LOC "mspi_wp" 57;
@@ -94,6 +87,16 @@ IO_LOC "lcd_b[3]" 28;
 IO_PORT "lcd_b[3]" IO_TYPE=LVCMOS33 DRIVE=24;
 IO_LOC "lcd_b[4]" 27;
 IO_PORT "lcd_b[4]" IO_TYPE=LVCMOS33 DRIVE=24;
+
+// audio amplifier
+IO_LOC "pa_en" 51;
+IO_PORT "pa_en" PULL_MODE=UP DRIVE=8 IO_TYPE=LVCMOS33;
+IO_LOC "hp_din" 54;
+IO_PORT "hp_din" PULL_MODE=UP DRIVE=8 IO_TYPE=LVCMOS33;
+IO_LOC "hp_ws" 55;
+IO_PORT "hp_ws" PULL_MODE=UP DRIVE=8 IO_TYPE=LVCMOS33;
+IO_LOC "hp_bck" 56;
+IO_PORT "hp_bck" PULL_MODE=UP DRIVE=8 IO_TYPE=LVCMOS33;
 
 // connections to the BL616 controller
 IO_LOC "spi_csn" 86;

@@ -36,16 +36,14 @@ module top(
   output [1:0]	O_sdram_ba, // two banks
   output [3:0]	O_sdram_dqm, // 32/4
 
-  // generic IO, used for mouse/joystick/...
-  inout [7:0]	io,
+  output        lcd_dclk,
+  output        lcd_hs, //lcd horizontal synchronization
+  output        lcd_vs, //lcd vertical synchronization        
+  output        lcd_de, //lcd data enable     
+  output [4:0]  lcd_r,  //lcd red
+  output [5:0]  lcd_g,  //lcd green
+  output [4:0]  lcd_b,  //lcd blue
 
-  // interface to external BL616/M0S
-  inout [5:0]	m0s,
-
-  // MIDI
-  input			midi_in,
-  output		midi_out,
-		   
   // SD card slot
   output		sd_clk,
   inout			sd_cmd, // MOSI
@@ -58,21 +56,32 @@ module top(
   output		spi_dir, // out
   input			spi_dat, // in (io?)
 
+  // audio
+  output       hp_bck,
+  output       hp_ws,
+  output       hp_din,
+  output       pa_en
+
   // spi_dir has a low-pass filter which makes it impossible to use
   // we thus use jtag_tck as a replacement
 //  output    jtag_tck,
 //  input     jtag_tdi,    // this is being used for interrupt
-
-  // hdmi/tdms
-  output		tmds_clk_n,
-  output		tmds_clk_p,
-  output [2:0]	tmds_d_n,
-  output [2:0]	tmds_d_p
 );
 
+// the lcd variante does not need the 160MHz hdmi clock. Thus a pll
+// generates the 32MHz directly
 wire clk32;
-wire pll_lock_hdmi;
-wire por; 
+wire pll_lock_32m;
+
+pll_32m pll_32m (
+    .clkout( clk32 ),
+    .lock(pll_lock_32m),
+    .clkin(clk)
+);
+
+// power on reset is returned by misterynano whenever all plls
+// are up and running.
+wire por;
 
 // On the Tang Nano 20k we support two different MCU setups. Once uses the internal
 // BL616 of the Tang Nano 20k and one uses an external M0S Dock. The MCU control signals
@@ -90,52 +99,27 @@ wire spi_intn;
 
 assign spi_dir = spi_io_dout;   // spi_dir has filter cap and pulldown any basically doesn't work
 // assign jtag_tck = spi_io_dout;
-assign m0s[5:0] = { 1'bz, spi_intn, 3'bzzz, spi_io_dout };
 // assign jtag_tdi = spi_intn;
-
-// by default the internal SPI is being used. Once there is
-// a select from the external spi, then the connection is
-// being switched
-reg spi_ext;
-always @(posedge clk32) begin
-    if(por)
-        spi_ext = 1'b0;
-    else begin
-        // spi_ext is activated once the m0s pins 2 (ss or csn) is
-        // driven low by the m0s dock. This means that a m0s dock
-        // is connected and the FPGA switches its inputs to the
-        // m0s. Until then the inputs of the internal BL616 are
-        // being used.
-        if(m0s[2] == 1'b0)
-            spi_ext = 1'b1;
-    end
-end
 
 // switch between internal SPI connected to the on-board bl616
 // or to the external one possibly connected to a M0S Dock
-wire spi_io_din = spi_ext?m0s[1]:spi_dat;
-wire spi_io_ss = spi_ext?m0s[2]:spi_csn;
-wire spi_io_clk = spi_ext?m0s[3]:spi_sclk;
+wire spi_io_din = spi_dat;
+wire spi_io_ss = spi_csn;
+wire spi_io_clk = spi_sclk;
+
+wire r0, b0;  // lowest color bits to be left unconnected
 
 wire [15:0] audio [2];
-wire        vreset;
-wire [1:0]  vmode;
-wire        vwide;
-
-wire [5:0]  r;
-wire [5:0]  g;
-wire [5:0]  b;
 
 misterynano misterynano (
-  .clk   ( clk ),           // 27MHz clock uses e.g. for the flash pll
-
+  .clk   ( clk ),    // 27 Mhz in (e.g. for further PLLs)
   .reset ( reset ),
   .user  ( user ),
 
   // clock and power on reset from system
-  .clk32 ( clk32 ),         // 32 Mhz system clock input
-  .pll_lock_main( pll_lock_hdmi),
-  .por   ( por ),           // output. True while not all PLLs locked
+  .clk32 ( clk32 ),
+  .pll_lock_main( pll_lock_32m ),
+  .por   ( por ),  
 
   .leds_n ( leds_n ),
   .ws2812 ( ws2812 ),
@@ -161,7 +145,7 @@ misterynano misterynano (
   .sdram_dqm   ( O_sdram_dqm    ), // 32/4
 
   // generic IO, used for mouse/joystick/...
-  .io ( io ),
+  .io ( ),
 
   // mcu interface
   .mcu_sclk ( spi_io_clk  ),
@@ -171,52 +155,58 @@ misterynano misterynano (
   .mcu_intn ( spi_intn    ),
 
   // MIDI
-  .midi_in  ( midi_in  ),
-  .midi_out ( midi_out ),
+  .midi_in  ( 1'b1 ),
+  .midi_out ( ),
 		   
   // SD card slot
   .sd_clk ( sd_clk ),
   .sd_cmd ( sd_cmd ), // MOSI
   .sd_dat ( sd_dat ), // 0: MISO
-
-  .vreset ( vreset ),
-  .vmode  ( vmode  ),
-  .vwide  ( vwide  ),
 	   
   // scandoubled digital video to be
   // used with lcds
-  .lcd_clk  ( ),
-  .lcd_hs_n ( ),
-  .lcd_vs_n ( ),
-  .lcd_de   ( ),
-  .lcd_r    ( r ),
-  .lcd_g    ( g ),
-  .lcd_b    ( b ),
+  .lcd_clk  ( lcd_dclk ),
+  .lcd_hs_n ( lcd_hs   ),
+  .lcd_vs_n ( lcd_vs   ),
+  .lcd_de   ( lcd_de   ),       // LCD is RGB 565
+  .lcd_r    ( { lcd_r, r0 } ),  // leave lcb unconnected
+  .lcd_g    ( lcd_g    ),
+  .lcd_b    ( { lcd_b, b0 } ),  // -"- 
 
   // digital 16 bit audio output
   .audio ( audio )
 );
 
-video2hdmi video2hdmi (
-    .clk      ( clk      ),       // 27 Mhz clock in
-    .clk_32   ( clk32    ),       // 32 Mhz clock out
-    .pll_lock ( pll_lock_hdmi ),  // output clock is stable
+/* ------------------- audio processing --------------- */
 
-    .vreset ( vreset ),
-    .vmode ( vmode ),
-    .vwide ( vwide ),
+assign pa_en = 1'b1;   // enable amplifier
 
-    .r( r ),
-    .g( g ),
-    .b( b ),
-    .audio ( audio ),
-    
-    // tdms to be used with hdmi or dvi
-    .tmds_clk_n ( tmds_clk_n ),
-    .tmds_clk_p ( tmds_clk_p ),
-    .tmds_d_n   ( tmds_d_n   ),
-    .tmds_d_p   ( tmds_d_p   )
-);
+// generate 48k * 32 = 1536kHz audio clock. TODO: this is too
+// imprecise
+reg clk_audio;
+reg [7:0] aclk_cnt;
+always @(posedge clk32) begin
+    if(aclk_cnt < 32000000 / 1536000 / 2 -1)
+        aclk_cnt <= aclk_cnt + 8'd1;
+    else begin
+        aclk_cnt <= 8'd0;
+        clk_audio <= ~clk_audio;
+    end
+end
+
+// count 32 bits
+reg [4:0] audio_bit_cnt;
+always @(posedge clk_audio) begin
+    if(por)
+        audio_bit_cnt <= 5'd0;
+    else 
+        audio_bit_cnt <= audio_bit_cnt + 5'd1;
+end
+
+// generate i2s signals
+assign hp_bck = clk_audio;
+assign hp_ws = por?1'b0:audio_bit_cnt[4];
+assign hp_din = por?1'b0:audio[hp_ws][audio_bit_cnt[3:0]];
 
 endmodule
 
