@@ -104,9 +104,11 @@ static const char system_form_c64[] =
   "System,0|2;"                         // return to form 0, entry 2
   // --------
   "L,Disk prot.:,None|8:,P;"            // Enable/Disable Floppy write protection
-  "L,Joyport 1:,DB9|USB|Numpad|DS2|Mouse|Off,Q;" // Joystick port 1 mapping
-  "L,Joyport 2:,DB9|USB|Numpad|DS2|Mouse|Off,J;" // Joystick port 2 mapping, default c64 Joystick port
-  "L,REU:,Off|512k|2MB|16MB,V;"                   // none, 512K, 2MB (512KB wrap), 16MB
+  "L,Joyport 1:,DB9|USB J1|Numpad|DS2|Mouse|Off,Q;" // Joystick port 1 mapping
+  "L,Joyport 2:,DB9|USB J1|Numpad|DS2|Mouse|Off,J;" // Joystick port 2 mapping, default c64 Joystick port
+  "L,REU:,Off|512k,V;"                  // REU enable
+  "L,c1541 ROM:,Dolphin|Factory|SpeedD|JiffD,D;"  // c1541 compatibility
+  "B,c1541 Reset,Z;" 
   "B,Cold Boot,B;"; 
 // DualShock Analog Paddle 
 // Video Standard,PAL,NTSC
@@ -128,6 +130,7 @@ static const char *forms_c64[] = {
 };
 
 menu_variable_t variables_c64[] = {
+  { 'D', { 0 }},    // default c1541 dos = DolphinDos
   { 'V', { 0 }},    // default REU = disabled
   { 'S', { 0 }},    // default scanlines = none
   { 'A', { 2 }},    // default volume = 66%
@@ -840,6 +843,12 @@ static void menu_select(menu_t *menu) {
     if(id == 'B') {    
       sys_set_val(menu->osd->spi, 'R', 3);
       sys_set_val(menu->osd->spi, 'R', 0);
+      osd_enable(menu->osd, OSD_INVISIBLE);  // hide OSD
+    }
+
+    // c64 core, c1541 reset
+    if(id == 'Z') {    
+      sys_set_val(menu->osd->spi, 'Z', 1);
       osd_enable(menu->osd, OSD_INVISIBLE);  // hide OSD
     }
   } break;

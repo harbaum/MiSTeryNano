@@ -36,7 +36,7 @@ Done
 ### Step 2: Installation of the TOS image(s)
 
 Most TOS images should be supported by now. This has been tested with
-US TOS 1.00 (60 Hz NTSC video) and german TOS 1.04 and TOS 2.06 (both
+US TOS 1.00 (60 Hz NTSC video) and german TOS 1.04 and TOS 1.62 (both
 50 Hz PAL video).
 
 This needs to be flashed into the flash ROM of the Tang Nano 20k at
@@ -71,7 +71,7 @@ For STE mode a STE capable TOS needs to be flashed to a different flash
 location:
 
 ```
-$ openFPGALoader --external-flash -o 1310720 tos206de.img
+$ openFPGALoader --external-flash -o 1310720 tos162de.img
 ```
 
 This TOS image is always use when STE mode is selected.
