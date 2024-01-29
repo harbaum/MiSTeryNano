@@ -6,12 +6,13 @@
 */
 
 module misterynano (
-  input			clk,
+  input         clk,
   input			reset, // S2
   input			user, // S1
 
-  output        clk32,
-  output        por,
+  input         clk32,
+  input         pll_lock_main,
+  output        por,            // power on-reset (! all PLL's locked)
 
   output [5:0]	leds_n,
   output		ws2812,
@@ -61,18 +62,16 @@ module misterynano (
   output lcd_hs_n,
   output lcd_vs_n,
   output lcd_de,
-  output [4:0] lcd_r,
+  output [5:0] lcd_r,
   output [5:0] lcd_g,
-  output [4:0] lcd_b,
+  output [5:0] lcd_b,
+
+  output vreset,
+  output [1:0] vmode,
+  output vwide,
 
   // digital 16 bit audio output
-  output [15:0] audio [2],
-
-  // tdms to be used with hdmi or dvi
-  output		tmds_clk_n,
-  output		tmds_clk_p,
-  output [2:0]	tmds_d_n,
-  output [2:0]	tmds_d_p
+  output [15:0] audio [2]
 );
 
 wire [5:0] leds;      // control leds with positive logic
@@ -80,13 +79,10 @@ assign leds_n = ~leds;
 
 wire sys_resetn;
 
-wire clk_32;
-assign clk32 = clk_32;
-
 // connect to ws2812 led
 wire [23:0] ws2812_color;
 ws2812 ws2812_inst (
-    .clk(clk_32),
+    .clk(clk32),
     .color(ws2812_color),
     .data(ws2812)
 );
@@ -108,9 +104,8 @@ wire       system_tos_slot;
    
 /* -------------- clock generation --------------- */
 
-wire pll_lock_hdmi;
 wire pll_lock_flash;   
-wire pll_lock = pll_lock_hdmi && pll_lock_flash;
+wire pll_lock = pll_lock_main && pll_lock_flash;
 assign por = !pll_lock;
 
 wire clk_flash;      // 100.265 MHz SPI flash clock
@@ -131,7 +126,7 @@ wire flash_ready;
 
 flash flash (
     .clk(clk_flash),
-    .resetn(pll_lock),
+    .resetn(!por),
     .ready(flash_ready),
     .busy(),
 
@@ -167,7 +162,7 @@ wire refresh;
 // by scrambling the RAM address space a little bit on every rising edge
 // of system_reset[1] 
 reg [1:0] ram_scramble;
-always @(posedge clk_32) begin
+always @(posedge clk32) begin
     reg cb_D;
     cb_D <= system_reset[1];
 
@@ -181,8 +176,8 @@ wire [22:1] ram_a_s = { ram_a[22:5],
     ram_a[2:1] };
 
 sdram sdram (
-        .clk(clk_32),
-        .reset_n(pll_lock),
+        .clk(clk32),
+        .reset_n(!por),
         .ready(ram_ready),          // ram is done initialzing
 
         // interface to sdram chip
@@ -234,8 +229,8 @@ wire [7:0] osd_data_out = 8'h55;
 wire [7:0] sdc_data_out;
    
 mcu_spi mcu (
-        .clk(clk_32),
-        .reset(!pll_lock),
+        .clk(clk32),
+        .reset(por),
 
         .spi_io_ss(mcu_csn),
         .spi_io_clk(mcu_sclk),
@@ -306,8 +301,8 @@ wire hid_int;
 wire hid_iack = int_ack[1];
 
 hid hid (
-        .clk(clk_32),
-        .reset(!pll_lock),
+        .clk(clk32),
+        .reset(por),
 
          // interface to receive user data from MCU (mouse, kbd, ...)
         .data_in_strobe(mcu_hid_strobe),
@@ -331,8 +326,8 @@ wire sdc_int;
 wire sdc_iack = int_ack[3];
 
 sysctrl sysctrl (
-        .clk(clk_32),
-        .reset(!pll_lock),
+        .clk(clk32),
+        .reset(por),
 
          // interface to send and receive generic system control
         .data_in_strobe(mcu_sys_strobe),
@@ -390,9 +385,9 @@ wire [8:0] acsi_sd_byte_addr = sd_byte_index;
 
 
 atarist atarist (
-    .clk_32(clk_32),
-    .resb(!system_reset[0] && !reset && pll_lock && ram_ready && flash_ready && sd_ready),       // user reset button
-    .porb(pll_lock),
+    .clk_32(clk32),
+    .resb(!system_reset[0] && !reset && !por && ram_ready && flash_ready && sd_ready),       // user reset button
+    .porb(!por),
 
     // video output
     .hsync_n(st_hs_n),
@@ -488,18 +483,22 @@ wire [15:0] audio_vol_r =
 assign audio[0] = audio_vol_l;
 assign audio[1] = audio_vol_r;
 
+assign vwide = system_wide_screen;
+
 video video (
-	     .clk(clk),
-	     .clk_32(clk_32),
-	     .pll_lock(pll_lock_hdmi),
+	     .clk_pixel(clk32),
+         .por(por),
 
          .mcu_start(mcu_start),
          .mcu_osd_strobe(mcu_osd_strobe),
          .mcu_data(mcu_data_out),
 
          // values that can be configure by the user via osd
-	     .system_wide_screen(system_wide_screen),
          .system_scanlines(system_scanlines),
+
+         // video control signal output
+         .vreset ( vreset ),    // reached top/left pixel
+         .vmode ( vmode ),      // atari st video mode
 
 	     .hs_in_n(st_hs_n),
 	     .vs_in_n(st_vs_n),
@@ -519,13 +518,7 @@ video video (
          .lcd_de(lcd_de),
          .lcd_r(lcd_r),
          .lcd_g(lcd_g),
-         .lcd_b(lcd_b),
-
-         // tmds output to hdmi/dvi
-	     .tmds_clk_n(tmds_clk_n),
-	     .tmds_clk_p(tmds_clk_p),
-	     .tmds_d_n(tmds_d_n),
-	     .tmds_d_p(tmds_d_p)
+         .lcd_b(lcd_b)
 	     );
    
 // -------------------------- SD card -------------------------------
@@ -536,8 +529,8 @@ assign leds[5:4] = system_leds[1:0];
 // image_size != 0 means card is initialized. Wait up to 2 seconds for this before
 // booting the ST
 reg [31:0] sd_wait;
-always @(posedge clk_32) begin
-    if(!pll_lock) begin
+always @(posedge clk32) begin
+    if(por) begin
         sd_wait <= 32'd0;
         sd_ready <= 1'b0;
     end else begin
@@ -572,8 +565,8 @@ end
 sd_card #(
     .CLK_DIV(3'd1)                    // for 32 Mhz clock
 ) sd_card (
-    .rstn(pll_lock),                  // rstn active-low, 1:working, 0:reset
-    .clk(clk_32),                     // clock
+    .rstn(!por),                     // rstn active-low, 1:working, 0:reset
+    .clk(clk32),                     // clock
   
     // SD card signals
     .sdclk(sd_clk),
