@@ -88,7 +88,7 @@ in the OSD. The addresses for all TOS are:
 
 ### Step 3: Installation of the MCU firmware
 
-Release V1.2.0 of MiSTeryNano expects a [M0S
+Releases V1.2.0 and later of MiSTeryNano expects a [M0S
 Dock](https://wiki.sipeed.com/hardware/en/maixzero/m0s/m0s.html) to be
 used for USB connectivity and system control. The
 ```misterynano_fw_bl616_cfg.ini``` and ```misterynano_fw_bl616.bin```

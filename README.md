@@ -73,18 +73,24 @@ The installation of MiSTeryNano on the Tang Nano 20k using can be done
 using a [Linux PC](INSTALLATION_LINUX.md) or a
 [Windows PC](INSTALLATION_WINDOWS.md).
 
-#### Changing the floppy disk image
+## Wiring
 
-You can use the on-screen-display (OSD) to change disk images. The F12
-key will open the on screen display.
+The properly flashed Tang Nano 20K will boot into the Atari ST desktop
+even without anything else connected. But in order to use the system
+you need at least a keyboard and most likely also a mouse. These are
+usually connected through the M0S Dock.
 
-### Wiring
-
-Since version 1.2.3 the MiSTeryNano exposes physical
-MIDI IN and OUT to be used with appropriate interfacing
-(output driver + resistors, input via optocoupler).
-
-A digital DB9 joystick can be attached directly to the board.
+Additional connections exist for a physical DB9 joystick or
+Atari ST mouse and MIDI IN and OUT. The usage of these pins
+is optional. They can just be left unconnected. A joystick may
+then be connected via USB instead.
 
 ![MiSTeryNano wiring](images/wiring_spi_midi.png)
+
+## Usage
+
+The MiSTeryNano is mainly controlled through a on-screen-display (OSD)
+overlaying the main Atari ST screen. The OSD is opened using the F12
+key. It can then be used to select floppy and harddisk images and to
+configure the running system.
 

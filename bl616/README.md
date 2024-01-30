@@ -14,6 +14,8 @@ This directory contains:
 
 ## BL616 on the Tang Nano 20K
 
+**Important update**: It seems some newer Tang Nano 20K come with some kind of secure boot enabled. These won't run any custom firmware. Flashing them with a new firmware causes them to get stuck in the bootloader, essentially bricking the device. This also cannot be undone by flashing the original firmware variant provided here.
+
 The Tang Nano 20k comes with an ```UPDATE``` button which can be used to update or replace the firmware of the BL616. It is thus possible to repurpose the BL616 to provide custom functionality in conjunction with the FPGA.
 
 There are several ways to cope with the fact that the on-board BL616 is responsible for updating the FPGA:
