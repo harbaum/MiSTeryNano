@@ -491,12 +491,12 @@ static void menu_variable_set(menu_t *menu, const char *s, int val) {
 	  sys_set_val(menu->osd->spi, 'R', 3);
 	  sys_set_val(menu->osd->spi, 'R', 0);
 	}
+      }
   // c64 core, trigger c1541 reset in case DOS ROM changed
   if((core_id == CORE_ID_C64) && (id == 'D')) {  
     sys_set_val(menu->osd->spi, 'Z', 1);
     sys_set_val(menu->osd->spi, 'Z', 0);
   }
-      }
     }
   }
 }
