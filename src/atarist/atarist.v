@@ -4,19 +4,19 @@
 
 module atarist (
 	// System clocks / reset / settings
-	input wire 		   clk_32,
-	input wire 		   porb,
-	input wire 		   resb,
+	input wire		   clk_32,
+	input wire		   porb,
+	input wire		   resb,
 
 	// Video output
-	input wire 		   mono_detect, // low for monochrome
+	input wire		   mono_detect, // low for monochrome
 	output wire [3:0]  r,
 	output wire [3:0]  g,
 	output wire [3:0]  b,
-	output wire 	   hsync_n,
-	output wire 	   vsync_n,
-	output wire 	   de,
-	output wire 	   blank_n,
+	output wire		   hsync_n,
+	output wire		   vsync_n,
+	output wire		   de,
+	output wire		   blank_n,
 
     // keyboard, mouse and joystick(s)
 	output wire [14:0] keyboard_matrix_out,
@@ -29,53 +29,62 @@ module atarist (
 	output wire [14:0] audio_mix_r,
 
     // floppy disk/sd card interface
-	output [31:0] 	   sd_lba,
-	output [1:0] 	   sd_rd,
-	output [1:0] 	   sd_wr,
-	input 			   sd_ack,
-	input [8:0] 	   sd_buff_addr,
-	input [7:0] 	   sd_dout,
-	output [7:0] 	   sd_din,
-	input 			   sd_dout_strobe,
+	output [31:0]	   sd_lba,
+	output [1:0]	   sd_rd,
+	output [1:0]	   sd_wr,
+	input			   sd_ack,
+	input [8:0]		   sd_buff_addr,
+	input [7:0]		   sd_dout,
+	output [7:0]	   sd_din,
+	input			   sd_dout_strobe,
 
 	// generic sd card services
-	input [3:0] 	   sd_img_mounted,
-	input [31:0] 	   sd_img_size,
+	input [3:0]		   sd_img_mounted,
+	input [31:0]	   sd_img_size,
 
     // ACSI disk/sd card interface
-	output [1:0] 	   acsi_rd_req,
-	output [1:0] 	   acsi_wr_req,
-	output [31:0] 	   acsi_sd_lba,
- 	input 			   acsi_sd_done,
- 	input 			   acsi_sd_busy,
-	input 			   acsi_sd_rd_byte_strobe,
-	input [7:0] 	   acsi_sd_rd_byte,
-	output [7:0] 	   acsi_sd_wr_byte,
-	input [8:0] 	   acsi_sd_byte_addr,
+	output [1:0]	   acsi_rd_req,
+	output [1:0]	   acsi_wr_req,
+	output [31:0]	   acsi_sd_lba,
+ 	input			   acsi_sd_done,
+ 	input			   acsi_sd_busy,
+	input			   acsi_sd_rd_byte_strobe,
+	input [7:0]		   acsi_sd_rd_byte,
+	output [7:0]	   acsi_sd_wr_byte,
+	input [8:0]		   acsi_sd_byte_addr,
 
 	// MIDI UART
-	input wire 		   midi_rx,
-	output wire 	   midi_tx,
+	input wire		   midi_rx,
+	output wire		   midi_tx,
+
+	// printer signals
+	output			   parallel_strobe_oe,
+	input			   parallel_strobe_in, 
+	output			   parallel_strobe_out, 
+	output			   parallel_data_oe,
+	input [7:0]		   parallel_data_in,
+	output [7:0]	   parallel_data_out,
+	input			   parallel_busy, 
 
     // enable STE and extra 8MB ram
-    input wire 		   ste,
-    input wire 		   enable_extra_ram,
-    input wire 		   blitter_en,
-    input [1:0] 	   floppy_protected, // floppy A/B write protect
-	input 			   cubase_en,
+    input wire		   ste,
+    input wire		   enable_extra_ram,
+    input wire		   blitter_en,
+    input [1:0]		   floppy_protected, // floppy A/B write protect
+	input			   cubase_en,
 				
 	// DRAM interface
-	output wire 	   ram_ras_n,
-	output wire 	   ram_cash_n,
-	output wire 	   ram_casl_n,
-	output wire 	   ram_we_n,
-	output wire 	   ram_ref,
+	output wire		   ram_ras_n,
+	output wire		   ram_cash_n,
+	output wire		   ram_casl_n,
+	output wire		   ram_we_n,
+	output wire		   ram_ref,
 	output wire [23:1] ram_addr,
 	output wire [15:0] ram_data_in,
 	input wire [15:0]  ram_data_out,
 
 	// TOS ROM interface
-	output wire 	   rom_n, 
+	output wire		   rom_n, 
 	output wire [23:1] rom_addr,
 	input wire [15:0]  rom_data_out,
 				
@@ -432,18 +441,11 @@ wire xsint_delayed = xsint_delay[7];
 // mfp io7 is mono_detect which in ste is xor'd with the dma sound irq
 wire mfp_io7 = mono_detect ^ (ste?xsint:1'b0);
 
-// fake fixed printer signals. TODO: export
-wire parallel_in_strobe = 1'b0;     // TODO: check polarity   
-wire parallel_out_strobe;
-wire parallel_printer_busy = 1'b0;  // TODO: check polarity   
-wire [7:0] parallel_in = 8'd0;  
-wire [7:0] parallel_out;  
-   
 wire acsi_irq, fdc_irq;
 
 // inputs 1,2 and 6 are outputs from an MC1489 serial receiver
-wire  [7:0] mfp_gpio_in = {mfp_io7, 1'b1, !(acsi_irq | fdc_irq), !acia_irq, blitter_irq_n, 2'b11, !parallel_printer_busy};
-wire  [1:0] mfp_timer_in = {de, ste?xsint_delayed:!parallel_printer_busy};
+wire  [7:0] mfp_gpio_in = {mfp_io7, 1'b1, !(acsi_irq | fdc_irq), !acia_irq, blitter_irq_n, 2'b11, !parallel_busy};
+wire  [1:0] mfp_timer_in = {de, ste?xsint_delayed:!parallel_busy};
 wire  [7:0] mfp_data_out;
 wire        mfp_dtack;
 
@@ -584,15 +586,21 @@ always @(posedge clk_32) begin
 	cnt <= cnt + 1'd1;
 end
 
-wire [7:0] port_b_in = parallel_in;
-wire [7:0] port_a_in = { port_a_out[7:6], parallel_in_strobe, port_a_out[4:0] };
+wire [7:0] port_a_in = { port_a_out[7:6], parallel_strobe_in, port_a_out[4:0] };
 wire [7:0] port_a_out;
+wire	   port_a_oe;
+   
+wire [7:0] port_b_in = parallel_data_in;
 wire [7:0] port_b_out;
+wire	   port_b_oe;   
+   
 wire       floppy_side = port_a_out[0];
 wire [1:0] floppy_sel = port_a_out[2:1];
 
-assign     parallel_out_strobe = port_a_out[5];
-assign     parallel_out = port_b_out;
+assign  parallel_strobe_oe = port_a_oe;   
+assign  parallel_strobe_out = port_a_out[5];
+assign  parallel_data_oe = port_b_oe;
+assign  parallel_data_out = port_b_out;
 
 assign ym_audio_out_r = ym_audio_out_l;   
 assign snd_data_oe_l = !(sndir == 1'b0 && sndcs == 1'b1); 
@@ -616,11 +624,11 @@ jt49_bus jt49_bus (
  
  .IOA_in(port_a_in),
  .IOA_out(port_a_out),
- .IOA_oe(),
+ .IOA_oe(port_a_oe),
  
  .IOB_in(port_b_in),
  .IOB_out(port_b_out),
- .IOB_oe()
+ .IOB_oe(port_b_oe)
  );
   
 // audio output processing

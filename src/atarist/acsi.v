@@ -31,7 +31,8 @@ module acsi (
 	// SD card interface
 	output reg [1:0]  data_rd_req, // request read from sd card
 	output reg [1:0]  data_wr_req, // request write to sd card
-	output reg [31:0] data_lba, // lba requested
+	output reg [31:0] data_lba,   // lba requested
+	output reg [15:0] data_length, // length requested
 	input 			  data_busy, // sd card has accepted request and now loads sector
 	input 			  data_done, // sd card ready in reply to req
 	input 			  dma_done, // DMA transfer finished
@@ -110,12 +111,19 @@ wire [2:0] lun = cmd_parameter[1][7:5];
 wire [31:0] lba6 = { 10'd0, cmd_parameter[1][4:0], 
         cmd_parameter[2], cmd_parameter[3] };
 
+// length parameter for read(6), write(6) and seek(6)
+wire [15:0] length6 = { 8'h00, cmd_parameter[4] };
+
 // lba parameter for read(10), write(10) and seek(10)
 wire [31:0] lba10 = { cmd_parameter[2], cmd_parameter[3],
         cmd_parameter[4], cmd_parameter[5] };     
 
-// lba matching the current command
+// length parameter for read(10), write(10) and seek(10)
+wire [15:0] length10 = { cmd_parameter[7], cmd_parameter[8] };
+
+// lba and length matching the current command
 wire [31:0] lba = (cmd_code[7:4] == 4'h2)?lba10:lba6;
+wire [15:0] length = (cmd_code[7:4] == 4'h2)?length10:length6;
   
 // This is 16 bit since the MiSTery core's DMA uses 
 // 16 bit FIFOs which we directly write data into
@@ -132,15 +140,31 @@ localparam REPLY_START = 7'd0;
 reg [6:0] reply_cnt;
 assign reply_req = (reply_cnt != REPLY_IDLE);   
 
-// command reply length in 16 words. read and write a handled
-// seperately
-wire [6:0] cmd_reply_len =
+// we have two sizes to care for: The size that may be specified in the
+// request and the actual reply size the device can offer. We return whatever
+// is lower
+
+wire [6:0] cmd_req_len = 
 		   (cmd_code == 8'h03)?cmd_parameter[4][7:1]:  // request sense
 		   (cmd_code == 8'h12)?cmd_parameter[4][7:1]:  // inquiry
-		   (cmd_code == 8'h1a)?7'd8:                   // mode sense
-		   (cmd_code == 8'h25)?7'd4:                   // read capacity
-		   (cmd_code == 8'ha0)?7'd8:                   // report luns
 		   7'd0;   
+   
+// command reply length in 16 words. read and write a handled
+// seperately
+wire [6:0] cmd_max_reply_len =
+		   (cmd_code == 8'h03)?7'd9:  // request sense
+		   (cmd_code == 8'h12)?7'd18: // inquiry
+		   (cmd_code == 8'h1a)?7'd8:  // mode sense
+		   (cmd_code == 8'h25)?7'd4:  // read capacity
+		   (cmd_code == 8'ha0)?7'd8:  // report luns
+		   7'd0;   
+
+// if a request length was given and if it's smaller than the reply, then
+// only transfer the requested number of words. Otherwise transfer the
+// max reply len
+wire [6:0] cmd_reply_len =
+		   ((cmd_req_len != 0) && (cmd_req_len < cmd_max_reply_len))?cmd_req_len:
+		   cmd_max_reply_len;   
 		   
 // ------------------------ Request Sense ----------------------------
 
@@ -152,22 +176,22 @@ wire [15:0] request_sense_reply_data =
 			(reply_cnt == 6)?{ asc[current_target], 8'h00 }:
 			16'h0000;
 
-// ------------------------ Report LINs ----------------------------
+// ------------------------ Report LUNs ----------------------------
 wire [15:0] report_luns_reply_data = 
             (reply_cnt == 1)?16'h0008:   // LUN list length = 8 bytes
 			16'h0000;
 
 // ------------------------ Inquiry ----------------------------
 
-// string sent in inquiry reply bytes 8 to 32
-wire [7:0] inquiry_str [24];
-assign inquiry_str = "MiSTery Harddisk Image  ";
+// string sent in inquiry reply bytes 8 to 36
+wire [7:0] inquiry_str [28];
+assign inquiry_str = "MiSTery Harddisk Image  4711";
 
 wire [15:0] inquiry_reply_data =
 		   ((reply_cnt == 0) && (lun != 3'd0))?16'h7f00:
 		   (reply_cnt == 1)?16'h0100:                        // SCSI-1
 		   (reply_cnt == 2)?{cmd_parameter[4]-8'd5,8'h00}:   // length
-		   (reply_cnt >= 4 && reply_cnt < 16)?{ inquiry_str[2*(reply_cnt-4)],
+		   (reply_cnt >= 4 && reply_cnt < 18)?{ inquiry_str[2*(reply_cnt-4)],
 												inquiry_str[2*(reply_cnt-4)+1]}:
 		   16'h0000;
 
@@ -333,6 +357,7 @@ always @(posedge clk) begin
                                 // target can only be 0 or 1
                                 data_rd_req[current_target] <= 1'b1;
                                 data_lba <= lba;
+ 							    data_length <= length;							   
                                 led_counter[current_target] <= 16'hffff;
                             end
 					   					   
@@ -342,6 +367,7 @@ always @(posedge clk) begin
                                 // device. target can only be 0 or 1
                                 data_wr_req[current_target] <= 1'b1;
                                 data_lba <= lba;
+ 							    data_length <= length;							   
                                 led_counter[current_target] <= 16'hffff;
                             end
 					   

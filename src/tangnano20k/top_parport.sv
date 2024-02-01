@@ -36,16 +36,14 @@ module top(
   output [1:0]	O_sdram_ba, // two banks
   output [3:0]	O_sdram_dqm, // 32/4
 
-  // generic IO, used for mouse/joystick/...
-  inout [7:0]	io,
-
+  // IO used for parallel port
+  inout			pp_strobe,
+  inout [7:0]	pp_data,
+  input			pp_busy,
+		   
   // interface to external BL616/M0S
   inout [5:0]	m0s,
 
-  // MIDI
-  input			midi_in,
-  output		midi_out,
-		   
   // SD card slot
   output		sd_clk,
   inout			sd_cmd, // MOSI
@@ -126,6 +124,17 @@ wire [5:0]  r;
 wire [5:0]  g;
 wire [5:0]  b;
 
+// drive parallel port signals as required
+wire		pp_strobe_oe;
+wire		pp_strobe_in = pp_strobe;   
+wire		pp_strobe_out;
+assign pp_strobe = pp_strobe_oe?pp_strobe_out:1'bz;
+   
+wire		pp_data_oe;   
+wire [7:0]  pp_data_in = pp_data;  
+wire [7:0]  pp_data_out;
+assign pp_data = pp_data_oe?pp_data_out:8'bzzzzzzzz;
+
 misterynano misterynano (
   .clk   ( clk ),           // 27MHz clock uses e.g. for the flash pll
 
@@ -161,7 +170,7 @@ misterynano misterynano (
   .sdram_dqm   ( O_sdram_dqm    ), // 32/4
 
   // generic IO, used for mouse/joystick/...
-  .io ( io ),
+  .io ( ),
 
   // mcu interface
   .mcu_sclk ( spi_io_clk  ),
@@ -170,18 +179,18 @@ misterynano misterynano (
   .mcu_mosi ( spi_io_din  ), // from MCU to FPGA
   .mcu_intn ( spi_intn    ),
 
-  // parallel port
-  .parallel_strobe_oe ( ),
-  .parallel_strobe_in ( 1'b1 ), 
-  .parallel_strobe_out ( ), 
-  .parallel_data_oe ( ),
-  .parallel_data_in ( 8'h00 ),
-  .parallel_data_out ( ),
-  .parallel_busy ( 1'b1 ), 
-		   
   // MIDI
-  .midi_in  ( midi_in  ),
-  .midi_out ( midi_out ),
+  .midi_in  ( 1'b1 ),
+  .midi_out (      ),
+
+  // parallel port
+  .parallel_strobe_oe ( pp_strobe_oe ),
+  .parallel_strobe_in ( pp_strobe_in ), 
+  .parallel_strobe_out ( pp_strobe_out ), 
+  .parallel_data_oe ( pp_data_oe ),
+  .parallel_data_in ( pp_data_in ),
+  .parallel_data_out ( pp_data_out ),
+  .parallel_busy ( pp_busy ), 
 		   
   // SD card slot
   .sd_clk ( sd_clk ),
@@ -193,7 +202,8 @@ misterynano misterynano (
   .vwide  ( vwide  ),
 	   
   // scandoubled digital video to be
-  // used with lcds
+  // used with lcds. For HDMI only the color signals are
+  // being used. The timing is (also) generated inside hdmi
   .lcd_clk  ( ),
   .lcd_hs_n ( ),
   .lcd_vs_n ( ),

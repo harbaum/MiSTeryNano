@@ -6,13 +6,13 @@
 */
 
 module misterynano (
-  input         clk,
+  input			clk,
   input			reset, // S2
   input			user, // S1
 
-  input         clk32,
-  input         pll_lock_main,
-  output        por,            // power on-reset (! all PLL's locked)
+  input			clk32,
+  input			pll_lock_main,
+  output		por, // power on-reset (! all PLL's locked)
 
   output [5:0]	leds_n,
   output		ws2812,
@@ -28,25 +28,34 @@ module misterynano (
   // "Magic" port names that the gowin compiler connects to the on-chip SDRAM
   output		sdram_clk,
   output		sdram_cke,
-  output		sdram_cs_n,  // chip select
+  output		sdram_cs_n, // chip select
   output		sdram_cas_n, // columns address select
   output		sdram_ras_n, // row address select
   output		sdram_wen_n, // write enable
-  inout [31:0]	sdram_dq,    // 32 bit bidirectional data bus
-  output [10:0]	sdram_addr,  // 11 bit multiplexed address bus
-  output [1:0]	sdram_ba,    // two banks
-  output [3:0]	sdram_dqm,   // 32/4
+  inout [31:0]	sdram_dq, // 32 bit bidirectional data bus
+  output [10:0]	sdram_addr, // 11 bit multiplexed address bus
+  output [1:0]	sdram_ba, // two banks
+  output [3:0]	sdram_dqm, // 32/4
 
   // MCU interface
-  input         mcu_sclk,
-  input         mcu_csn,
-  output        mcu_miso,     // from FPGA to MCU
-  input         mcu_mosi,     // from MCU to FPGA
-  output        mcu_intn,
+  input			mcu_sclk,
+  input			mcu_csn,
+  output		mcu_miso, // from FPGA to MCU
+  input			mcu_mosi, // from MCU to FPGA
+  output		mcu_intn,
 
   // generic IO, used for mouse/joystick/...
   inout [7:0]	io,
 
+  // the parallel port of the ST only carries few signals
+  output		   parallel_strobe_oe,
+  input			   parallel_strobe_in, 
+  output		   parallel_strobe_out, 
+  output		   parallel_data_oe,
+  input [7:0]	   parallel_data_in,
+  output [7:0]	   parallel_data_out,
+  input			   parallel_busy, 
+ 					
   // MIDI
   input			midi_in,
   output		midi_out,
@@ -58,20 +67,20 @@ module misterynano (
 	   
   // scandoubled digital video to be
   // used with lcds
-  output lcd_clk,
-  output lcd_hs_n,
-  output lcd_vs_n,
-  output lcd_de,
-  output [5:0] lcd_r,
-  output [5:0] lcd_g,
-  output [5:0] lcd_b,
+  output		lcd_clk,
+  output		lcd_hs_n,
+  output		lcd_vs_n,
+  output		lcd_de,
+  output [5:0]	lcd_r,
+  output [5:0]	lcd_g,
+  output [5:0]	lcd_b,
 
-  output vreset,
-  output [1:0] vmode,
-  output vwide,
+  output		vreset,
+  output [1:0]	vmode,
+  output		vwide,
 
   // digital 16 bit audio output
-  output [15:0] audio [2]
+  output [15:0]	audio [2]
 );
 
 wire [5:0] leds;      // control leds with positive logic
@@ -412,6 +421,15 @@ atarist atarist (
     .midi_rx(midi_in),
     .midi_tx(midi_out),
 
+	// parallel port
+    .parallel_strobe_oe  ( parallel_strobe_oe  ),
+    .parallel_strobe_in  ( parallel_strobe_in  ), 
+    .parallel_strobe_out ( parallel_strobe_out ), 
+    .parallel_data_oe    ( parallel_data_oe    ),
+    .parallel_data_in    ( parallel_data_in    ),
+    .parallel_data_out   ( parallel_data_out   ),
+    .parallel_busy       ( parallel_busy       ),
+				 
     // interface to receive image file size/presence
     .sd_img_mounted ( sd_img_mounted ),
     .sd_img_size    ( sd_img_size ),

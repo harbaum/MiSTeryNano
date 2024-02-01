@@ -98,29 +98,42 @@ IO_PORT "hp_ws" PULL_MODE=UP DRIVE=8 IO_TYPE=LVCMOS33;
 IO_LOC "hp_bck" 56;
 IO_PORT "hp_bck" PULL_MODE=UP DRIVE=8 IO_TYPE=LVCMOS33;
 
+// connection to the external BL616/M0S
+IO_LOC "m0s[0]" 71;
+IO_PORT "m0s[0]" PULL_MODE=UP IO_TYPE=LVCMOS33;
+IO_LOC "m0s[1]" 72;
+IO_PORT "m0s[1]" PULL_MODE=UP IO_TYPE=LVCMOS33;
+IO_LOC "m0s[2]" 73;
+IO_PORT "m0s[2]" PULL_MODE=UP IO_TYPE=LVCMOS33;
+IO_LOC "m0s[3]" 74;
+IO_PORT "m0s[3]" PULL_MODE=UP IO_TYPE=LVCMOS33;
+IO_LOC "m0s[4]" 75;
+IO_PORT "m0s[4]" PULL_MODE=UP IO_TYPE=LVCMOS33;
+IO_LOC "m0s[5]" 76;
+IO_PORT "m0s[5]" PULL_MODE=UP IO_TYPE=LVCMOS33;
+
 // connections to the BL616 controller
-IO_LOC "spi_csn" 86;
-IO_PORT "spi_csn" PULL_MODE=UP IO_TYPE=LVCMOS33;
-IO_LOC "spi_sclk" 13;
-IO_PORT "spi_sclk" PULL_MODE=UP IO_TYPE=LVCMOS33;
-IO_LOC "spi_dat" 76;
-IO_PORT "spi_dat" PULL_MODE=UP IO_TYPE=LVCMOS33;
-IO_LOC "spi_dir" 75;
-IO_PORT "spi_dir" PULL_MODE=UP IO_TYPE=LVCMOS33;
+//IO_LOC "spi_csn" 86;
+//IO_PORT "spi_csn" PULL_MODE=UP IO_TYPE=LVCMOS33;
+//IO_LOC "spi_sclk" 13;
+//IO_PORT "spi_sclk" PULL_MODE=UP IO_TYPE=LVCMOS33;
+//IO_LOC "spi_dat" 76;
+//IO_PORT "spi_dat" PULL_MODE=UP IO_TYPE=LVCMOS33;
+//IO_LOC "spi_dir" 75;
+//IO_PORT "spi_dir" PULL_MODE=UP IO_TYPE=LVCMOS33;
+// re-used JTAG pins as spi_dat (above) is not really
+// usable as there are resistors and capacistors that
+// limit the max data rate
+//IO_LOC "jtag_tck" 6;
+//IO_PORT "jtag_tck" IO_TYPE=LVCMOS33 PULL_MODE=UP;
+//IO_LOC "jtag_tdi" 7;
+//IO_PORT "jtag_tdi" IO_TYPE=LVCMOS33 PULL_MODE=UP;
 
 // two on-board buttons
 IO_LOC "user" 88;
 IO_PORT "user" IO_TYPE=LVCMOS33 PULL_MODE=UP;
 IO_LOC "reset" 87;
 IO_PORT "reset" IO_TYPE=LVCMOS33 PULL_MODE=UP;
-
-// re-used JTAG pins as spi_dat (above) is not really
-// usable as there are resistors and capacistors that
-// limit the max data rate
-IO_LOC "jtag_tck" 6;
-IO_PORT "jtag_tck" IO_TYPE=LVCMOS33 PULL_MODE=UP;
-IO_LOC "jtag_tdi" 7;
-IO_PORT "jtag_tdi" IO_TYPE=LVCMOS33 PULL_MODE=UP;
 
 IO_LOC "clk" 4;
 IO_PORT "clk" PULL_MODE=UP;

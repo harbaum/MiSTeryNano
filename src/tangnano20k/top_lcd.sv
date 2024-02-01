@@ -36,36 +36,37 @@ module top(
   output [1:0]	O_sdram_ba, // two banks
   output [3:0]	O_sdram_dqm, // 32/4
 
-  output        lcd_dclk,
-  output        lcd_hs, //lcd horizontal synchronization
-  output        lcd_vs, //lcd vertical synchronization        
-  output        lcd_de, //lcd data enable     
-  output [4:0]  lcd_r,  //lcd red
-  output [5:0]  lcd_g,  //lcd green
-  output [4:0]  lcd_b,  //lcd blue
+  output		lcd_dclk,
+  output		lcd_hs, //lcd horizontal synchronization
+  output		lcd_vs, //lcd vertical synchronization        
+  output		lcd_de, //lcd data enable     
+  output [4:0]	lcd_r, //lcd red
+  output [5:0]	lcd_g, //lcd green
+  output [4:0]	lcd_b, //lcd blue
 
   // SD card slot
   output		sd_clk,
   inout			sd_cmd, // MOSI
   inout [3:0]	sd_dat, // 0: MISO
-	   
+
+  inout [5:0]   m0s,
+		   
   // SPI connection to ob-board BL616. By default an external
   // connection is used with a M0S Dock
-  input			spi_sclk, // in... 
-  input			spi_csn, // in (io?)
-  output		spi_dir, // out
-  input			spi_dat, // in (io?)
-
-  // audio
-  output       hp_bck,
-  output       hp_ws,
-  output       hp_din,
-  output       pa_en
-
+//  input			spi_sclk, // in... 
+//  input			spi_csn, // in (io?)
+//  output		spi_dir, // out
+//  input			spi_dat, // in (io?)
   // spi_dir has a low-pass filter which makes it impossible to use
   // we thus use jtag_tck as a replacement
-//  output    jtag_tck,
-//  input     jtag_tdi,    // this is being used for interrupt
+//  output		jtag_tck,
+//  output		jtag_tdi, // this is being used for interrupt
+
+  // audio
+  output		hp_bck,
+  output		hp_ws,
+  output		hp_din,
+  output		pa_en
 );
 
 // the lcd variante does not need the 160MHz hdmi clock. Thus a pll
@@ -83,29 +84,16 @@ pll_32m pll_32m (
 // are up and running.
 wire por;
 
-// On the Tang Nano 20k we support two different MCU setups. Once uses the internal
-// BL616 of the Tang Nano 20k and one uses an external M0S Dock. The MCU control signals
-// of the MiSTeryNano have to be connected to both of them. This is simple for signals
-// being sent out of the FPGA as these are simply connected to both MCU ports (even
-// if no M0S may actually be connected at all). But for the input signals coming from
-// the MCUs, the active one needs to be selected. This happens here.
-
 // map output data onto both spi outputs
 wire spi_io_dout;
 wire spi_intn;
 
 // intn and dout are outputs driven by the FPGA to the MCU
 // din, ss and clk are inputs coming from the MCU
-
-assign spi_dir = spi_io_dout;   // spi_dir has filter cap and pulldown any basically doesn't work
-// assign jtag_tck = spi_io_dout;
-// assign jtag_tdi = spi_intn;
-
-// switch between internal SPI connected to the on-board bl616
-// or to the external one possibly connected to a M0S Dock
-wire spi_io_din = spi_dat;
-wire spi_io_ss = spi_csn;
-wire spi_io_clk = spi_sclk;
+assign m0s[5:0] = { 1'bz, spi_intn, 3'bzzz, spi_io_dout };
+wire spi_io_din = m0s[1];
+wire spi_io_ss = m0s[2];
+wire spi_io_clk = m0s[3];
 
 wire r0, b0;  // lowest color bits to be left unconnected
 
@@ -154,6 +142,15 @@ misterynano misterynano (
   .mcu_mosi ( spi_io_din  ), // from MCU to FPGA
   .mcu_intn ( spi_intn    ),
 
+  // parallel port
+  .parallel_strobe_oe ( ),
+  .parallel_strobe_in ( 1'b1 ), 
+  .parallel_strobe_out ( ), 
+  .parallel_data_oe ( ),
+  .parallel_data_in ( 8'h00 ),
+  .parallel_data_out ( ),
+  .parallel_busy ( 1'b1 ), 
+		   
   // MIDI
   .midi_in  ( 1'b1 ),
   .midi_out ( ),

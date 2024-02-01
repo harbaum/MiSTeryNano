@@ -163,6 +163,10 @@ end
 // for ACSI. Floppy has it's own buffer
 reg [7:0] buffer [512];
 
+// number of blocks requested by ACSI
+wire [15:0] acsi_length;
+reg [15:0] acsi_scnt;
+
 reg [2:0] acsi_io_state;   
 reg [31:0] acsi_image_size[2];
 wire acsi_inserted_0 = (acsi_image_size[0] != 0);
@@ -222,7 +226,7 @@ localparam [2:0] IDLE            = 3'd0,
 // TODO: narrow this more
 wire acsi_is_reading = acsi_io_state >= READ_WAIT4SD && acsi_io_state <= READ_CHECK_NEXT;
 wire acsi_is_writing = acsi_io_state >= WRITING && acsi_io_state <= WRITE_WAIT4SD; 
-   
+
 wire [3:0] fifo_fill = fifo_wptr - fifo_rptr;   
 wire fifo_is_full = (fifo_fill == 15);  
 
@@ -243,12 +247,15 @@ always @(posedge clk) begin
       
       case(acsi_io_state)
         IDLE: begin
-           if(acsi_rd_req)
+           if(acsi_rd_req) begin
 			 acsi_io_state <= READ_WAIT4SD;
+  		     acsi_scnt <= acsi_length;			  
+		   end
 		   
            if(acsi_wr_req_int) begin
 			  acsi_io_state <= WRITING;
               acsi_io_counter <= 9'd0;
+  		      acsi_scnt <= acsi_length;			  
 		   end
 		end
 
@@ -288,13 +295,15 @@ always @(posedge clk) begin
 		   if(sd_busy) begin
 			  acsi_io_state <= WRITE_WAIT4SD;
 			  acsi_wr_req <= 2'b00;
+	          acsi_scnt <= acsi_scnt - 16'd1;			   
 		   end		   
 		end		   
 		
         WRITE_WAIT4SD: begin
 		   if(sd_done) begin
-              // check if sector counter has reached 0
-              if(dma_scnt != 0)
+              // check if sector counter has reached 0 or if all requested sectors
+			  // have been sent
+              if(dma_scnt != 0 && acsi_scnt != 0)
                 // request next write request and increase lba
                 acsi_request_next <= 1'b1;
               else
@@ -313,7 +322,8 @@ always @(posedge clk) begin
                 // push it into the DMA fifo
                 acsi_io_state <= READING;
                 acsi_io_counter <= 9'd0;
-            end
+             end
+		
         READING: begin
             if(!acsi_io_counter[0]) begin
                 // read upper byte from sector buffer. Two bytes
@@ -325,7 +335,6 @@ always @(posedge clk) begin
                 acsi_read_data[7:0] <= buffer[acsi_io_counter];
 
                 // trigger strobe and continue  if fifo is not full
-               // if(!fifo_read_start && !fifo_read_in_progress) begin
                 if(!fifo_is_full) begin
                     acsi_read_strobe <= 1'b1;	      
                     acsi_io_counter <= acsi_io_counter + 9'd1;
@@ -333,14 +342,19 @@ always @(posedge clk) begin
                     if(acsi_io_counter == 9'd511) acsi_io_state <= READ_WAIT4DMA;
                 end
             end // else: !if(!acsi_io_counter[0])
-        end
+        end // case: READING
+		
         READ_WAIT4DMA:
             // all data sent into fifo, wait for last dma transfer to end
-            if(sector_strobe)
+            if(sector_strobe) begin
                 acsi_io_state <= READ_CHECK_NEXT;
+			    acsi_scnt <= acsi_scnt - 16'd1;			   
+			end
+		
         READ_CHECK_NEXT: begin
-            // check if sector counter has reached 0
-            if(dma_scnt != 0)
+            // check if sector counter has reached 0 or if all requested
+		    // sectors have been sent
+            if(dma_scnt != 0 && acsi_scnt !=0)
                 // request next read request and increase lba
                 acsi_request_next <= 1'b1;
             else
@@ -371,6 +385,7 @@ acsi acsi(
 	 .data_rd_req ( acsi_rd_req           ),
 	 .data_wr_req ( acsi_wr_req_int       ),
 	 .data_lba    ( acsi_lba              ),
+	 .data_length ( acsi_length           ),
 	 .data_busy   ( sd_busy               ),
 	 .data_done   ( sd_done               ),
 	 .data_next   ( acsi_request_next     ),
