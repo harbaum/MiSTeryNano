@@ -113,9 +113,8 @@ static const char system_form_c64[] =
 	"L,Turbo speed:,2x|3x|4x,Y;"
   "B,c1541 Reset,Z;" 
   "B,Cold Boot,B;"; 
-// DualShock Analog Paddle 
-// Video Standard,PAL,NTSC
-// Turbo,Off,Software Switchable,On
+// "L,Pot 1/2:,Mouse|DS2 Paddles 1/2,?;" 
+// "L,Video Standard:,PAL|NTSC,?;"
 
 static const char settings_form_c64[] =
   "Settings,0|3;"                       // return to form 0, entry 3
@@ -493,6 +492,11 @@ static void menu_variable_set(menu_t *menu, const char *s, int val) {
 	  sys_set_val(menu->osd->spi, 'R', 0);
 	}
       }
+  // c64 core, trigger c1541 reset in case DOS ROM changed
+  if((core_id == CORE_ID_C64) && (id == 'D')) {  
+    sys_set_val(menu->osd->spi, 'Z', 1);
+    sys_set_val(menu->osd->spi, 'Z', 0);
+  }
     }
   }
 }
