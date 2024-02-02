@@ -5,14 +5,10 @@ SDK_DEMO_PATH ?= .
 BL_SDK_BASE ?= $(SDK_DEMO_PATH)/../../..
 
 CHIP ?= bl616
-BOARD ?= bl616dk
+BOARD ?= bl616dk -DCMAKE_C_FLAGS="-DM0S_DOCK=1"
 CROSS_COMPILE ?= riscv64-unknown-elf-
 
 include $(BL_SDK_BASE)/project.build
-
-splash.c: splash.png Makefile
-	convert splash.png -depth 1 GRAY:splash.raw
-	bin2c -C splash.c splash.raw
 
 term:
 	term.sh $(COMX) $(BAUDRATE)

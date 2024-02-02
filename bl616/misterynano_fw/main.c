@@ -23,14 +23,19 @@ struct bflb_device_s *gpio;
 #include "menu.h"
 #include "sdc.h"
 
-#if __has_include("cfg.h")
-#include "cfg.h"
-#define ENABLE_FLASHER
+#ifndef M0S_DOCK
+  // building for internal BL616
+  #warning "Building for internal BL616"
+  #if __has_include("cfg.h")
+    #include "cfg.h"
+    #define ENABLE_FLASHER
+  #else
+    #error "-----------------------------------------------------"
+    #error "No cfg.h found and thus no ft2232d emulator included!"
+    #error "-----------------------------------------------------"
+  #endif
 #else
-#warning "-----------------------------------------------------"
-#warning "No cfg.h found and thus no ft2232d emulator included!"
-#warning "-----------------------------------------------------"
-#define M0S_DOCK
+  #warning "Building for M0S DOCK"
 #endif
 
 #include "sysctrl.h"
@@ -94,7 +99,6 @@ int main(void) {
   gpio = bflb_device_get_by_name("gpio");
 
 #ifdef M0S_DOCK
-#warning "M0S DOCK"
   // init on-board LEDs
   bflb_gpio_init(gpio, GPIO_PIN_27, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_0);
   bflb_gpio_init(gpio, GPIO_PIN_28, GPIO_OUTPUT | GPIO_PULLUP | GPIO_SMT_EN | GPIO_DRV_0);

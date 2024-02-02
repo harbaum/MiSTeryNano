@@ -30,9 +30,10 @@ extern struct bflb_device_s *gpio;
 #warning "SPI for internal"
 #define SPI_PIN_CSN   GPIO_PIN_0
 #define SPI_PIN_SCK   GPIO_PIN_1
-#define SPI_PIN_MISO  GPIO_PIN_10
-// #define SPI_PIN_MISO  GPIO_PIN_2
+// #define SPI_PIN_MISO  GPIO_PIN_2   // filtered on the TN20k
+#define SPI_PIN_MISO  GPIO_PIN_10     // JTAG TCK replacement
 #define SPI_PIN_MOSI  GPIO_PIN_3
+#define SPI_PIN_IRQ   GPIO_PIN_12     // JTAG TDI
 #endif
 
 // #define BITBANG

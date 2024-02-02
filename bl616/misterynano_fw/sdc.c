@@ -358,9 +358,9 @@ int sdc_image_open(int drive, char *name) {
   } else {
     printf("file opened, cl=%d(%d)\r\n",
 	   fil[drive].obj.sclust, clst2sect(fil[drive].obj.sclust));
-    printf("File len = %d, spc = %d, clusters = %d\r\n",
-	   fil[drive].obj.objsize, fs.csize,
-	   fil[drive].obj.objsize / 512 / fs.csize);      
+    printf("File len = %ld, spc = %d, clusters = %d\r\n",
+	   (unsigned long)fil[drive].obj.objsize, fs.csize,
+	   (unsigned long)fil[drive].obj.objsize / 512 / fs.csize);      
     
     // try with a 16 entry link table
     lktbl[drive] = malloc(16 * sizeof(DWORD));    
