@@ -1,8 +1,13 @@
 /*
     top.sv - atarist on tang nano 20k toplevel
 
-    This top level implements the default variant for 20k with M0S
-    Dock, DB9-Joystick and MIDI
+    This top level implements a variant with M0S Dock 
+    support and the parallel (printer) port exposed.
+ 
+    This is e.g. used with the fischertechnik computing
+    interface. Since the FPGA supports at most 3.3V IO
+    additional level shifters are needed when connecting
+    with 5V peripherals.
 */ 
 
 module top(

@@ -227,6 +227,8 @@ wire 	cmd_has_lun =
 		(cmd_code == 8'h0a) ||   // write(6)
 		(cmd_code == 8'h2a);     // write(10)   
 
+reg	ignore_a1;
+   
 // CPU write interface
 always @(posedge clk) begin
    if(reset) begin
@@ -237,6 +239,8 @@ always @(posedge clk) begin
 	  reply_cnt <= REPLY_IDLE;	  
       led_counter[0] <= 16'd0;
       led_counter[1] <= 16'd0;
+	  ignore_a1 <= 1'b0;
+	  byte_counter <= 4'd15;
    end else begin
 
       if(led_counter[0]) led_counter[0] <= led_counter[0] - 16'd1;
@@ -271,6 +275,7 @@ always @(posedge clk) begin
 		 
 		 // request next sector
 		 data_lba <= data_lba + 32'd1;	 
+ 		 data_length <= data_length - 16'd1;							   
       end
       
       // entire DMA transfer is done
@@ -283,10 +288,10 @@ always @(posedge clk) begin
       if(clk_en && cpu_req)
 		irq <= 1'b0;
       
-      // acsi register access
-      if(clk_en && cpu_req && !cpu_rw) begin
-		 if(!cpu_a1) begin
-			// a0 == 0 -> first command byte
+      // acsi register write access
+      if(clk_en && cpu_req && !cpu_rw) begin		 
+		 if(!cpu_a1 && !ignore_a1) begin
+			// a1 == 0 -> first command byte
 			target <= cpu_din[7:5];
             err <= 1'b0;
 					
@@ -303,10 +308,16 @@ always @(posedge clk) begin
                     byte_counter <= 3'd1;   // next byte will contain second command byte
                 end
             end
+			// ignore a1 after the first command byte has been written
+			// Some drivers seem to rely on this like e.g. the ppera one
+			ignore_a1 <= 1'b1;
 		 end else begin			
+			ignore_a1 <= 1'b0;
+			
 			// further bytes
 			cmd_parameter[byte_counter] <= cpu_din;
-			byte_counter <= byte_counter + 3'd1;
+			if(byte_counter != 4'd15)
+			  byte_counter <= byte_counter + 3'd1;
 			
 			// check if this acsi device is enabled
 			if(enable[target] == 1'b1) begin
