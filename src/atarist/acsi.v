@@ -153,7 +153,7 @@ wire [6:0] cmd_req_len =
 // seperately
 wire [6:0] cmd_max_reply_len =
 		   (cmd_code == 8'h03)?7'd9:  // request sense
-		   (cmd_code == 8'h12)?7'd18: // inquiry
+		   (cmd_code == 8'h12)?7'd48: // inquiry
 		   (cmd_code == 8'h1a)?7'd8:  // mode sense
 		   (cmd_code == 8'h25)?7'd4:  // read capacity
 		   (cmd_code == 8'ha0)?7'd8:  // report luns
@@ -241,8 +241,7 @@ always @(posedge clk) begin
       led_counter[1] <= 16'd0;
 	  ignore_a1 <= 1'b0;
 	  byte_counter <= 4'd15;
-   end else begin
-
+   end else begin // if (reset)
       if(led_counter[0]) led_counter[0] <= led_counter[0] - 16'd1;
       if(led_counter[1]) led_counter[1] <= led_counter[1] - 16'd1;
 
@@ -289,7 +288,7 @@ always @(posedge clk) begin
 		irq <= 1'b0;
       
       // acsi register write access
-      if(clk_en && cpu_req && !cpu_rw) begin		 
+      if(clk_en && cpu_req && !cpu_rw) begin
 		 if(!cpu_a1 && !ignore_a1) begin
 			// a1 == 0 -> first command byte
 			target <= cpu_din[7:5];
@@ -307,10 +306,12 @@ always @(posedge clk) begin
                     cmd_parameter[0] <= { 3'd0, cpu_din[4:0] };
                     byte_counter <= 3'd1;   // next byte will contain second command byte
                 end
-            end
-			// ignore a1 after the first command byte has been written
-			// Some drivers seem to rely on this like e.g. the ppera one
-			ignore_a1 <= 1'b1;
+			   
+			   // ignore a1 after the first command byte has been written
+			   // Some drivers seem to rely on this like e.g. the ppera one
+			   ignore_a1 <= 1'b1;
+			end
+			  
 		 end else begin			
 			ignore_a1 <= 1'b0;
 			
@@ -360,7 +361,7 @@ always @(posedge clk) begin
                                 if(lun != 3'd0)
                                     asc[current_target] = 8'h25;
 							
-                                reply_cnt <= 7'd0;
+                                reply_cnt <= REPLY_START;
                             end
 						  
                             // read(6) and read(10)
