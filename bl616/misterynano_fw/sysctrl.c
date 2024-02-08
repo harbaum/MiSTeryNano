@@ -5,6 +5,7 @@
 */
 
 #include "sysctrl.h"
+#include "bflb_wdg.h"
 
 unsigned char core_id = 0;
 
@@ -24,11 +25,20 @@ int sys_status_is_valid(spi_t *spi) {
   unsigned char b0 = spi_tx_u08(spi, 0);
   unsigned char b1 = spi_tx_u08(spi, 0);
   core_id = spi_tx_u08(spi, 0);
+  unsigned char coldboot = spi_tx_u08(spi, 0);
   spi_end(spi);  
 
   if((b0 == 0x5c) && (b1 == 0x42)) {
     printf("Core ID: %02x\r\n", core_id);
     if(core_id < 3) printf("Core: %s\r\n", core_names[core_id]);
+
+    // coldboot status equals core_id on cores not supporting cold
+    // boot status
+    if(coldboot != core_id) {
+      // check colboot status
+      printf("Coldboot status is %02x\r\n", coldboot);
+
+    }
   }
   
   return((b0 == 0x5c) && (b1 == 0x42));
@@ -76,7 +86,31 @@ unsigned char sys_irq_ctrl(spi_t *spi, unsigned char ack) {
   return ret;
 }
 
+static void sys_handle_event(void) {
+  // the FPGAs cold boot flag was set indicating that the
+  // FPGA has be reloaded while the MCU was running. Reset
+  // the MCU to re-initialize everything and get into a
+  // sane state
+  
+  printf("FPGA cold boot detected, resetting MCU ...\r\n");
+  
+  struct bflb_wdg_config_s wdg_cfg;
+  wdg_cfg.clock_source = WDG_CLKSRC_32K;
+  wdg_cfg.clock_div = 31;
+  wdg_cfg.comp_val = 500;
+  wdg_cfg.mode = WDG_MODE_RESET;
+  
+  struct bflb_device_s *wdg = bflb_device_get_by_name("watchdog");
+  bflb_wdg_init(wdg, &wdg_cfg);
+
+  // the watchdog should trigger and reset the device
+  bflb_wdg_start(wdg);
+}
+
 void sys_handle_interrupts(unsigned char pending) {
+  if(pending & 0x01) // irq 0 = SYSCTRL
+    sys_handle_event();
+    
   if(pending & 0x02) // irq 1 = HID
     hid_handle_event();
   

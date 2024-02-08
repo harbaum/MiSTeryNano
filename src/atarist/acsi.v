@@ -310,7 +310,8 @@ always @(posedge clk) begin
 			   // ignore a1 after the first command byte has been written
 			   // Some drivers seem to rely on this like e.g. the ppera one
 			   ignore_a1 <= 1'b1;
-			end
+			end else
+			  ignore_a1 <= 1'b0;
 			  
 		 end else begin			
 			ignore_a1 <= 1'b0;

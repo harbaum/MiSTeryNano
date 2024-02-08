@@ -158,7 +158,7 @@ int main(void) {
   usb_host(spi);
   
   // start a thread for the on screen display    
-  xTaskCreate(osd_task, (char *)"osd_task", 4096, spi, configMAX_PRIORITIES-3, &osd_handle);
+  xTaskCreate(osd_task, (char *)"osd_task", 2048, spi, configMAX_PRIORITIES-3, &osd_handle);
   
   vTaskStartScheduler();
   

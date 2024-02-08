@@ -12,6 +12,10 @@
 
 #include "sysctrl.h"   // for core_id
 
+// Enabling RATE_CHECK will count the number of USB events per
+// device and do an estimate in the effective event rate.
+// #define RATE_CHECK
+
 #include "menu.h"    // for event codes
 
 // queue to send messages to OSD thread
@@ -43,6 +47,10 @@ static struct usb_config {
     TaskHandle_t task_handle;    
     unsigned char last_state;
     unsigned char js_index;
+#ifdef RATE_CHECK
+    TickType_t rate_start;
+    unsigned long rate_events;
+#endif    
   } xbox_info[CONFIG_USBHOST_MAX_XBOX_CLASS];
     
   struct hid_info_S {
@@ -55,6 +63,10 @@ static struct usb_config {
     struct usb_config *usb;
     SemaphoreHandle_t sem;
     TaskHandle_t task_handle;    
+#ifdef RATE_CHECK
+    TickType_t rate_start;
+    unsigned long rate_events;
+#endif    
     union {
       struct {
 	unsigned char last_report[8];	
@@ -559,8 +571,13 @@ static void usbh_hid_client_thread(void *argument) {
       hid->nbytes = 0;
     }      
 
-    // todo: honour binterval which is in milliseconds for low speed
-    vTaskDelay(pdMS_TO_TICKS(10));
+#ifdef RATE_CHECK
+    hid->rate_events++;
+    if(!(hid->rate_events % 100)) {
+     float ms_since_start = (xTaskGetTickCount() - hid->rate_start) * portTICK_PERIOD_MS;
+     printf("Rate = %f events/sec\r\n",  1000 * hid->rate_events /  ms_since_start);
+    }    
+#endif
   }
 }
 
@@ -580,8 +597,13 @@ static void usbh_xbox_client_thread(void *argument) {
       xbox_parse(xbox);
     }      
 
-    // todo: honour binterval which is in milliseconds for low speed
-    vTaskDelay(pdMS_TO_TICKS(10));
+#ifdef RATE_CHECK
+    xbox->rate_events++;
+    if(!(xbox->rate_events % 100)) {
+     float ms_since_start = (xTaskGetTickCount() - xbox->rate_start) * portTICK_PERIOD_MS;
+     printf("Rate = %f events/sec\r\n",  1000 * xbox->rate_events /  ms_since_start);
+    }    
+#endif
   }
 }
 
@@ -642,9 +664,14 @@ static void usbh_hid_thread(void *argument) {
 			  usb->hid_info[i].class->intin, usb->hid_info[i].buffer,
 			  usb->hid_info[i].report.report_size + (usb->hid_info[i].report.report_id_present ? 1:0),
 			  0, usbh_hid_callback, &usb->hid_info[i]);
+
+#ifdef RATE_CHECK
+	usb->hid_info[i].rate_start = xTaskGetTickCount();
+	usb->hid_info[i].rate_events = 0;
+#endif
 	
 	// start a new thread for the new device
-	xTaskCreate(usbh_hid_client_thread, (char *)"hid_task", 2048,
+	xTaskCreate(usbh_hid_client_thread, (char *)"hid_task", 512,
 		    &usb->hid_info[i], configMAX_PRIORITIES-3, &usb->hid_info[i].task_handle );
       }
     }
@@ -669,6 +696,11 @@ static void usbh_hid_thread(void *argument) {
 			  XBOX_REPORT_SIZE,
 			  0, usbh_xbox_callback, &usb->xbox_info[i]);
 	
+#ifdef RATE_CHECK
+	usb->xbox_info[i].rate_start = xTaskGetTickCount();
+	usb->xbox_info[i].rate_events = 0;
+#endif
+
 	// start a new thread for the new device
 	xTaskCreate(usbh_xbox_client_thread, (char *)"xbox_task", 2048,
 		    &usb->xbox_info[i], configMAX_PRIORITIES-3, &usb->xbox_info[i].task_handle );
