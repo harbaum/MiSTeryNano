@@ -111,9 +111,10 @@ static const char system_form_c64[] =
   "L,Audio filter:,On|Off,U;"
   "L,Turbo mode:,Off|C128|Smart,X;"
 	"L,Turbo speed:,2x|3x|4x,Y;"
-  "B,c1541 Reset,Z;" 
+  "L,Pot 1/2:,Mouse|DS2 Paddles 1/2,E;"
+  "L,Midi:,Off|Sequential|Passport|DATEL|NameS,N;"
+  "B,c1541 Reset,Z;"
   "B,Cold Boot,B;"; 
-// "L,Pot 1/2:,Mouse|DS2 Paddles 1/2,?;" 
 // "L,Video Standard:,PAL|NTSC,?;"
 
 static const char settings_form_c64[] =
@@ -142,6 +143,8 @@ menu_variable_t variables_c64[] = {
   { 'P', { 0 }},    // default no floppy write protected
   { 'Q', { 3 }},    // Joystick port 1 mapping, DS2
   { 'J', { 0 }},    // Joystick port 2 mapping, DB9
+  { 'E', { 0 }},    // default sid analog port = Mouse
+  { 'N', { 0 }},    // default MIDI = Off
   { '\0',{ 0 }}
 };
 
