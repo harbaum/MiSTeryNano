@@ -10,7 +10,7 @@ Software needed:
 
   - [Gowin V1.9.9 Beta-4 Education](https://www.gowinsemi.com/en/support/home/) **to flash the FPGA or to synthesize the core**
   - [BouffaloLabDevCube](https://dev.bouffalolab.com/download) **to flash the BL616**
-  - TOS version for ST (TOS 1.04 preferred)
+  - [TOS version for ST](https://www.atariworld.org/tos-rom/) (TOS 1.04 preferred)
   - TOS version for STE (TOS 1.62 preferred)
   - [Latest release](https://github.com/harbaum/MiSTeryNano/releases/latest) of MiSTeryNano
 

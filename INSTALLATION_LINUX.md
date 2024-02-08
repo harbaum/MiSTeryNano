@@ -35,9 +35,10 @@ Done
 
 ### Step 2: Installation of the TOS image(s)
 
-Most TOS images should be supported by now. This has been tested with
-US TOS 1.00 (60 Hz NTSC video) and german TOS 1.04 and TOS 1.62 (both
-50 Hz PAL video).
+Most [TOS images](https://www.atariworld.org/tos-rom/) should be
+supported by now. This has been tested with US TOS 1.00 (60 Hz NTSC
+video) and german TOS 1.04, TOS 1.62 and TOS 2.06 (all 50 Hz PAL
+video).
 
 This needs to be flashed into the flash ROM of the Tang Nano 20k at
 1MB (1048576 bytes) offset:
