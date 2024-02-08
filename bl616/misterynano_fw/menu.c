@@ -112,7 +112,7 @@ static const char system_form_c64[] =
   "L,Turbo mode:,Off|C128|Smart,X;"
 	"L,Turbo speed:,2x|3x|4x,Y;"
   "L,Pot 1/2:,Mouse|DS2 Paddles 1/2,E;"
-  "L,Midi:,Off|Sequential|Passport|DATEL|NameS,N;"
+  "L,Midi:,Off|Sequen|Passpo|DATEL|NameS,N;"
   "B,c1541 Reset,Z;"
   "B,Cold Boot,B;"; 
 // "L,Video Standard:,PAL|NTSC,?;"
