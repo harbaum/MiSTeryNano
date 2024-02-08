@@ -30,16 +30,18 @@ The SPI bus between the MCU and the FPGA consists of four connections:
 | SCK  | GPIO13 -> 54      | GPIO1 -> 13       | SPI clock, idle low                  |
 | MOSI | GPIO11 -> 41      | GPIO3 -> 76       | SPI data from MCU to FPGA            |
 | MISO | GPIO10 <- 42      | GPIO10 <- 6       | SPI data from FPGA to MCU    |
-| IRQ  | GPIO14 <- 51      | TBD               | Interrupt from FPGA to MCU, active low |
+| IRQ  | GPIO14 <- 51      | GPIO12 <- 7       | Interrupt from FPGA to MCU, active low |
 
 Currently the SPI bus is run at 20Mhz and only the M0S variant is currently fully implemented and supported.
 
-The internal MCU is supposed to use GPIO2 to FPGA pin 6 for MISO
-data. But due to a design error on the Tang Nano 20k, GPIO2 is
-unusable for fast signals. Thus, GPIO10 is being used instead. GPIO10 is one of
-the JTAG pins on FPGA side. Using this pin as a regular IO requires to
-disable JTAG in the FPGA. As a consequence, programming the FPGA needs
-[special care](MODES.md). This only affects the Tang Nano 20k's internal MCU. An external M0S based solution is not affected by this.
+The internal MCU of the Tang Nano 20K is supposed to use GPIO2 to FPGA
+pin 6 for MISO data. But due to a design error on some Tang Nano 20k,
+GPIO2 is unusable for fast signals. Thus, GPIO10 is being used
+instead. GPIO10 is one of the JTAG pins on FPGA side. Using this pin
+as a regular IO requires to disable JTAG in the FPGA. As a
+consequence, programming the FPGA needs [special care](MODES.md). This
+only affects the Tang Nano 20k's internal MCU. An external M0S based
+solution is not affected by this.
 
 The SPI master is the MCU and the SPI target is the FPGA. Thus, only
 the MCU initiates SPI communication. The SPI is operated in MODE1 with
@@ -49,8 +51,14 @@ of clock.
 Since release 1.2.2 an interrupt signal (IRQ) is being used to allow
 the FPGA to notify the MCU of events. This avoids the need to
 constantly poll the FPGA from the MCU and the FPGA can simply raise
-the interrupt signal whenever it requires the cooperation of the MCU
-e.g. to translate sector read/write requests.
+the interrupt signal whenever it requires the cooperation of the MCU.
+Currently the following interrupt sources are being used:
+
+| bit | name | usage |
+|-----|------|-------|
+| 0   | SYS  | FPGA has been (re-)initialized (cold boot) |
+| 1   | HID  | DB9 joystick event detected by FPGA |
+| 3   | SDC  | FPGA requests SD card sector translation |
 
 ## Protocol
 
@@ -138,6 +146,7 @@ The HID target currently supports three commands:
 | 1 | ```SPI_HID_KEYBOARD``` | Send a keyboard data byte into the FPGA |
 | 2 | ```SPI_HID_MOUSE``` | Send a mouse data byte into the FPGA |
 | 3 | ```SPI_HID_JOYSTICK``` | Send a joystick data byte into the FPGA |
+| 4 | ```SPI_HID_GET_DB9``` | Read the DB9 joystick status from the FPGA |
 
 The ```SPI_HID_STATUS``` message is currently unused. It will be used to report the
 HID requirements. This may e.g. include the keycode mapping required
@@ -162,6 +171,10 @@ keyboards and mice, the core needs to distinguish between multiple
 joysticks. The upper four bits of the second byte contain up to four
 fire buttons. These can simply be or'd together for standard DB9
 joystick emulation.
+
+The ```SPI_HID_GET_DB9``` command allows the MCU to request the
+state of the DB9 joystick port from the FPGA. This can be used
+to e.g. control the OSD via a joystick connected to that port.
 
 ### OSD target
 
