@@ -104,16 +104,16 @@ static const char system_form_c64[] =
   "System,0|2;"                         // return to form 0, entry 2
   // --------
   "L,Disk prot.:,None|8:,P;"            // Enable/Disable Floppy write protection
-  "L,Joyport 1:,DB9|USB J1|Numpad|DS2|Mouse|Off,Q;" // Joystick port 1 mapping
-  "L,Joyport 2:,DB9|USB J1|Numpad|DS2|Mouse|Off,J;" // Joystick port 2 mapping, default c64 Joystick port
+  "L,Joyport 1:,D9|UJ1|UJ2|NP|DS|Mou|Pad|Off,Q;" // Joystick port 1 mapping
+  "L,Joyport 2:,D9|UJ1|UJ2|NP|DS|Mou|Pad|Off,J;" // Joystick port 2 mapping, default c64 Joystick port
   "L,REU 1750:,Off|On,V;"                  // REU enable
   "L,c1541 ROM:,Dolphin|Factory|SpeedD|JiffyD,D;"  // c1541 compatibility
-  "L,Audio filter:,On|Off,U;"
+  "L,Audio filter:,Off|On,U;"
   "L,Turbo mode:,Off|C128|Smart,X;"
 	"L,Turbo speed:,2x|3x|4x,Y;"
   "L,Pot 1/2:,Mouse|DS2 Paddles 1/2,E;"
   "L,Midi:,Off|Sequen|Passpo|DATEL|NameS,N;"
-  "L,Pause OSD:,On|Off,G;"
+  "L,Pause OSD:,Off|On,G;"
   "B,c1541 Reset,Z;"
   "B,Cold Boot,B;"; 
 // "L,Video Standard:,PAL|NTSC,?;"
@@ -142,11 +142,11 @@ menu_variable_t variables_c64[] = {
   { 'A', { 2 }},    // default volume = 66%
   { 'W', { 0 }},    // default normal (4:3) screen
   { 'P', { 0 }},    // default no floppy write protected
-  { 'Q', { 3 }},    // Joystick port 1 mapping, DS2
+  { 'Q', { 7 }},    // Joystick port 1 mapping, DS2
   { 'J', { 0 }},    // Joystick port 2 mapping, DB9
   { 'E', { 0 }},    // default sid analog port = Mouse
   { 'N', { 0 }},    // default MIDI = Off
-  { 'G', { 1 }},    // default OSD Pause = On
+  { 'G', { 0 }},    // default OSD Pause = Off
   { '\0',{ 0 }}
 };
 
