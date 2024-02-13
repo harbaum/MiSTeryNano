@@ -1,0 +1,1 @@
+SUBSYSTEM=="tty", ATTRS{idVendor}=="359f", ATTRS{idProduct}=="4711", SYMLINK+="m0s_debugger"
