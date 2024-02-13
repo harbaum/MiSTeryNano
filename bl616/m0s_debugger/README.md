@@ -187,7 +187,12 @@ to reduce the risk of damage in case of a short circuit.
 ![M0S with M0S](two_m0s.jpg)
 
 The debugger M0S needs to be flashed itself with a custom firmware
-provided in the repository. This firmware mainly consists of the
+provided in the repository. The files needed are:
+
+  - [m0s_debugger_bl616_cfg.ini](https://raw.githubusercontent.com/harbaum/MiSTeryNano/main/bl616/m0s_debugger/m0s_debugger_bl616_cfg.ini)
+  - [m0s_debugger_bl616.bin](https://raw.githubusercontent.com/harbaum/MiSTeryNano/main/bl616/m0s_debugger/m0s_debugger_bl616.bin)
+
+This firmware mainly consists of the
 [Sipeed CDC ACM UART soluition](https://github.com/sipeed/M0S_BL616_example/tree/main/sipeed/solutions/usbd_cdc_acm_with_uart). It
 maps the UART TX/RX to ```IO10``` and ```IO12``` on the M0S Docks pin
 header. Additionally ```EN``` and ```BOOT``` are mapped to ```IO14```
@@ -199,6 +204,7 @@ startup sequence of the cube flasher. The M0S then monitors UART/serial
 activity until it sees a second of silence. It takes this is an indicator
 that the flash process has ended and will then intiate the sequence
 on ```EN``` and ```BOOT``` required to reset into normal application execution.
+
 
 The result is a fully automatic flash setup. The Bouffalo flash cube software
 can be used to flash the target M0S without any further user interaction

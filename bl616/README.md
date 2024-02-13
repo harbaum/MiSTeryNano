@@ -11,6 +11,7 @@ This directory contains:
   * [misterynano_fw](misterynano_fw) is the current firmware for use with MiSTeryNano. It's currently meant to be used with a seperate [M0S Dock/BL616](https://wiki.sipeed.com/hardware/en/maixzero/m0s/m0s.html) board and is not yet meant to be used with the internal BL616 of the Tang Nano 20k (read below for more details).
   * [usb_hid](usb_hid) is an early version of a BL616 firmware that acts as a USB host for USB keyboards and mice and translates their input data to the older PS2 protocol. It can be used to interface USB keyboards and mice to FPGA boards that expect PS2 keyboards and mice. Early versions of MiSTeryNano used it. This has been replaced by [misterynano_fw](misterynano_fw) and is still here for reference only.
   * [friend_20k](friend_20k) is the original firmware shipped with the BL616 in the Tang Nano 20k. It can be used to restore the BL616 to the factory state if e.g. [misterynano_fw](misterynano_fw) or [usb_hid](usb_hid) have been flashed onto the Tang Nano 20K's internal BL616 MCU. You'll need the [friend_20k_bl616.bin](https://raw.githubusercontent.com/harbaum/MiSTeryNano/main/bl616/friend_20k/friend_20k_bl616.bin) and its [config file](https://raw.githubusercontent.com/harbaum/MiSTeryNano/main/bl616/friend_20k/friend_20k_cfg.ini).
+  * [m0s_debugger](m0s_debugger) is a firmware for a M0S Dock to act as a debugger for a second M0S Dock target. It provides a USB UART as well as BOOT and EN control for automatic flash update.
 
 ## BL616 on the Tang Nano 20K
 
