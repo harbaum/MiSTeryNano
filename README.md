@@ -55,7 +55,8 @@ These videos primarily document the progress during development:
   * [MiSTeryNano #14: Cubase MIDI audio replay with Atari ST FPGA and SAM2695](https://youtube.com/shorts/w8RZCzeMpiw)
   * [MiSTeryNano #15: Power Without the Price: The Tang Nano 20k is the cheapest Atari ST](https://youtube.com/shorts/-kPpSlpkzvA)
   * [MiSTeryNano #16: Atari ST MIDI Space Quest 3 on Roland MT32](https://youtube.com/shorts/IOfeoJvnrmE)
-  
+  * [MiSTeryNano #17: C64 on Tang Nano 20K](https://youtube.com/shorts/qh_TCCgo1xY)
+ 
 ## Getting started
 
 In order to use the MiSTeryNano the following things are needed:
