@@ -21,7 +21,7 @@
 
 u8g2_t u8g2;
 
-unsigned char core_id = CORE_ID_C64;  // see sysctrl.h
+unsigned char core_id = CORE_ID_ATARI_ST;  // see sysctrl.h
 
 static FATFS fs;
 static FIL fil;
@@ -182,7 +182,7 @@ sdc_dir_t *sdc_readdir(int drive, char *name, char *exts) {
   // check if a file name matches any of the extensions given
   char ext_match(char *name, char *exts) {
     // check if name has an extension at all
-    char *dot = strchr(name, '.');
+    char *dot = strrchr(name, '.');
     if(!dot) return 0;
 
     // iterate over all extensions

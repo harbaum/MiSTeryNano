@@ -430,7 +430,7 @@ sdc_dir_t *sdc_readdir(int drive, char *name, char *ext) {
   // check if a file name matches any of the extensions given
   char ext_match(char *name, char *exts) {
     // check if name has an extension at all
-    char *dot = strchr(name, '.');
+    char *dot = strrchr(name, '.');
     if(!dot) return 0;
 
     // iterate over all extensions
