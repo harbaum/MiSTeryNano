@@ -7,9 +7,9 @@
     <FileList>
         <File path="ste_tb.v" type="file.verilog" enable="1"/>
         <File path="video_test.sv" type="file.verilog" enable="1"/>
-        <File path="../../src/tangnano20k/gowin_clkdiv/gowin_clkdiv.v" type="file.verilog" enable="1"/>
-        <File path="../../src/tangnano20k/gowin_rpll/pll_160m.v" type="file.verilog" enable="1"/>
-        <File path="../../src/tangnano20k/gowin_rpll/flash_pll.v" type="file.verilog" enable="1"/>
+        <File path="../../src/tang/nano20k/gowin_clkdiv/gowin_clkdiv.v" type="file.verilog" enable="1"/>
+        <File path="../../src/tang/nano20k/gowin_rpll/pll_160m.v" type="file.verilog" enable="1"/>
+        <File path="../../src/tang/nano20k/gowin_rpll/flash_pll.v" type="file.verilog" enable="1"/>
         <File path="../../src/gstmcu/hdl/clockgen.v" type="file.verilog" enable="1"/>
         <File path="../../src/gstmcu/hdl/gstmcu.v" type="file.verilog" enable="1"/>
         <File path="../../src/gstmcu/hdl/gstshifter.v" type="file.verilog" enable="1"/>
@@ -35,11 +35,11 @@
         <File path="../../src/hdmi/source_product_description_info_frame.sv" type="file.verilog" enable="1"/>
         <File path="../../src/hdmi/tmds_channel.sv" type="file.verilog" enable="1"/>
         <File path="../../src/misc/scandoubler.v" type="file.verilog" enable="1"/>
-        <File path="../../src/tangnano20k/flash_dspi.v" type="file.verilog" enable="1"/>
-        <File path="../../src/tangnano20k/sdram.v" type="file.verilog" enable="1"/>
+        <File path="../../src/tang/nano20k/flash_dspi.v" type="file.verilog" enable="1"/>
+        <File path="../../src/tang/nano20k/sdram.v" type="file.verilog" enable="1"/>
         <File path="../../src/misc/video_analyzer.v" type="file.verilog" enable="1"/>
         <File path="../../src/misc/osd_ascii.v" type="file.verilog" enable="1"/>
-        <File path="../../src/tangnano20k/font_8x8_fnt.v" type="file.verilog" enable="1"/>
-        <File path="../../src/tangnano20k/atarist.cst" type="file.cst" enable="1"/>
+        <File path="../../src/tang/nano20k/font_8x8_fnt.v" type="file.verilog" enable="1"/>
+        <File path="../../src/tang/nano20k/atarist.cst" type="file.cst" enable="1"/>
     </FileList>
 </Project>
