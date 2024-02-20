@@ -4,4 +4,5 @@ build/
 src/impl/gwsynthesis/**
 src/impl/temp/**
 src/impl/pnr/**
+!src/impl/atarist_*.json
 *.user
