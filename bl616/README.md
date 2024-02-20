@@ -37,6 +37,8 @@ Development can be eased a little bit by adding an external USB UART like the CP
 
 ![M0S DOCK USB UART](../images/m0s_dock_usb_uart.jpeg)
 
+As an alternative to the USB UART depicted above, a [second M0S Dock can be used for debugging and firmware upload during development](https://github.com/harbaum/MiSTeryNano/tree/main/bl616/m0s_debugger).
+
 ## Compiling and uploading code for the BL616
 
 Compilation has only been tested under Linux.
@@ -67,10 +69,13 @@ CROSS_COMPILE=<where you downloaded the toolchain>/toolchain_gcc_t-head_linux/bi
 
 ### Flashing the firmware
 
-The resulting binary can be flashed onto the M0S. You need to unplug
-the M0S from USB, press the BOOT button and plug it into USB with the
-BOOT button pressed. Once connected release the BOOT button. The device
-should now show up with its bootloader on the PC:
+The resulting binary can be flashed onto the M0S. If you don't have
+further debugger or prorgammer hardware connected to the M0S Dock, then
+you need to perform the following manual steps:
+
+First, you need to unplug the M0S from USB, press the BOOT button and plug the M0S Dock back into the PCs USB with the
+BOOT button still pressed. Once connected release the BOOT button. The device
+should now be in bootloader mode and show up with its bootloader on the PC:
 
 ```
 $ lsusb
