@@ -104,8 +104,8 @@ static const char system_form_c64[] =
   "System,0|2;"                         // return to form 0, entry 2
   // --------
   "L,Disk prot.:,None|8:,P;"            // Enable/Disable Floppy write protection
-  "L,Joyport 1:,D9|UJ1|UJ2|NP|DS|Mou|Pad|Off,Q;" // Joystick port 1 mapping
-  "L,Joyport 2:,D9|UJ1|UJ2|NP|DS|Mou|Pad|Off,J;" // Joystick port 2 mapping, default c64 Joystick port
+  "L,Joyport 1:,Retro|USB #1|USB #2|NumPad|DualShock|Mouse|Paddle|Off,Q;" // Joystick port 1 mapping
+  "L,Joyport 2:,Retro|USB #1|USB #2|NumPad|DualShock|Mouse|Paddle|Off,J;" // Joystick port 2 mapping, default c64 Joystick port
   "L,REU 1750:,Off|On,V;"                  // REU enable
   "L,c1541 ROM:,Dolphin|Factory|SpeedD|JiffyD,D;"  // c1541 compatibility
   "L,Audio filter:,Off|On,U;"
@@ -308,6 +308,7 @@ menu_t *menu_init(u8g2_t *u8g2)
 #endif
 {
   static menu_t menu;
+  memset(&menu, 0, sizeof(menu));
 
   if(core_id == CORE_ID_ATARI_ST) {
     menu.vars = variables_atari_st;
@@ -410,14 +411,11 @@ static char *menu_get_str(menu_t *menu, const char *s, int n) {
     if(!s) return NULL;
     s = s + 1;
   }
-    
+
   const char *sub = strchrs(s, ";,");
-  if(!sub)
-    strcpy(menu->buffer, s);
-  else {
-    strncpy(menu->buffer, s, sub-s);  // copy characters
-    menu->buffer[sub-s] = '\0';       // terminate string
-  }
+  if(menu->buffer) free(menu->buffer);
+  if(!sub) menu->buffer = strdup(s);
+  else     menu->buffer = strndup(s, sub-s);  // adds a \0 byte
     
   return menu->buffer;
 }
@@ -447,9 +445,8 @@ static char *menu_get_substr(menu_t *menu, const char *s, int n, int m) {
   }
 
   const char *sub = strchrs(s, ";,|");
-  strncpy(menu->buffer, s, sub-s);  // copy characters
-  menu->buffer[sub-s] = '\0';       // terminate string
-
+  if(menu->buffer) free(menu->buffer);
+  menu->buffer = strndup(s, sub-s);  // copy string and \0-terminate it
   return menu->buffer;
 }
   
