@@ -1,4 +1,41 @@
-# MiSTeryNano source code
+# MiSTeryNano FPGA core source code
+
+This is the source code of the FPGA side of the MiSTeryNano project. To be
+fully functional this also needs a [MCU with matching firmware](../bl616).
+
+## Build variants
+
+The FPGA core exists in several build variants depending on the FPGA board
+to be used and the feature set needed. FPGA variants may e.g. include the
+Tang Nano 20K, the Tang Primer 25K or the Tang Mega 138K. Feature sets may
+include interface options for e.g. MIDI or a exposed physical printer port
+or display variantes for HDMI or an RGB LCD.
+
+Currently supported variants are:
+
+  * ```atari``` - Tang Nano 20K + HDMI + DB9 joystick + MIDI
+  * ```atari_lcd``` - Tang Nano 20K + RGB LCD
+  * ```atari_parport``` - Tang Nano 20K + HDMI + parallel port
+  * ```atari_tp25k``` - Tang Primer 25K + HMDI
+  * ```atari_tm138k``` - Tang Mega 138K + HMDI
+
+Some of these variants use the ID and come with config files for the
+GoWin IDE (files ending in ```.gprj```), some use TCL based command
+line scripts (files ending in ```.tcl```) and some use both.
+
+The ```.gprj``` files can be opened from within the GoWin IDE. The
+```.tcl``` files can be given as a parmater to the GoWin shell:
+
+```
+$ gw_sh ./build.tcl
+```
+
+## Pre-built FPGA cores
+
+Some variants are distributed as [pre-built cores in the
+releases](https://github.com/harbaum/MiSTeryNano/releases).
+
+## Related projects
 
 The MiSTeryNano is based on several other projects. These include:
 
