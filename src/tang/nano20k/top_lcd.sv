@@ -99,6 +99,10 @@ wire r0, b0;  // lowest color bits to be left unconnected
 
 wire [15:0] audio [2];
 
+// sdram address can be up to 13 bits wide. tang nano 20k uses only 11
+wire [13:0] sdram_addr;
+assign O_sdram_addr = sdram_addr[10:0];
+
 misterynano misterynano (
   .clk   ( clk ),    // 27 Mhz in (e.g. for further PLLs)
   .reset ( reset ),
@@ -120,7 +124,7 @@ misterynano misterynano (
   .mspi_wp   ( mspi_wp   ),
   .mspi_do   ( mspi_do   ),
 
-  // SDRAM
+  // SDRAM 2Mbit*32 = 8 MByte
   .sdram_clk   ( O_sdram_clk    ),
   .sdram_cke   ( O_sdram_cke    ),
   .sdram_cs_n  ( O_sdram_cs_n   ), // chip select
@@ -128,7 +132,7 @@ misterynano misterynano (
   .sdram_ras_n ( O_sdram_ras_n  ), // row address select
   .sdram_wen_n ( O_sdram_wen_n  ), // write enable
   .sdram_dq    ( IO_sdram_dq    ), // 32 bit bidirectional data bus
-  .sdram_addr  ( O_sdram_addr   ), // 11 bit multiplexed address bus
+  .sdram_addr  ( sdram_addr     ), // 11 bit multiplexed address bus
   .sdram_ba    ( O_sdram_ba     ), // two banks
   .sdram_dqm   ( O_sdram_dqm    ), // 32/4
 

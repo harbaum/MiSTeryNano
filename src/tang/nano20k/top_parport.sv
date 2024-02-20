@@ -139,6 +139,10 @@ wire		pp_data_oe;
 wire [7:0]  pp_data_in = pp_data;  
 wire [7:0]  pp_data_out;
 assign pp_data = pp_data_oe?pp_data_out:8'bzzzzzzzz;
+  
+// sdram address can be up to 13 bits wide. tang nano 20k uses only 11
+wire [13:0] sdram_addr;
+assign O_sdram_addr = sdram_addr[10:0];
 
 misterynano misterynano (
   .clk   ( clk ),           // 27MHz clock uses e.g. for the flash pll
@@ -170,7 +174,7 @@ misterynano misterynano (
   .sdram_ras_n ( O_sdram_ras_n  ), // row address select
   .sdram_wen_n ( O_sdram_wen_n  ), // write enable
   .sdram_dq    ( IO_sdram_dq    ), // 32 bit bidirectional data bus
-  .sdram_addr  ( O_sdram_addr   ), // 11 bit multiplexed address bus
+  .sdram_addr  ( sdram_addr     ), // 11 bit multiplexed address bus
   .sdram_ba    ( O_sdram_ba     ), // two banks
   .sdram_dqm   ( O_sdram_dqm    ), // 32/4
 
