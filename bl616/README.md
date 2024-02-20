@@ -31,6 +31,8 @@ The [M0S Dock](https://wiki.sipeed.com/hardware/en/maixzero/m0s/m0s.html) contai
 
 The M0S Dock itself is a rather simple device and updating it requires the user to press the ```BOOT``` button (which acts identical to the ```UPDATE``` button on the Tang Nano 20k) while resetting/powercycling the board by un-plugging and re-plugging it to the PCs USB. Furthermore, the M0S Dock does not include a USB UART interface which would be handy for debug and console messages. While this might not be a problem for end users, it makes development slightly difficult.
 
+### Firmware development with and for the M0S Dock
+
 Development can be eased a little bit by adding an external USB UART like the CP2102 to the M0S Dock. The M0S Dock has a few solder pads right beside the USB-C connector to access the UART Rx and Tx signals as well as GND. If the M0S Dock is also to be powered from the USB UART, then 5V from the USB UART needs to be connected to the expansion connector of the M0S Dock. Finally to avoid to have to un- and re-plug the board during update it's possible to connect another connection from pin3 of the embedded M0S module of the M0S Dock via a 10µF capacitor to the DTR line of the USB UART. This will reset the M0S Dock whenever the flash utility opens the serial connection for update. However, the ```BOOT``` button still needs to be pressed manually during update.
 
 ![M0S DOCK USB UART](../images/m0s_dock_usb_uart.jpeg)
