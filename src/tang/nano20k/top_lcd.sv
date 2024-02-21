@@ -49,8 +49,6 @@ module top(
   inout			sd_cmd, // MOSI
   inout [3:0]	sd_dat, // 0: MISO
 
-//  inout [5:0]   m0s,
-		   
   // SPI connection to ob-board BL616. By default an external
   // connection is used with a M0S Dock
   input			spi_sclk, // in... 
@@ -210,7 +208,7 @@ end
 // generate i2s signals
 assign hp_bck = clk_audio;
 assign hp_ws = por?1'b0:audio_bit_cnt[4];
-assign hp_din = por?1'b0:audio[hp_ws][audio_bit_cnt[3:0]];
+assign hp_din = por?1'b0:audio[hp_ws][15-audio_bit_cnt[3:0]];
 
 endmodule
 
