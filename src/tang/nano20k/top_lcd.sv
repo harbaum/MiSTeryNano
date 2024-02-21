@@ -49,18 +49,18 @@ module top(
   inout			sd_cmd, // MOSI
   inout [3:0]	sd_dat, // 0: MISO
 
-  inout [5:0]   m0s,
+//  inout [5:0]   m0s,
 		   
   // SPI connection to ob-board BL616. By default an external
   // connection is used with a M0S Dock
-//  input			spi_sclk, // in... 
-//  input			spi_csn, // in (io?)
-//  output		spi_dir, // out
-//  input			spi_dat, // in (io?)
+  input			spi_sclk, // in... 
+  input			spi_csn, // in (io?)
+  output		spi_dir, // out
+  input			spi_dat, // in (io?)
   // spi_dir has a low-pass filter which makes it impossible to use
   // we thus use jtag_tck as a replacement
-//  output		jtag_tck,
-//  output		jtag_tdi, // this is being used for interrupt
+  output		jtag_tck,
+  output		jtag_tdi, // this is being used for interrupt
 
   // audio
   output		hp_bck,
@@ -90,11 +90,14 @@ wire spi_intn;
 
 // intn and dout are outputs driven by the FPGA to the MCU
 // din, ss and clk are inputs coming from the MCU
-assign m0s[5:0] = { 1'bz, spi_intn, 3'bzzz, spi_io_dout };
-wire spi_io_din = m0s[1];
-wire spi_io_ss = m0s[2];
-wire spi_io_clk = m0s[3];
-
+// assign m0s[5:0] = { 1'bz, spi_intn, 3'bzzz, spi_io_dout };
+wire spi_io_din = spi_dat;
+wire spi_io_ss = spi_csn;
+wire spi_io_clk = spi_sclk;
+assign spi_dir = spi_io_dout;   // spi_dir has filter cap and pulldown any basic
+assign jtag_tck = spi_io_dout;
+assign jtag_tdi = spi_intn;
+   
 wire r0, b0;  // lowest color bits to be left unconnected
 
 wire [15:0] audio [2];
