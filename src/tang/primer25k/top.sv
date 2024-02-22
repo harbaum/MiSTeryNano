@@ -51,7 +51,9 @@ module top(
 wire clk32;
 wire pll_lock_hdmi;
 wire por; 
-
+wire spi_io_dout;
+wire spi_intn;  
+   
 // intn and dout are outputs driven by the FPGA to the MCU
 // din, ss and clk are inputs coming from the MCU
 assign m0s[7:0] = { 3'bzzz, spi_intn, 3'bzzz, spi_io_dout };
@@ -80,7 +82,7 @@ assign IO_sdram_dq = sdram_dq[15:0];
    
 wire [3:0] sdram_dqm;  
 assign O_sdram_dqm = sdram_dqm[1:0];
-   
+
 misterynano misterynano (
   .clk   ( clk ),           // 27MHz clock uses e.g. for the flash pll
 
@@ -116,7 +118,7 @@ misterynano misterynano (
   .sdram_dqm   ( sdram_dqm      ), // 16/4
 
   // generic IO, used for mouse/joystick/...
-  .io ( ),
+  .io          ( 1'b11111111    ), // unused
 
   // mcu interface
   .mcu_sclk ( spi_io_clk  ),
