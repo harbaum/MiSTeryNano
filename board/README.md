@@ -1,32 +1,15 @@
-# MiSTeryNano MIDI shield for Tang Nano 20k
+# MiSTeryNano board
 
-![Device](shield.jpeg)
+The MiSTeryNano can be used with off-the-shelf components and
+some breadboard setup.
 
-This is a base board for the Tang Nano 20K and optionally the M0S Dock.
-It features:
+To simplify this the MiSTeryNano project provides additional
+hardware:
 
-  * Headers to plug the Tang Nano 20K
-  * A seperate USB power supply
-    * Used if the Tang Nano 20K is being used as a USB host itself
-    * Can be broken off to make room for a M0S Dock
-  * M0S Dock connector
-  * Atari style joystick
-    * Supports two buttons
-    * Including 5V supply and 5V level shifters
-    * Works with DB9 joystcks and mice
-  * MIDI
-    * MIDI OUT with driver chip to protect Tang Nano 20K
-    * MIDI IN with optocoupler to protect Tang Nano 20K
+  - The [MiSTeryShield20k](misteryshield20k) provides a base board for
+  the Tang Nano 20k and the M0S Dock with a DB9 joystick connector and
+  MIDI ports
 
-PCBA production files for JLCPCB are availble [here](jlcpcb).
-
-![The PCB](pcb.png)
-
-The part carrying the USB connector can be cut away making room for a
-M0S Dock which will then also be used to provide power to the Tang
-Nano 20K.
-
-![Rendering](render.png)
-
-![Schematic](schematic.png)
-[PDF](misteryshield20k.pdf)
+  - The [M0S PMOD](m0s_pmod) allows to use the M0S Dock on a PMOD
+  port as e.g. available on the Tang Primer 25K or the Tang Mega 138K
+  
