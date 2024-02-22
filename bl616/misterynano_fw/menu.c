@@ -405,19 +405,13 @@ const char *strchrs(const char *str, char *chrs) {
 }
 
 // get the n'th substring in colon separated string
-static char *menu_get_str(menu_t *menu, const char *s, int n) {
+static const char *menu_get_str(menu_t *menu, const char *s, int n) {
   while(n--) {
     s = strchr(s, ',');   // skip n substrings
     if(!s) return NULL;
     s = s + 1;
   }
-
-  const char *sub = strchrs(s, ";,");
-  if(menu->buffer) free(menu->buffer);
-  if(!sub) menu->buffer = strdup(s);
-  else     menu->buffer = strndup(s, sub-s);  // adds a \0 byte
-    
-  return menu->buffer;
+  return s;
 }
 
 // get the n'th char in colon separated string
@@ -431,7 +425,7 @@ static char menu_get_chr(menu_t *menu, const char *s, int n) {
 }
 
 // get the n'th substring in | separated string in a colon string
-static char *menu_get_substr(menu_t *menu, const char *s, int n, int m) {
+static const char *menu_get_substr(menu_t *menu, const char *s, int n, int m) {
   while(n--) {
     s = strchr(s, ',');   // skip n substrings
     if(!s) return NULL;
@@ -443,21 +437,20 @@ static char *menu_get_substr(menu_t *menu, const char *s, int n, int m) {
     if(!s) return NULL;
     s = s + 1;
   }
-
-  const char *sub = strchrs(s, ";,|");
-  if(menu->buffer) free(menu->buffer);
-  menu->buffer = strndup(s, sub-s);  // copy string and \0-terminate it
-  return menu->buffer;
+  return s;
 }
   
 static int menu_get_int(menu_t *menu, const char *s, int n) {
-  char *str = menu_get_str(menu, s, n);
-  if(!str) return(-1);  
+  const char *str = menu_get_str(menu, s, n);
+  if(!str) return(-1);
+
+  // The string may not be 0 terminated, but rather ; or : terminated.
+  // This is fine as atoi stops parsing at the first non-digit
   return atoi(str);
 }
 
 static int menu_get_subint(menu_t *menu, const char *s, int n, int m) {
-  char *str = menu_get_substr(menu, s, n, m);
+  const char *str = menu_get_substr(menu, s, n, m);
   if(!str) return(-1);
   return atoi(str);
 }
@@ -493,11 +486,12 @@ static void menu_variable_set(menu_t *menu, const char *s, int val) {
 	  sys_set_val(menu->osd->spi, 'R', 0);
 	}
       }
-  // c64 core, trigger c1541 reset in case DOS ROM changed
-  if((core_id == CORE_ID_C64) && (id == 'D')) {  
-    sys_set_val(menu->osd->spi, 'Z', 1);
-    sys_set_val(menu->osd->spi, 'Z', 0);
-  }
+
+      // c64 core, trigger c1541 reset in case DOS ROM changed
+      if((core_id == CORE_ID_C64) && (id == 'D')) {  
+	sys_set_val(menu->osd->spi, 'Z', 1);
+	sys_set_val(menu->osd->spi, 'Z', 0);
+      }
     }
   }
 }
@@ -505,8 +499,12 @@ static void menu_variable_set(menu_t *menu, const char *s, int val) {
 static int menu_get_options(menu_t *menu, const char *s, int n) {
   // get possible number of values
   int num = 1;
-  char *v = menu_get_str(menu, s, n);
-  while((v = strchr(v, '|'))) { v++; num++; }
+  const char *v = menu_get_str(menu, s, n);
+  // count all '|' before next ';', ',' or '\0'
+  while(*v && *v != ';' && *v != ',') {
+    if(*v == '|') num++;
+    v++;
+  }
   return num;
 }
 
@@ -515,6 +513,19 @@ const static unsigned char icn_right_bits[]  = { 0x00,0x04,0x0c,0x1c,0x3c,0x1c,0
 const static unsigned char icn_left_bits[]   = { 0x00,0x20,0x30,0x38,0x3c,0x38,0x30,0x20 };
 const static unsigned char icn_floppy_bits[] = { 0xff,0x81,0x83,0x81,0xbd,0xad,0x6d,0x3f };
 const static unsigned char icn_empty_bits[] =  { 0xc3,0xe7,0x7e,0x3c,0x3c,0x7e,0xe7,0xc3 };
+
+void u8g2_DrawStrT(u8g2_t *u8g2, u8g2_uint_t x, u8g2_uint_t y, const char *s) {
+  // get length of string
+  int n = 0;
+  while(s[n] && s[n] != ';' && s[n] != ',' && s[n] != '|') n++;
+
+  // create a 0 terminated copy in the stack
+  char buffer[n+1];
+  strncpy(buffer, s, n);
+  buffer[n] = '\0';
+  
+  u8g2_DrawStr(u8g2, x, y, buffer);
+}
 
 // Draw menu title. Submenu titles are selectable and can be used to return to the
 // parent menu.
@@ -529,7 +540,7 @@ static void menu_draw_title(menu_t *menu, const char *s) {
 
   // draw title in bold and seperator line
   u8g2_SetFont(MENU2U8G2(menu), u8g2_font_helvB08_tr);
-  u8g2_DrawStr(MENU2U8G2(menu), x, 9, menu_get_str(menu, s, 0));
+  u8g2_DrawStrT(MENU2U8G2(menu), x, 9, menu_get_str(menu, s, 0));
   u8g2_DrawHLine(MENU2U8G2(menu), 0, 13, u8g2_GetDisplayWidth(MENU2U8G2(menu)));
 
   if(x > 0 && menu->entry == 0)
@@ -540,13 +551,13 @@ static void menu_draw_title(menu_t *menu, const char *s) {
 }
 
 static void menu_draw_entry(menu_t *menu, int y, const char *s) {
-  char *buf = menu_get_str(menu, s, MENU_ENTRY_INDEX_LABEL);
+  const char *buf = menu_get_str(menu, s, MENU_ENTRY_INDEX_LABEL);
 
   int ypos = 13 + 12 * y;
   int width = u8g2_GetDisplayWidth(MENU2U8G2(menu));
 
   // all menu entries are a plain text
-  u8g2_DrawStr(MENU2U8G2(menu), 1, ypos, buf);
+  u8g2_DrawStrT(MENU2U8G2(menu), 1, ypos, buf);
     
   // prepare highlight
   int hl_x = 0;
@@ -556,10 +567,10 @@ static void menu_draw_entry(menu_t *menu, int y, const char *s) {
   if(s[0] == 'L') {
     // get variable
     int value = menu_variable_get(menu, s);
-    
-    buf = menu_get_substr(menu, s, MENU_ENTRY_INDEX_OPTIONS, value);
-    u8g2_DrawStr(MENU2U8G2(menu), width/2, ypos, buf);
-    
+
+    u8g2_DrawStrT(MENU2U8G2(menu), width/2, ypos, 
+		  menu_get_substr(menu, s, MENU_ENTRY_INDEX_OPTIONS, value));
+		  
     hl_x = width/2;
     hl_w = width/2;
   }
@@ -659,15 +670,15 @@ static void menu_fileselector(menu_t *menu, int event) {
   const static char *s;
   static int parent;
   static int drive;
-  static char exts[16];  // max 16 bytes for the ext string
+  static const char *exts;
   
   if(event == FSEL_INIT) {
     // init
     s = menu->forms[menu->form];
     for(int i=0;i<menu->entry;i++) s = strchr(s, ';')+1;
 
-    // copy extensions
-    strcpy(exts, menu_get_substr(menu, s, 2, 1));
+    // get extensions
+    exts = menu_get_substr(menu, s, 2, 1);
 
     // scan files
     drive = menu_get_subint(menu, s, 2, 0);
@@ -699,7 +710,7 @@ static void menu_fileselector(menu_t *menu, int event) {
   } else if(event == FSEL_DRAW) {
     // draw
     menu_draw_title(menu, menu_get_str(menu, s, MENU_ENTRY_INDEX_LABEL));
-
+    
     // draw up to four files
     menu->fs_scroll_entry = NULL;  // assume no scrolling needed
 #ifndef SDL

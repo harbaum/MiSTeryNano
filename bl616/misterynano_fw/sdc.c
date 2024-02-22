@@ -402,7 +402,7 @@ int sdc_image_open(int drive, char *name) {
   return 0;
 }
 
-sdc_dir_t *sdc_readdir(int drive, char *name, char *ext) {
+sdc_dir_t *sdc_readdir(int drive, char *name, const char *ext) {
   static sdc_dir_t sdc_dir = { 0, NULL };
 
   int dir_compare(const void *p1, const void *p2) {
@@ -428,16 +428,16 @@ sdc_dir_t *sdc_readdir(int drive, char *name, char *ext) {
   }
   
   // check if a file name matches any of the extensions given
-  char ext_match(char *name, char *exts) {
+  char ext_match(char *name, const char *exts) {
     // check if name has an extension at all
     char *dot = strrchr(name, '.');
     if(!dot) return 0;
 
     // iterate over all extensions
-    char *ext = exts;
+    const char *ext = exts;
     while(1) {
-      char *p = ext;
-      while(*p && *p != '+') p++;  // search of end of ext
+      const char *p = ext;
+      while(*p && *p != '+' && *p != ';') p++;  // search of end of ext
       int len = p-ext;
 
       // check if length would match

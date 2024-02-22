@@ -22,6 +22,7 @@
 u8g2_t u8g2;
 
 unsigned char core_id = CORE_ID_ATARI_ST;  // see sysctrl.h
+// unsigned char core_id = CORE_ID_C64;
 
 static FATFS fs;
 static FIL fil;
@@ -152,7 +153,7 @@ int sdc_image_open(int drive, char *name) {
   return 0;
 }
 
-sdc_dir_t *sdc_readdir(int drive, char *name, char *exts) {
+sdc_dir_t *sdc_readdir(int drive, char *name, const char *exts) {
   static sdc_dir_t sdc_dir = { 0, NULL };
 
   // set default path
@@ -180,16 +181,16 @@ sdc_dir_t *sdc_readdir(int drive, char *name, char *exts) {
   }
 
   // check if a file name matches any of the extensions given
-  char ext_match(char *name, char *exts) {
+  char ext_match(char *name, const char *exts) {
     // check if name has an extension at all
     char *dot = strrchr(name, '.');
     if(!dot) return 0;
 
     // iterate over all extensions
-    char *ext = exts;
+    const char *ext = exts;
     while(1) {
-      char *p = ext;
-      while(*p && *p != '+') p++;  // search of end of ext
+      const char *p = ext;
+      while(*p && *p != '+' && *p != ';') p++;  // search of end of ext
       int len = p-ext;
 
       // check if length would match

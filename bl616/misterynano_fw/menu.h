@@ -26,7 +26,6 @@ typedef struct {
 
 typedef struct {
   osd_t *osd; 
-  char *buffer;
   const char **forms;
   menu_variable_t *vars;
   int form;

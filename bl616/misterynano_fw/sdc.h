@@ -23,7 +23,7 @@ typedef struct {
 
 int sdc_init(spi_t *spi);
 int sdc_image_open(int drive, char *name);
-sdc_dir_t *sdc_readdir(int drive, char *name, char *exts);
+sdc_dir_t *sdc_readdir(int drive, char *name, const char *exts);
 int sdc_handle_event(void);
 int sdc_is_ready(void);
 void sdc_lock(void);
