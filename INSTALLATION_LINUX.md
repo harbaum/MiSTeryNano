@@ -41,10 +41,10 @@ video) and german TOS 1.04, TOS 1.62 and TOS 2.06 (all 50 Hz PAL
 video).
 
 This needs to be flashed into the flash ROM of the Tang Nano 20k at
-1MB (1048576 bytes) offset:
+1MB (1048576/0x100000 bytes) offset:
 
 ```
-$ openFPGALoader --external-flash -o 1048576 tos104de.img
+$ openFPGALoader --external-flash -o 0x100000 tos104de.img
 write to flash
 Jtag frequency : requested 6.00MHz   -> real 6.00MHz  
 Parse file DONE
@@ -72,7 +72,7 @@ For STE mode a STE capable TOS needs to be flashed to a different flash
 location:
 
 ```
-$ openFPGALoader --external-flash -o 1310720 tos162de.img
+$ openFPGALoader --external-flash -o 0x180000 tos162de.img
 ```
 
 This TOS image is always use when STE mode is selected.
@@ -82,10 +82,10 @@ in the OSD. The addresses for all TOS are:
 
 | Address | TOS slot  |
 |---------|-----------|
-| 1048576 | Primary ST TOS |
-| 1310720 | Primary STE TOS |
-| 1572864 | Secondary ST TOS |
-| 1835008 | Secondary STE TOS |
+| 0x100000 | Primary ST TOS |
+| 0x140000 | Secondary ST TOS |
+| 0x180000 | Primary STE TOS |
+| 0x1c0000 | Secondary STE TOS |
 
 ### Step 3: Installation of the MCU firmware
 
@@ -134,4 +134,4 @@ using subdirectories if needed.
 
 The SD card is to be inserted into the slot on the bottom side of the
 Tang Nano 20k inconveniently placed right below the USB connector.
-The MiSTeryNano will automatically load a file named [```DISK_A.ST```](sim/floppy_tb/disk_a.st) and use it as the image for floppy disk drive A.
+The MiSTeryNano will initially try to automatically load a file named [```DISK_A.ST```](sim/floppy_tb/disk_a.st) and use it as the image for floppy disk drive A. The disk images to be used can later be changed using the On-Screen-Display (OSD).
