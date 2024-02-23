@@ -72,7 +72,7 @@ For STE mode a STE capable TOS needs to be flashed to a different flash
 location:
 
 ```
-$ openFPGALoader --external-flash -o 0x180000 tos162de.img
+$ openFPGALoader --external-flash -o 0x140000 tos162de.img
 ```
 
 This TOS image is always use when STE mode is selected.
@@ -83,8 +83,8 @@ in the OSD. The addresses for all TOS are:
 | Address | TOS slot  |
 |---------|-----------|
 | 0x100000 | Primary ST TOS |
-| 0x140000 | Secondary ST TOS |
-| 0x180000 | Primary STE TOS |
+| 0x140000 | Primary STE TOS |
+| 0x180000 | Secondary ST TOS |
 | 0x1c0000 | Secondary STE TOS |
 
 ### Step 3: Installation of the MCU firmware
