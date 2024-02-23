@@ -117,14 +117,14 @@ wire pll_lock_flash;
 wire pll_lock = pll_lock_main && pll_lock_flash;
 assign por = !pll_lock;
 
-wire clk_flash;      // 100.265 MHz SPI flash clock
+wire flash_clk;      // 100.265 MHz SPI flash clock
 flash_pll flash_pll (
-        .clkout( clk_flash ),
+        .clkout( flash_clk ),
         .clkoutp( mspi_clk ),   // shifted by -22.5/335.5 deg
         .lock(pll_lock_flash),
         .clkin(clk)
     );
-
+   
 /* -------------------- flash -------------------- */  
 
 wire rom_n;
@@ -134,7 +134,7 @@ wire [15:0] rom_dout;
 wire flash_ready;
 
 flash flash (
-    .clk(clk_flash),
+    .clk(flash_clk),
     .resetn(!por),
     .ready(flash_ready),
     .busy(),
@@ -268,7 +268,6 @@ wire [7:0] hid_joy;     // USB/HID joystick with four directions and four button
 // external DB9 joystick port
 wire [5:0] db9_atari = { !io[5], !io[0], !io[2], !io[1], !io[4], !io[3] };
 wire [5:0] db9_amiga = { !io[5], !io[0], !io[3], !io[1], !io[4], !io[2] };
-// assign io[7:6] = 2'bzz;   // two unused IO pins
 
 // any db9 mouse replaces usb mouse as mice will keep some signals
 // permanently active and can thus not just be wired together
@@ -570,7 +569,7 @@ end
 wire      is_acsi = (acsi_rd_req != 0) ||  (acsi_wr_req != 0) || is_acsi_D;   
 reg 	  is_acsi_D;
    
-always @(posedge clk) begin
+always @(posedge clk32) begin
    // ACSI requests IO -> save state
    if(acsi_rd_req || acsi_wr_req)
      is_acsi_D <= 1'b1;
@@ -606,14 +605,14 @@ sd_card #(
     .irq(sdc_int),
     .iack(sdc_iack),
 
-    // user read sector command interface (sync with clk)
+    // user read sector command interface (sync with clk32)
     .rstart( { acsi_rd_req, sd_rd} ), 
     .wstart( { acsi_wr_req, sd_wr } ), 
     .rsector( is_acsi?acsi_lba:sd_lba),
     .rbusy(sd_busy),
     .rdone(sd_done),
 
-    // sector data output interface (sync with clk)
+    // sector data output interface (sync with clk32)
     .inbyte(is_acsi?acsi_sd_wr_byte:sd_wr_data),
     .outen(sd_rd_byte_strobe), // when outen=1, a byte of sector content is read out from outbyte
     .outaddr(sd_byte_index),   // outaddr from 0 to 511, because the sector size is 512

@@ -179,7 +179,7 @@ misterynano misterynano (
   .sdram_dqm   ( O_sdram_dqm    ), // 32/4
 
   // generic IO, used for mouse/joystick/...
-  .io ( ),
+  .io ( 8'b11111111 ),
 
   // mcu interface
   .mcu_sclk ( spi_io_clk  ),

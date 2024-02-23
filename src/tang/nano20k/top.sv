@@ -37,7 +37,7 @@ module top(
   output [3:0]	O_sdram_dqm, // 32/4
 
   // generic IO, used for mouse/joystick/...
-  inout [7:0]	io,
+  input [7:0]	io,
 
   // interface to external BL616/M0S
   inout [5:0]	m0s,
@@ -126,6 +126,10 @@ wire [5:0]  r;
 wire [5:0]  g;
 wire [5:0]  b;
 
+// sdram address can be up to 13 bits wide. tang nano 20k uses only 11
+wire [12:0] sdram_addr;
+assign O_sdram_addr = sdram_addr[10:0];
+
 misterynano misterynano (
   .clk   ( clk ),           // 27MHz clock uses e.g. for the flash pll
 
@@ -156,7 +160,7 @@ misterynano misterynano (
   .sdram_ras_n ( O_sdram_ras_n  ), // row address select
   .sdram_wen_n ( O_sdram_wen_n  ), // write enable
   .sdram_dq    ( IO_sdram_dq    ), // 32 bit bidirectional data bus
-  .sdram_addr  ( O_sdram_addr   ), // 11 bit multiplexed address bus
+  .sdram_addr  ( sdram_addr     ), // 11 bit multiplexed address bus
   .sdram_ba    ( O_sdram_ba     ), // two banks
   .sdram_dqm   ( O_sdram_dqm    ), // 32/4
 
