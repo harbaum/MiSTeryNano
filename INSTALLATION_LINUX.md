@@ -120,7 +120,7 @@ At this point mouse and keyboard should be working and you should be
 able to use the F12 key to open the on-screen-display (OSD) to control
 the core.
 
-Look [here](bl616) for more info about the firmware.
+Look [here](firmware) for more info about the firmware.
 
 ### Step 4: Installation of a floppy disk image
 

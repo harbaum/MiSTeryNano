@@ -16,6 +16,6 @@ The whole setup will look like this:
 On the software side the setup is very simuilar to the original Tang Nano 20K based solution. The core needs to be built specifically
 for the different FPGA of the Tang Primer using either the [TCL script with the GoWin command line interface](src/build_tp25k.tcl) or the
 [project file for the graphical GoWin IDE](src/atarist_tp25k.gprj). The resulting bitstream is flashed to the TP25K as usual. So are the TOS ROMs which are flashed exactly like they are on the Tang Nano 20K. And also the firmware for the M0S Dock is the [same version as for
-the Tang Nano 20K](bl616/misterynano_fw/).
+the Tang Nano 20K](firmware/misterynano_fw/).
 
 The resulting setup has no spare connectors and thus no MIDI or DB9 retro joystick port is available.

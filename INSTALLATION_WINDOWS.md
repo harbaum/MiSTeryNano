@@ -93,7 +93,7 @@ your possibility to flash the Tang over the USB connection.** It is thus
 strongly recommended to use an external BL616 (e.g. a M0S Dock).
 
 However, when using the internal BL616 you will be able to flash the
-[original firmware](https://github.com/harbaum/MiSTeryNano/tree/main/bl616/friend_20k)
+[original firmware](firmware/friend_20k)
 to the internal BL616 again to restore the flasher functionality of
 the Tang Nano 20K. Using an external M0S is nevertheless recommended.
 
