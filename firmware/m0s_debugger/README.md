@@ -189,8 +189,8 @@ to reduce the risk of damage in case of a short circuit.
 The debugger M0S needs to be flashed itself with a custom firmware
 provided in the repository. The files needed are:
 
-  - [m0s_debugger_bl616_cfg.ini](https://raw.githubusercontent.com/harbaum/MiSTeryNano/main/bl616/m0s_debugger/m0s_debugger_bl616_cfg.ini)
-  - [m0s_debugger_bl616.bin](https://raw.githubusercontent.com/harbaum/MiSTeryNano/main/bl616/m0s_debugger/m0s_debugger_bl616.bin)
+  - [m0s_debugger_bl616_cfg.ini](https://raw.githubusercontent.com/harbaum/MiSTeryNano/main/firmware/m0s_debugger/m0s_debugger_bl616_cfg.ini)
+  - [m0s_debugger_bl616.bin](https://raw.githubusercontent.com/harbaum/MiSTeryNano/main/firmware/m0s_debugger/m0s_debugger_bl616.bin)
 
 This firmware mainly consists of the
 [Sipeed CDC ACM UART soluition](https://github.com/sipeed/M0S_BL616_example/tree/main/sipeed/solutions/usbd_cdc_acm_with_uart). It
