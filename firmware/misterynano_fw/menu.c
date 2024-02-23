@@ -104,15 +104,15 @@ static const char system_form_c64[] =
   "System,0|2;"                         // return to form 0, entry 2
   // --------
   "L,Disk prot.:,None|8:,P;"            // Enable/Disable Floppy write protection
-  "L,Joyport 1:,Retro|USB #1|USB #2|NumPad|DualShock|Mouse|Paddle|Off,Q;" // Joystick port 1 mapping
-  "L,Joyport 2:,Retro|USB #1|USB #2|NumPad|DualShock|Mouse|Paddle|Off,J;" // Joystick port 2 mapping, default c64 Joystick port
+  "L,Joyport 1:,Retro D9|USB #1|USB #2|NumPad|DualShock|Mouse|Paddle|Off,Q;" // Joystick port 1 mapping
+  "L,Joyport 2:,Retro D9|USB #1|USB #2|NumPad|DualShock|Mouse|Paddle|Off,J;" // Joystick port 2 mapping, default c64 Joystick port
   "L,REU 1750:,Off|On,V;"                  // REU enable
-  "L,c1541 ROM:,Dolphin|Factory|SpeedD|JiffyD,D;"  // c1541 compatibility
+  "L,c1541 ROM:,Dolphin DOS|CBM DOS|Speed DOS P|Jiffy DOS,D;"  // c1541 compatibility
   "L,Audio filter:,Off|On,U;"
   "L,Turbo mode:,Off|C128|Smart,X;"
 	"L,Turbo speed:,2x|3x|4x,Y;"
   "L,Video Std:,PAL|NTSC,E;"
-  "L,Midi:,Off|Sequen|Passpo|DATEL|NameS,N;"
+  "L,Midi:,Off|Sequential|Passport|DATEL|Namesoft,N;"
   "L,Pause OSD:,Off|On,G;"
   "B,c1541 Reset,Z;"
   "B,Cold Boot,B;"; 
@@ -486,12 +486,16 @@ static void menu_variable_set(menu_t *menu, const char *s, int val) {
 	  sys_set_val(menu->osd->spi, 'R', 0);
 	}
       }
-
-      // c64 core, trigger c1541 reset in case DOS ROM changed
-      if((core_id == CORE_ID_C64) && (id == 'D')) {  
-	sys_set_val(menu->osd->spi, 'Z', 1);
-	sys_set_val(menu->osd->spi, 'Z', 0);
-      }
+  if(core_id == CORE_ID_C64){
+    // c64 core, trigger core reset if Video mode / PLL changes
+    if(id == 'E') {
+      sys_set_val(menu->osd->spi, 'R', 3);
+      sys_set_val(menu->osd->spi, 'R', 0); }
+    // c64 core, trigger c1541 reset in case DOS ROM changed
+    if(id == 'D') {  
+        sys_set_val(menu->osd->spi, 'Z', 1);
+        sys_set_val(menu->osd->spi, 'Z', 0); }
+    }
     }
   }
 }
