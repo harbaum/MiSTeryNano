@@ -5,13 +5,16 @@ The M0S PMOD adapter connects a  [M0S Dock](https://wiki.sipeed.com/hardware/en/
 ![Rendering](m0s_pmod.jpg)
 
 The M0S PMOD can e.g. be used with the [Tang Primer
-25K](https://wiki.sipeed.com/hardware/en/tang/tang-primer-25k/primer-25k.html). This
+25K](https://wiki.sipeed.com/hardware/en/tang/tang-primer-25k/primer-25k.html) or
+the [Tang Mega 138K](https://wiki.sipeed.com/hardware/en/tang/tang-mega-138k/mega-138k-pro.html). This
 may e.g. be used to run the MiSTeryNano firmware on the M0S Dock and
 to give the MiSTeryNano core running on the Tang Primer 25K advanced
 USB host capabilites, the On-Screen-Display and all file system
 handling needed.
 
 ![M0S on Tang Primer 25k](m0s_pmod_tp25k.jpg)
+
+![M0S on Tang Mega 138k](m0s_pmod_tm138k.jpg)
 
 The device is rather simple and mainly consists of a 3.3V to 5V boost
 converter prividing 5V to the M0S Doch from the 3.3V available on the
