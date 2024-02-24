@@ -2,11 +2,12 @@
 
 MiSTeryNano can be used in the [Tang Mega 138K](https://wiki.sipeed.com/hardware/en/tang/tang-mega-138k/mega-138k-pro.html).
 
-The Tang Mega 138K is a big and expensive board. Unlike the Tang Nano
-20K which is actually slightly inferior to the original MiST, the Tang
-Mega 138K is even slightly more powerful than the MiST's successor
-MiSTer. So while the MiSTeryNano core does run on the Tang Mega 138K
-it only utilizes its FPGA to 14%.
+The Tang Mega 138K is bigger than the other bords supported my
+MiSTeryNano. Unlike the Tang Nano 20K which is actually slightly
+inferior to the original [MiST](https://github.com/mist-devel/mist-board/wiki), the Tang Mega 138K is even slightly
+more powerful than the MiST's successor [MiSTer](https://mister-devel.github.io/MkDocs_MiSTer/). So while the
+MiSTeryNano core does run on the Tang Mega 138K it only utilizes its
+FPGA to 14%.
 
 Besides the significantly bigger FPGA over the Tang Nano 20K and also
 the Tang Primer 25K, the Tang Mega 138K adds several more features of
@@ -24,6 +25,7 @@ The M0S required to control the MiSTeryNano is to be mounted in the
 middle PMOD with the help of the [M0S PMOD adapter](board/m0s_pmod).
 
 The whole setup will look like this:
+
 ![MiSTeryNano on TM138K](board/m0s_pmod/m0s_pmod_tm138k.jpg)
 
 The firmware for the M0S Dock is the [same version as for the Tang
