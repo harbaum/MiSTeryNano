@@ -64,16 +64,16 @@ always @(posedge clk) begin
 
       // OSD value defaults. These should be sane defaults, but the MCU
       // will very likely override these early
-      system_chipset <= 2'b0;
-      system_memory <= 1'b0;
-      system_video <= 1'b0;   
-      system_scanlines <= 2'b00;
-      system_volume <= 2'b00;   
-      system_wide_screen <= 1'b0;   
-      system_floppy_wprot <= 2'b00;
-      system_cubase_en <= 1'b0; 
-      system_port_mouse <= 2'b00;
-      system_tos_slot <= 1'b0; 
+      system_chipset <= 2'd0;       // regular ST
+      system_memory <= 1'b0;        // 4 MB
+      system_video <= 1'b0;         // color
+      system_scanlines <= 2'b00;    // no scanlines
+      system_volume <= 2'b00;       // mute
+      system_wide_screen <= 1'b0;   // normal video 
+      system_floppy_wprot <= 2'b00; // floppy not write protected
+      system_cubase_en <= 1'b0;     // no cubase dongle
+      system_port_mouse <= 2'b00;   // mouse on usb -> db9 joystick
+      system_tos_slot <= 1'b0;      // primary tos slot
    end else begin
       int_ack <= 8'h00;
 

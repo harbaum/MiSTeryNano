@@ -27,7 +27,7 @@ module sdram (
 `ifdef VERILATOR
 	input [31:0]	  sd_data_in,
 `endif
-	output reg [10:0] sd_addr, // 11 bit multiplexed address bus
+	output reg [12:0] sd_addr, // 11 bit multiplexed address bus
 	output     [3:0]  sd_dqm, // two byte masks
 	output reg [1:0]  sd_ba, // two banks
 	output		  sd_cs, // a single chip select
