@@ -2,8 +2,8 @@
 
 ## IRQ in version 1.2.2
 
-Since version 1.2.2 MiSTeryNano the [M0S/BL616
-MCU](https://github.com/harbaum/MiSTeryNano/tree/main/bl616)
+Since version 1.2.2 MiSTeryNano the [firmware for the M0S/BL616
+MCU](firmware/misterynano_fw)
 has an additional IRQ connection to the FPGA for faster
 response times.
 
