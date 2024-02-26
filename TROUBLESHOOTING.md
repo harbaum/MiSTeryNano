@@ -29,7 +29,7 @@ screen isn't accepting the video signal.
 
 Additionally required:
 
-- A properly insalled TOS
+- A properly installed TOS
 
 If step 1 works and at least one TOS image (preferrably a german TOS
 1.04 as this has been tested most) has been flashed to flash address
