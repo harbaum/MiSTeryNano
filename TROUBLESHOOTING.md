@@ -1,6 +1,6 @@
 # Troubleshooting MiSTerNano
 
-You MiSTeryNano setup does not work? These steps may
+Your MiSTeryNano setup does not work? These steps may
 help to find the issue.
 
 ## 1. Does the display receive a signal?
