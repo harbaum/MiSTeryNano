@@ -1,4 +1,4 @@
-# Troubleshooting MiSTerNano
+# Troubleshooting MiSTeryNano
 
 Your MiSTeryNano setup does not work? These steps may
 help to find the issue.
