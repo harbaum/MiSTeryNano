@@ -97,13 +97,13 @@ static const char main_form_c64[] =
   // --------
   "F,Floppy 8:,0|d64+g64;"              // fileselector for Floppy 8:
   "S,System,1;"                         // System submenu is form 1
-  "S,Settings,2;"                       // Settings submenu is form 2
+  "S,Storage,2;"                        // Storage submenu
+  "S,Settings,3;"                       // Settings submenu is form 2
   "B,Reset,R;";                         // system reset
 
 static const char system_form_c64[] =
   "System,0|2;"                         // return to form 0, entry 2
   // --------
-  "L,Disk prot.:,None|8:,P;"            // Enable/Disable Floppy write protection
   "L,Joyport 1:,Retro D9|USB #1|USB #2|NumPad|DualShock|Mouse|Paddle|Off,Q;" // Joystick port 1 mapping
   "L,Joyport 2:,Retro D9|USB #1|USB #2|NumPad|DualShock|Mouse|Paddle|Off,J;" // Joystick port 2 mapping, default c64 Joystick port
   "L,REU 1750:,Off|On,V;"                  // REU enable
@@ -117,8 +117,17 @@ static const char system_form_c64[] =
   "B,c1541 Reset,Z;"
   "B,Cold Boot,B;"; 
 
+static const char storage_form_c64[] =
+  "Storage,0|3;"                        // return to form 0, entry 3
+  // --------
+  "F,Floppy 8:,0|d64+g64;"              // fileselector for Disk Drive 8:
+  "F,CRT:,1|crt;"                       // fileselector for CRT
+  "F,PRG:,2|prg;"                       // fileselector for PRG
+  "F,C64 Kernal:,3|bin;"                // fileselector for Kernal ROM
+  "L,Disk prot.:,None|8:,P;";           // Enable/Disable Floppy write protection
+
 static const char settings_form_c64[] =
-  "Settings,0|3;"                       // return to form 0, entry 3
+  "Settings,0|4;"                       // return to form 0, entry 3
   // --------
   "L,Screen:,Normal|Wide,W;"
   "L,Scanlines:,None|25%|50%|75%,S;"
@@ -128,6 +137,7 @@ static const char settings_form_c64[] =
 static const char *forms_c64[] = {
   main_form_c64,
   system_form_c64,
+  storage_form_c64,
   settings_form_c64
 };
 
@@ -357,8 +367,9 @@ menu_t *menu_init(u8g2_t *u8g2)
 	for(int drive=0;drive<MAX_DRIVES;drive++)
 	  sdc_set_default(drive, default_names[drive]);
       } else if(core_id == CORE_ID_C64) {
-	// the C64 core supports only one floppy drive
-	sdc_set_default(0, CARD_MOUNTPOINT "/disk8.d64");
+    // the C64 core supports only one floppy drive
+    sdc_set_default(0, CARD_MOUNTPOINT "/disk8.d64");
+    sdc_set_default(1, CARD_MOUNTPOINT "/cartridge.crt");
       }      
     }
   } else
