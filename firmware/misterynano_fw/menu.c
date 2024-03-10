@@ -159,6 +159,77 @@ menu_variable_t variables_c64[] = {
   { '\0',{ 0 }}
 };
 
+// ------------------------------------------------------------------
+// ------------------------  VIC20 menu -------------------------------
+// ------------------------------------------------------------------
+
+static const char main_form_vic20[] =
+  "VIC20Nano,;"                           // main form has no parent
+  // --------
+  "F,Floppy 8:,0|d64+g64;"              // fileselector for Floppy 8:
+  "S,System,1;"                         // System submenu is form 1
+  "S,Storage,2;"                        // Storage submenu
+  "S,Settings,3;"                       // Settings submenu is form 2
+  "B,Reset,R;";                         // system reset
+
+static const char system_form_vic20[] =
+  "System,0|2;"                         // return to form 0, entry 2
+  // --------
+  "L,Joyport 1:,Retro D9|USB #1|USB #2|NumPad|DualShock|Mouse|Paddle|Off,Q;" // Joystick port 1 mapping
+  "L,Joyport 2:,Retro D9|USB #1|USB #2|NumPad|DualShock|Mouse|Paddle|Off,J;" 
+  "L,REU 1750:,Off|On,V;"                
+  "L,c1541 ROM:,Dolphin DOS|CBM DOS|Speed DOS P|Jiffy DOS,D;"  // c1541 compatibility
+  "L,Audio filter:,Off|On,U;"
+  "L,Turbo mode:,Off|C128|Smart,X;"
+	"L,Turbo speed:,2x|3x|4x,Y;"
+  "L,Video Std:,PAL|NTSC,E;"
+  "L,Midi:,Off|Sequential|Passport|DATEL|Namesoft,N;"
+  "L,Pause OSD:,Off|On,G;"
+  "B,c1541 Reset,Z;"
+  "B,Cold Boot,B;"; 
+
+static const char storage_form_vic20[] =
+  "Storage,0|3;"                        // return to form 0, entry 3
+  // --------
+  "F,Floppy 8:,0|d64+g64;"              // fileselector for Disk Drive 8:
+  "F,CRT:,1|crt;"                       // fileselector for CRT
+//  "F,PRG:,2|prg;"                       // fileselector for PRG
+//  "F,vic20 Kernal:,3|bin;"                // fileselector for Kernal ROM
+  "L,Disk prot.:,None|8:,P;";           // Enable/Disable Floppy write protection
+
+static const char settings_form_vic20[] =
+  "Settings,0|4;"                       // return to form 0, entry 3
+  // --------
+  "L,Screen:,Normal|Wide,W;"
+  "L,Scanlines:,None|25%|50%|75%,S;"
+  "L,Volume:,Mute|33%|66%|100%,A;"
+  "B,Save settings,S;";
+
+static const char *forms_vic20[] = {
+  main_form_vic20,
+  system_form_vic20,
+  storage_form_vic20,
+  settings_form_vic20
+};
+
+menu_variable_t variables_vic20[] = {
+  { 'U', { 1 }},    // default sid filter = active
+  { 'X', { 0 }},    // default turbo mode = off
+  { 'Y', { 0 }},    // default turbo speed = 2x
+  { 'D', { 0 }},    // default c1541 dos = dolphin
+  { 'V', { 0 }},    // default reu = disabled
+  { 'S', { 0 }},    // default scanlines = none
+  { 'A', { 2 }},    // default volume = 66%
+  { 'W', { 0 }},    // default normal (4:3) screen
+  { 'P', { 0 }},    // default no floppy write protected
+  { 'Q', { 7 }},    // Joystick port 1 mapping, DS2
+  { 'J', { 0 }},    // Joystick port 2 mapping, DB9
+  { 'E', { 0 }},    // default standard = PAL
+  { 'N', { 0 }},    // default MIDI = Off
+  { 'G', { 0 }},    // default OSD Pause = Off
+  { '\0',{ 0 }}
+};
+
 static void menu_goto_form(menu_t *menu, int form, int entry) {
   menu->form = form;
   menu->entry = entry;
@@ -169,7 +240,8 @@ static void menu_goto_form(menu_t *menu, int form, int entry) {
 static const char *settings_file[] = {
   NULL,
   CARD_MOUNTPOINT "/atarist.ini",  // core id = 1
-  CARD_MOUNTPOINT "/c64.ini"       // core id = 2
+  CARD_MOUNTPOINT "/c64.ini",       // core id = 2
+  CARD_MOUNTPOINT "/vic20.ini"     // core id = 3
 };
 
 static int iswhite(char c) {
@@ -326,6 +398,9 @@ menu_t *menu_init(u8g2_t *u8g2)
   } else if(core_id == CORE_ID_C64) {
     menu.vars = variables_c64;
     menu.forms = forms_c64;
+  } else if(core_id == CORE_ID_VIC20) {
+    menu.vars = variables_vic20;
+    menu.forms = forms_vic20;
   } else {
     menu.vars = NULL;
     menu.forms = NULL;
@@ -366,7 +441,7 @@ menu_t *menu_init(u8g2_t *u8g2)
 	
 	for(int drive=0;drive<MAX_DRIVES;drive++)
 	  sdc_set_default(drive, default_names[drive]);
-      } else if(core_id == CORE_ID_C64) {
+      } else if(core_id == CORE_ID_C64||core_id == CORE_ID_VIC20) {
     // the C64 core supports only one floppy drive
     sdc_set_default(0, CARD_MOUNTPOINT "/disk8.d64");
     sdc_set_default(1, CARD_MOUNTPOINT "/cartridge.crt");
@@ -397,7 +472,7 @@ menu_t *menu_init(u8g2_t *u8g2)
   sys_set_val(menu.osd->spi, 'R', 3);
   sys_set_val(menu.osd->spi, 'R', 0);
 
-  if(core_id == CORE_ID_C64) {  // c64 core, c1541 reset at power-up
+  if(core_id == CORE_ID_C64||core_id == CORE_ID_VIC20) {  // c64 core, c1541 reset at power-up
     sys_set_val(menu.osd->spi, 'Z', 1);
     sys_set_val(menu.osd->spi, 'Z', 0);
   }
@@ -497,7 +572,7 @@ static void menu_variable_set(menu_t *menu, const char *s, int val) {
 	  sys_set_val(menu->osd->spi, 'R', 0);
 	}
       }
-  if(core_id == CORE_ID_C64){
+  if(core_id == CORE_ID_C64||core_id == CORE_ID_VIC20){
     // c64 core, trigger core reset if Video mode / PLL changes
     if(id == 'E') {
       sys_set_val(menu->osd->spi, 'R', 3);
