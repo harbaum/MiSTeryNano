@@ -4,8 +4,8 @@
 // USB HID to Commodore VIC20 key MATRIXVIC20 translation table
 //
 
-#define MISS          (0)
-#define MATRIXVIC20(b,a)   (b*8+a)
+#define MISS               (0)
+#define MATRIXVIC20(a,b)   (b*8+a)
 
 static const unsigned char keymap_vic20[] = {
   MISS,         // 00: NoEvent

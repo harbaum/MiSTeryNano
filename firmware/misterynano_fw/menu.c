@@ -176,15 +176,13 @@ static const char system_form_vic20[] =
   "System,0|2;"                         // return to form 0, entry 2
   // --------
   "L,Joyport 1:,Retro D9|USB #1|USB #2|NumPad|DualShock|Mouse|Paddle|Off,Q;" // Joystick port 1 mapping
-  "L,Joyport 2:,Retro D9|USB #1|USB #2|NumPad|DualShock|Mouse|Paddle|Off,J;" 
-  "L,REU 1750:,Off|On,V;"                
   "L,c1541 ROM:,Dolphin DOS|CBM DOS|Speed DOS P|Jiffy DOS,D;"  // c1541 compatibility
-  "L,Audio filter:,Off|On,U;"
-  "L,Turbo mode:,Off|C128|Smart,X;"
-	"L,Turbo speed:,2x|3x|4x,Y;"
+  "L,ExtRAM $0400(3KB):,Off|On,U;"
+  "L,ExtRAM $2000(8KB):,Off|On,X;"
+  "L,ExtRAM $4000(8KB):,Off|On,Y;"
+  "L,ExtRAM $6000(8KB):,Off|On,N;"
+  "L,ExtRAM $A000(8KB):,Off|On,G;"
   "L,Video Std:,PAL|NTSC,E;"
-  "L,Midi:,Off|Sequential|Passport|DATEL|Namesoft,N;"
-  "L,Pause OSD:,Off|On,G;"
   "B,c1541 Reset,Z;"
   "B,Cold Boot,B;"; 
 
@@ -213,20 +211,18 @@ static const char *forms_vic20[] = {
 };
 
 menu_variable_t variables_vic20[] = {
-  { 'U', { 1 }},    // default sid filter = active
-  { 'X', { 0 }},    // default turbo mode = off
-  { 'Y', { 0 }},    // default turbo speed = 2x
+  { 'U', { 0 }},    // default 3k
+  { 'X', { 0 }},    // default 8k, $2
+  { 'Y', { 0 }},    // default 8k, $4
+  { 'N', { 0 }},    // default 8k, $6
+  { 'G', { 0 }},    // default 8k, $A
   { 'D', { 0 }},    // default c1541 dos = dolphin
-  { 'V', { 0 }},    // default reu = disabled
   { 'S', { 0 }},    // default scanlines = none
   { 'A', { 2 }},    // default volume = 66%
   { 'W', { 0 }},    // default normal (4:3) screen
   { 'P', { 0 }},    // default no floppy write protected
   { 'Q', { 7 }},    // Joystick port 1 mapping, DS2
-  { 'J', { 0 }},    // Joystick port 2 mapping, DB9
   { 'E', { 0 }},    // default standard = PAL
-  { 'N', { 0 }},    // default MIDI = Off
-  { 'G', { 0 }},    // default OSD Pause = Off
   { '\0',{ 0 }}
 };
 
