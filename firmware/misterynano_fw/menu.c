@@ -122,8 +122,8 @@ static const char storage_form_c64[] =
   // --------
   "F,Floppy 8:,0|d64+g64;"              // fileselector for Disk Drive 8:
   "F,CRT:,1|crt;"                       // fileselector for CRT
-  "F,PRG:,2|prg;"                       // fileselector for PRG
-  "F,C64 Kernal:,3|bin;"                // fileselector for Kernal ROM
+//  "F,PRG:,2|prg;"                       // fileselector for PRG
+//  "F,C64 Kernal:,3|bin;"                // fileselector for Kernal ROM
   "L,Disk prot.:,None|8:,P;";           // Enable/Disable Floppy write protection
 
 static const char settings_form_c64[] =
@@ -183,6 +183,8 @@ static const char system_form_vic20[] =
   "L,RAM $60 8K:,Off|On,N;"
   "L,RAM $A0 8K:,Off|On,G;"
   "L,Video Std:,PAL|NTSC,E;"
+  "L,Vid. cent:,Off|Both|Horz|Vert,J;"
+  "L,Crt write:,Off|On,V;"
   "B,c1541 Reset,Z;"
   "B,Cold Boot,B;"; 
 
@@ -211,18 +213,20 @@ static const char *forms_vic20[] = {
 };
 
 menu_variable_t variables_vic20[] = {
-  { 'U', { 0 }},    // default 3k
+  { 'U', { 0 }},    // default 3k, $04
   { 'X', { 0 }},    // default 8k, $2
   { 'Y', { 0 }},    // default 8k, $4
   { 'N', { 0 }},    // default 8k, $6
-  { 'G', { 0 }},    // default 8k, $A
-  { 'D', { 0 }},    // default c1541 dos = dolphin
+  { 'G', { 0 }},    // default 8k, $A Cartridge area
+  { 'D', { 1 }},    // default c1541 dos = CBM
   { 'S', { 0 }},    // default scanlines = none
   { 'A', { 2 }},    // default volume = 66%
   { 'W', { 0 }},    // default normal (4:3) screen
   { 'P', { 0 }},    // default no floppy write protected
-  { 'Q', { 1 }},    // Joystick port 1 mapping, DS2
+  { 'Q', { 0 }},    // Joystick port 1 mapping = DB9
   { 'E', { 0 }},    // default standard = PAL
+  { 'J', { 0 }},    // Screen center = Off
+  { 'V', { 1 }},    // Cartridge writable = On
   { '\0',{ 0 }}
 };
 
