@@ -184,7 +184,7 @@ static const char system_form_vic20[] =
   "L,RAM $A0 8K:,Off|On,G;"
   "L,Video Std:,PAL|NTSC,E;"
   "L,Vid. cent:,Off|Both|Horz|Vert,J;"
-  "L,Crt write:,Off|On,V;"
+  "L,CRT write:,Off|On,V;"
   "B,c1541 Reset,Z;"
   "B,Cold Boot,B;"; 
 
@@ -213,11 +213,11 @@ static const char *forms_vic20[] = {
 };
 
 menu_variable_t variables_vic20[] = {
-  { 'U', { 0 }},    // default 3k, $04
-  { 'X', { 0 }},    // default 8k, $2
-  { 'Y', { 0 }},    // default 8k, $4
-  { 'N', { 0 }},    // default 8k, $6
-  { 'G', { 0 }},    // default 8k, $A Cartridge area
+  { 'U', { 0 }},    // default 3k, $0400
+  { 'X', { 0 }},    // default 8k, $2000
+  { 'Y', { 0 }},    // default 8k, $4000
+  { 'N', { 0 }},    // default 8k, $6000
+  { 'G', { 0 }},    // default 8k, $A000 Cartridge area
   { 'D', { 1 }},    // default c1541 dos = CBM
   { 'S', { 0 }},    // default scanlines = none
   { 'A', { 2 }},    // default volume = 66%
@@ -225,7 +225,7 @@ menu_variable_t variables_vic20[] = {
   { 'P', { 0 }},    // default no floppy write protected
   { 'Q', { 0 }},    // Joystick port 1 mapping = DB9
   { 'E', { 0 }},    // default standard = PAL
-  { 'J', { 0 }},    // Screen center = Off
+  { 'J', { 1 }},    // Screen center = Both
   { 'V', { 1 }},    // Cartridge writable = On
   { '\0',{ 0 }}
 };
