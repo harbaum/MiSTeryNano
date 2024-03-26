@@ -122,7 +122,7 @@ static const char storage_form_c64[] =
   // --------
   "F,Floppy 8:,0|d64+g64;"              // fileselector for Disk Drive 8:
   "F,CRT:,1|crt;"                       // fileselector for CRT
-//  "F,PRG:,2|prg;"                       // fileselector for PRG
+  "F,PRG:,2|prg;"                       // fileselector for PRG
 //  "F,C64 Kernal:,3|bin;"                // fileselector for Kernal ROM
   "L,Disk prot.:,None|8:,P;";           // Enable/Disable Floppy write protection
 
@@ -193,7 +193,7 @@ static const char storage_form_vic20[] =
   // --------
   "F,Floppy 8:,0|d64+g64;"              // fileselector for Disk Drive 8:
   "F,CRT:,1|crt;"                       // fileselector for CRT
-//  "F,PRG:,2|prg;"                       // fileselector for PRG
+  "F,PRG:,2|prg;"                       // fileselector for PRG
 //  "F,vic20 Kernal:,3|bin;"                // fileselector for Kernal ROM
   "L,Disk prot.:,None|8:,P;";           // Enable/Disable Floppy write protection
 
