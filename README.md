@@ -35,6 +35,12 @@ The MiSTeryNano is a work in progress. Current features are:
     * Images stored in .HD format
   * MIDI
     * Physical MIDI-IN and OUT
+  * Custom carrier board
+    * Robust [non-breadboard option](board/misteryshield20k/)
+  * Runs on various Tang variants
+    * [Tang Nano 20k](https://wiki.sipeed.com/nano20k)
+    * [Tang Primer 25k](TANG_PRIMER_25K.md)
+    * [Tang Mega 138k](TANG_MEGA_138K.md)
 
 ## Videos
 
@@ -64,8 +70,8 @@ In order to use the MiSTeryNano the following things are needed:
 
   * [Tang Nano 20k FPGA board](https://wiki.sipeed.com/nano20k) to run the MiSTeryNano core
   * [M0S Dock](https://wiki.sipeed.com/hardware/en/maixzero/m0s/m0s.html) to connect USB keyboard and mouse
-  * a breadboard to wire everything up
-  * some jumper wires
+  * a breadboard to wire everything up and some jumper wires, or
+  * [a MiSTeryShield](board/misteryshield20k/)
   * a USB-C to USB-A adapter to connect regular USB devices to the M0S Dock
 
 ![MiSTeryNano breadboard](images/misterynano_bb.jpeg)
@@ -75,6 +81,8 @@ In order to use the MiSTeryNano the following things are needed:
 The installation of MiSTeryNano on the Tang Nano 20k using can be done
 using a [Linux PC](INSTALLATION_LINUX.md) or a
 [Windows PC](INSTALLATION_WINDOWS.md).
+
+See the [trouble shooting guide](TROUBLESHOOTING.md) if you run into problems.
 
 ## Wiring
 
@@ -92,7 +100,7 @@ then be connected via USB instead.
 
 ## Usage
 
-The MiSTeryNano is mainly controlled through a on-screen-display (OSD)
+The MiSTeryNano is mainly controlled through an on-screen-display (OSD)
 overlaying the main Atari ST screen. The OSD is opened using the F12
 key. It can then be used to select floppy and harddisk images and to
 configure the running system.
