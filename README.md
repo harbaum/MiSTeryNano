@@ -35,8 +35,8 @@ The MiSTeryNano is a work in progress. Current features are:
     * Images stored in .HD format
   * MIDI
     * Physical MIDI-IN and OUT
-  * Custom carrier board
-    * Robust [non-breadboard option](board/misteryshield20k/)
+  * [Optional custom carrier board](board/misteryshield20k/)
+  * [Optional case](https://github.com/prcoder-1/MiSTeryNano-Case)
   * Runs on various Tang variants
     * [Tang Nano 20k](https://wiki.sipeed.com/nano20k)
     * [Tang Primer 25k](TANG_PRIMER_25K.md)
@@ -63,6 +63,8 @@ These videos primarily document the progress during development:
   * [MiSTeryNano #15: Power Without the Price: The Tang Nano 20k is the cheapest Atari ST](https://youtube.com/shorts/-kPpSlpkzvA)
   * [MiSTeryNano #16: Atari ST MIDI Space Quest 3 on Roland MT32](https://youtube.com/shorts/IOfeoJvnrmE)
   * [MiSTeryNano #17: C64 on Tang Nano 20K](https://youtube.com/shorts/qh_TCCgo1xY)
+  * [MiSTeryNano #18: Cheap RGB LCD for Atari ST in FPGA](https://youtube.com/shorts/_D7Gc8IL2GA)
+  * [MiSTeryNano #19: Atari STE Stardust on Tang Mega 138K FPGA](https://youtube.com/shorts/CI1L_LBodlw)
  
 ## Getting started
 
