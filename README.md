@@ -65,7 +65,7 @@ These videos primarily document the progress during development:
   * [MiSTeryNano #17: C64 on Tang Nano 20K](https://youtube.com/shorts/qh_TCCgo1xY)
   * [MiSTeryNano #18: Cheap RGB LCD for Atari ST in FPGA](https://youtube.com/shorts/_D7Gc8IL2GA)
   * [MiSTeryNano #19: Atari STE Stardust on Tang Mega 138K FPGA](https://youtube.com/shorts/CI1L_LBodlw)
-  * [MiSTeryNano #20: Atari STE on Tang Primer 25k FPGA #retrogaming](https://www.youtube.com/shorts/i-hUT1_UNOY)
+  * [MiSTeryNano #20: Atari STE on Tang Primer 25k FPGA](https://www.youtube.com/shorts/i-hUT1_UNOY)
 
 ## Getting started
 
