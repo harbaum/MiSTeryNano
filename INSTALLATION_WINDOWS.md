@@ -84,23 +84,21 @@ Their use and installation is optional.
 
 **That´s it for the Tang Nano 20**
 
-## Flashing the BL616
+## Flashing the M0S-Dock/BL616
 
 For the BL616 you have to extract and start the BuffaloLabDevCube. 
 
-**If you use the internal BL616 present on the Tang Nano 20K you loose
-your possibility to flash the Tang over the USB connection.** It is thus
-strongly recommended to use an external BL616 (e.g. a M0S Dock).
-
-However, when using the internal BL616 you will be able to flash the
-[original firmware](firmware/friend_20k)
-to the internal BL616 again to restore the flasher functionality of
-the Tang Nano 20K. Using an external M0S is nevertheless recommended.
+Using the internal BL616 of the Tang Nano 20k is currently not supported
+and a M0S Dock is mandatory. It needs to be flashed as follows:
 
 -   Press the ```BOOT``` button on your M0S Dock before you plug the USB connection
     on your PC. You should hear the hardware detecting sound.
--   Start the BuffaloLabDevCube from the directory where you decompressed it it
-    ask you what chip should be used. Select BL616/BL618 and press “finish”
+-   Start the BuffaloLabDevCube from the directory where you decompressed it. It
+    will ask you what chip should be used. Select BL616/BL618 and press “finish”
+
+**Important: The path where you downloaded the firmware on your PC must not
+contain spaces like "C:\Atari ST". It e.g. needs to be renamed to "C:\AtariST"
+or otherwise flashing will fail.**
 
 ![](https://github.com/harbaum/MiSTeryNano/blob/main/images/buffstart.png)
 
