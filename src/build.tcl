@@ -3,7 +3,6 @@ set_device GW2AR-LV18QN88C8/I7 -name GW2AR-18C
 add_file misterynano.sv
 add_file atarist/acia.v
 add_file atarist/acsi.v
-add_file atarist/atarist.v
 add_file atarist/dma.v
 add_file atarist/io_fifo.v
 add_file atarist/mfp.v
@@ -11,6 +10,7 @@ add_file atarist/mfp_hbit16.v
 add_file atarist/mfp_srff16.v
 add_file atarist/mfp_timer.v
 add_file atarist/stBlitter.sv
+add_file atarist/atarist.v
 add_file atarist/ste_joypad.v
 add_file atarist/cubase2_dongle.v
 add_file atarist/cubase3_dongle.v
