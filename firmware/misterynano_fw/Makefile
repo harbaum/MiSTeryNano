@@ -1,5 +1,5 @@
-COMX?=/dev/ttyUSB0
-BAUDRATE?=921600
+COMX?=/dev/m0s_debugger
+BAUDRATE?=2000000
 
 SDK_DEMO_PATH ?= .
 BL_SDK_BASE ?= $(SDK_DEMO_PATH)/../../..

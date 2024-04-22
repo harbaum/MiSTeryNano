@@ -10,7 +10,7 @@
 #include "bflb_gpio.h"
 #include "hidparser.h"
 
-#include "sysctrl.h"   // for core_id
+#include "sysctrl.h"   // for core_id2
 
 // Enabling RATE_CHECK will count the number of USB events per
 // device and do an estimate in the effective event rate.
@@ -30,7 +30,6 @@ extern QueueHandle_t xQueue;
 #define STATE_FAILED    3
 
 extern struct bflb_device_s *gpio;
-struct usbh_bus *usbh_bus0;   // global, so the usb core has access to it
 
 static struct usb_config {
   osd_t *osd;  
@@ -725,8 +724,7 @@ void usb_host(spi_t *spi) {
 
   printf("init usb hid host\r\n");
 
-  usbh_bus0 = usbh_alloc_bus(0, USB_BASE);
-  usbh_initialize(usbh_bus0);
+  usbh_initialize(0, USB_BASE);
   
   usb_config.spi = spi;
   usb_config.osd = NULL;
