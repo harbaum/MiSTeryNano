@@ -43,13 +43,10 @@ typedef struct {
 	  uint16_t max;
 	} physical;
       } hat;                   // 1 hat (joystick only)
-      
-      uint8_t button_count;
-      
     } joystick_mouse;
   };
 } hid_report_t;
 
-bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf);
+bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf, uint16_t *rbytes);
 
 #endif // HIDPARSER_H

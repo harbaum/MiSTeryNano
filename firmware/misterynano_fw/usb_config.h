@@ -10,6 +10,9 @@
 #define CONFIG_USB_EHCI_HCOR_OFFSET     (0x10)
 #define CONFIG_USBHOST_MAX_BUS              1
 
+// new 1.2.0
+#define CONFIG_USB_EHCI_HCCR_OFFSET        (0)
+
 /* ================ USB common Configuration ================ */
 
 #define CONFIG_USB_PRINTF(...) printf(__VA_ARGS__)
