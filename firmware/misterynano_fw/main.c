@@ -14,6 +14,7 @@
 #include "bl616_glb.h"
 
 #include "usb_config.h"
+#include "bt_ble.h"
 
 struct bflb_device_s *gpio;
 
@@ -314,6 +315,8 @@ int main(void) {
   //  audio_init(spi);
   //  audio_chime();
   usb_host(spi); 
+
+  bt_ble_init(spi);
   
   // start a thread for the on screen display    
   xTaskCreate(osd_task, (char *)"osd_task", 2048, spi, configMAX_PRIORITIES-3, &osd_handle);

@@ -9,8 +9,9 @@
 #include "usbh_hid.h"
 #include "bflb_gpio.h"
 #include "hidparser.h"
+#include "hid.h"
 
-#include "sysctrl.h"   // for core_id2
+#include "sysctrl.h"   // for core_id
 
 // Enabling RATE_CHECK will count the number of USB events per
 // device and do an estimate in the effective event rate.
@@ -67,14 +68,9 @@ static struct usb_config {
     unsigned long rate_events;
 #endif    
     union {
-      struct {
-	unsigned char last_report[8];	
-      } keyboard;
-      struct { } mouse;
-      struct {
-	unsigned char last_state;
-	unsigned char js_index;
-      } joystick;
+      struct hid_kbd_state_S keyboard;
+      struct hid_mouse_state_S mouse;
+      struct hid_joystick_state_S joystick;
     };
   } hid_info[CONFIG_USBHOST_MAX_HID_CLASS];
 } usb_config;
@@ -85,25 +81,20 @@ USB_NOCACHE_RAM_SECTION USB_MEM_ALIGNX uint8_t xbox_buffer[CONFIG_USBHOST_MAX_XB
 // include the keyboard mappings
 #include "atari_st.h"
 #include "cbm.h"
-#include "vic20.h"
 
 const unsigned char *keymap[] = {
   NULL,             // id 0: unknown core
   keymap_atarist,   // id 1: atari st
-  keymap_cbm,        // id 2: c64
-  keymap_vic20      // id 3: vic20
+  keymap_cbm        // id 2: c64
 };
 
 const unsigned char *modifier[] = {
   NULL,             // id 0: unknown core
   modifier_atarist, // id 1: atari st
-  modifier_cbm,      // id 2: c64
-  modifier_vic20    // id 3: vic20
+  modifier_cbm      // id 2: c64
 };
 
-void kbd_tx(struct hid_info_S *hid, unsigned char byte) {
-  spi_t *spi = hid->usb->spi;
-  
+void kbd_tx(spi_t *spi, unsigned char byte) {
   printf("KBD: %02x\r\n", byte);
 
   spi_begin(spi);
@@ -115,7 +106,7 @@ void kbd_tx(struct hid_info_S *hid, unsigned char byte) {
 
 // the c64 core can use the numerical pad on the keyboard to
 // emulate a joystick
-void kbd_num2joy(struct hid_info_S *hid, char state, unsigned char code) {
+void kbd_num2joy(spi_t *spi, char state, unsigned char code) {
   static unsigned char kbd_joy_state = 0;
   static unsigned char kbd_joy_state_last = 0;
   
@@ -148,7 +139,6 @@ void kbd_num2joy(struct hid_info_S *hid, char state, unsigned char code) {
       
       printf("KP Joy: %02x\r\n", kbd_joy_state);
   
-      spi_t *spi = hid->usb->spi;  
       spi_begin(spi);
       spi_tx_u08(spi, SPI_TARGET_HID);
       spi_tx_u08(spi, SPI_HID_JOYSTICK);
@@ -161,36 +151,37 @@ void kbd_num2joy(struct hid_info_S *hid, char state, unsigned char code) {
   }
 }
   
-void kbd_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
+void kbd_parse(spi_t *spi, hid_report_t *report, struct hid_kbd_state_S *state,
+	       const unsigned char *buffer, int nbytes) {
   // we expect boot mode packets which are exactly 8 bytes long
   if(nbytes != 8) return;
   
   // check if modifier have changed
-  if((buffer[0] != hid->keyboard.last_report[0]) && !osd_is_visible(usb_config.osd)) {
+  if((buffer[0] != state->last_report[0]) && !osd_is_visible(usb_config.osd)) {
     for(int i=0;i<8;i++) {
       if(modifier[core_id][i]) {      
 	// modifier released?
-	if((hid->keyboard.last_report[0] & (1<<i)) && !(buffer[0] & (1<<i)))
-	  kbd_tx(hid, 0x80 | modifier[core_id][i]);
+	if((state->last_report[0] & (1<<i)) && !(buffer[0] & (1<<i)))
+	  kbd_tx(spi, 0x80 | modifier[core_id][i]);
 	// modifier pressed?
-	if(!(hid->keyboard.last_report[0] & (1<<i)) && (buffer[0] & (1<<i)))
-	  kbd_tx(hid, modifier[core_id][i]);
+	if(!(state->last_report[0] & (1<<i)) && (buffer[0] & (1<<i)))
+	  kbd_tx(spi, modifier[core_id][i]);
       }
     }
   }
 
   // prepare for parsing numpad joystick
-  if(core_id == CORE_ID_C64||core_id == CORE_ID_VIC20) kbd_num2joy(hid, 0, 0);
+  if(core_id == CORE_ID_C64) kbd_num2joy(spi, 0, 0);
   
   // check if regular keys have changed
   for(int i=0;i<6;i++) {
     // C64 uses some keys for joystick emulation
-    if(core_id == CORE_ID_C64 || core_id == CORE_ID_VIC20) kbd_num2joy(hid, 1, buffer[2+i]);
+    if(core_id == CORE_ID_C64) kbd_num2joy(spi, 1, buffer[2+i]);
     
-    if(buffer[2+i] != hid->keyboard.last_report[2+i]) {
+    if(buffer[2+i] != state->last_report[2+i]) {
       // key released?
-      if(hid->keyboard.last_report[2+i] && !osd_is_visible(usb_config.osd))
-	kbd_tx(hid, 0x80 | keymap[core_id][hid->keyboard.last_report[2+i]]);
+      if(state->last_report[2+i] && !osd_is_visible(usb_config.osd))
+	kbd_tx(spi, 0x80 | keymap[core_id][state->last_report[2+i]]);
       
       // key pressed?
       if(buffer[2+i])  {
@@ -208,7 +199,7 @@ void kbd_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
 	  msg = osd_is_visible(usb_config.osd)?MENU_EVENT_HIDE:MENU_EVENT_SHOW;
 	else {
 	  if(!osd_is_visible(usb_config.osd))
-	    kbd_tx(hid, keymap[core_id][buffer[2+i]]);
+	    kbd_tx(spi, keymap[core_id][buffer[2+i]]);
 	  else {
 	    // check if cursor up/down or space has been pressed
 	    if(buffer[2+i] == 0x51) msg = MENU_EVENT_DOWN;      
@@ -225,14 +216,14 @@ void kbd_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
       }
     }    
   }
-  memcpy(hid->keyboard.last_report, buffer, 8);
+  memcpy(state->last_report, buffer, 8);
 
   // check if numpad joystick has changed state and send message if so
-  if(core_id == CORE_ID_C64||core_id == CORE_ID_VIC20) kbd_num2joy(hid, 2, 0);
+  if(core_id == CORE_ID_C64) kbd_num2joy(spi, 2, 0);
 }
 
 // collect bits from byte stream and assemble them into a signed word
-static uint16_t collect_bits(uint8_t *p, uint16_t offset, uint8_t size, bool is_signed) {
+static uint16_t collect_bits(const uint8_t *p, uint16_t offset, uint8_t size, bool is_signed) {
   // mask unused bits of first byte
   uint8_t mask = 0xff << (offset&7);
   uint8_t byte = offset/8;
@@ -273,41 +264,30 @@ static uint16_t collect_bits(uint8_t *p, uint16_t offset, uint8_t size, bool is_
   return rval;
 }
 
-void mouse_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
+void mouse_parse(spi_t *spi, hid_report_t *report, struct hid_mouse_state_S *state,
+		 const unsigned char *buffer, int nbytes) {
   // we expect at least three bytes:
   if(nbytes < 3) return;
   
   //  printf("MOUSE:"); for(int i=0;i<nbytes;i++) printf(" %02x", buffer[i]); printf("\r\n");
-
+  
   // collect info about the two axes
   int a[2];
   for(int i=0;i<2;i++) {  
-    bool is_signed = hid->report.joystick_mouse.axis[i].logical.min > 
-      hid->report.joystick_mouse.axis[i].logical.max;
+    bool is_signed = report->joystick_mouse.axis[i].logical.min > 
+      report->joystick_mouse.axis[i].logical.max;
 
-    a[i] = collect_bits(buffer, hid->report.joystick_mouse.axis[i].offset, 
-			hid->report.joystick_mouse.axis[i].size, is_signed);
+    a[i] = collect_bits(buffer, report->joystick_mouse.axis[i].offset, 
+			report->joystick_mouse.axis[i].size, is_signed);
   }
 
   // ... and two buttons
-  unsigned char btns = 0;
+  uint8_t btns = 0;
   for(int i=0;i<2;i++)
-    if(buffer[hid->report.joystick_mouse.button[i].byte_offset] & 
-       hid->report.joystick_mouse.button[i].bitmask)
+    if(buffer[report->joystick_mouse.button[i].byte_offset] & 
+       report->joystick_mouse.button[i].bitmask)
       btns |= (1<<i);
 
-#if 0
-  // decellerate mouse somewhat
-  static int x_left = 0;
-  static int y_left = 0;
-
-  a[0] += x_left;  a[1] += y_left;       // add bits left from previous 
-  x_left = a[0] & 1;  y_left = a[1] & 1; // save bits that would now be lost
-  
-  a[0] /= 2; a[1] /= 2;
-#endif
-  
-  spi_t *spi = hid->usb->spi;  
   spi_begin(spi);
   spi_tx_u08(spi, SPI_TARGET_HID);
   spi_tx_u08(spi, SPI_HID_MOUSE);
@@ -317,49 +297,48 @@ void mouse_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
   spi_end(spi);
 }
 
-void joystick_parse(struct hid_info_S *hid, unsigned char *buffer, int nbytes) {
+void joystick_parse(spi_t *spi, hid_report_t *report, struct hid_joystick_state_S *state,
+		    const unsigned char *buffer, int nbytes) {
   //  printf("joystick: %d %02x %02x %02x %02x\r\n", nbytes,
   //  	 buffer[0]&0xff, buffer[1]&0xff, buffer[2]&0xff, buffer[3]&0xff);
 
-  unsigned char joy = 0;
-  
   // collect info about the two axes
   int a[2];
   for(int i=0;i<2;i++) {  
-    bool is_signed = hid->report.joystick_mouse.axis[i].logical.min > 
-      hid->report.joystick_mouse.axis[i].logical.max;
-
-    a[i] = collect_bits(buffer, hid->report.joystick_mouse.axis[i].offset, 
-			hid->report.joystick_mouse.axis[i].size, is_signed);
+    bool is_signed = report->joystick_mouse.axis[i].logical.min > 
+      report->joystick_mouse.axis[i].logical.max;
+    
+    a[i] = collect_bits(buffer, report->joystick_mouse.axis[i].offset, 
+			report->joystick_mouse.axis[i].size, is_signed);
   }
 
   // ... and four buttons
+  unsigned char joy = 0;
   for(int i=0;i<4;i++)
-    if(buffer[hid->report.joystick_mouse.button[i].byte_offset] & 
-       hid->report.joystick_mouse.button[i].bitmask)
+    if(buffer[report->joystick_mouse.button[i].byte_offset] & 
+       report->joystick_mouse.button[i].bitmask)
       joy |= (0x10<<i);
-
+  
   // map directions to digital
   if(a[0] > 0xc0) joy |= 0x01;
   if(a[0] < 0x40) joy |= 0x02;
   if(a[1] > 0xc0) joy |= 0x04;
   if(a[1] < 0x40) joy |= 0x08;
 
-  if(joy != hid->joystick.last_state) {  
-    hid->joystick.last_state = joy;
-    printf("JOY%d: %02x\r\n", hid->joystick.js_index, joy);
+  if(joy != state->last_state) {  
+    state->last_state = joy;
+    printf("JOY%d: %02x\r\n", state->js_index, joy);
   
-    spi_t *spi = hid->usb->spi;  
     spi_begin(spi);
     spi_tx_u08(spi, SPI_TARGET_HID);
     spi_tx_u08(spi, SPI_HID_JOYSTICK);
-    spi_tx_u08(spi, hid->joystick.js_index);
+    spi_tx_u08(spi, state->js_index);
     spi_tx_u08(spi, joy);
     spi_end(spi);
   }
 }
 
-void rii_joy_parse(struct hid_info_S *hid, unsigned char *buffer) {
+void rii_joy_parse(struct hid_info_S *hid, const unsigned char *buffer) {
   unsigned char b = 0;
   if(buffer[0] == 0xcd && buffer[1] == 0x00) b = 0x10;      // cd == play/pause  -> center
   if(buffer[0] == 0xe9 && buffer[1] == 0x00) b = 0x08;      // e9 == V+          -> up
@@ -411,7 +390,7 @@ static void usbh_update(struct usb_config *usb) {
       // parse report descriptor ...
       printf("report descriptor: %p\r\n", usb->hid_info[i].class->report_desc);
       
-      if(!parse_report_descriptor(usb->hid_info[i].class->report_desc, 128, &usb->hid_info[i].report)) {
+      if(!parse_report_descriptor(usb->hid_info[i].class->report_desc, 128, &usb->hid_info[i].report, NULL)) {
 	usb->hid_info[i].state = STATE_FAILED;   // parsing failed, don't use
 	return;
       }
@@ -507,13 +486,13 @@ static void hid_parse(struct hid_info_S *hid) {
   
   if(hid->nbytes == hid->report.report_size) {
     if(hid->report.type == REPORT_TYPE_KEYBOARD)
-      kbd_parse(hid, buffer, hid->nbytes);
+      kbd_parse(hid->usb->spi, &hid->report, &hid->keyboard, buffer, hid->nbytes);
     
     if(hid->report.type == REPORT_TYPE_MOUSE)
-      mouse_parse(hid, buffer, hid->nbytes);
+      mouse_parse(hid->usb->spi, &hid->report, &hid->mouse, buffer, hid->nbytes);
     
     if(hid->report.type == REPORT_TYPE_JOYSTICK)
-      joystick_parse(hid, buffer, hid->nbytes);
+      joystick_parse(hid->usb->spi, &hid->report, &hid->joystick, buffer, hid->nbytes);
   }
 }
 
@@ -673,7 +652,7 @@ static void usbh_hid_thread(void *argument) {
 #endif
 	
 	// start a new thread for the new device
-	xTaskCreate(usbh_hid_client_thread, (char *)"hid_task", 512,
+	xTaskCreate(usbh_hid_client_thread, (char *)"hid_task", 1024,
 		    &usb->hid_info[i], configMAX_PRIORITIES-3, &usb->hid_info[i].task_handle );
       }
     }

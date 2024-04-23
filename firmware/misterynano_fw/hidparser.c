@@ -78,7 +78,7 @@ bool report_is_usable(uint16_t bit_count, uint8_t report_complete, hid_report_t 
 	return false;
 }
 
-bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf) {
+bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf, uint16_t *rbytes) {
 	int8_t app_collection = 0;
 	int8_t phys_log_collection = 0;
 	uint8_t skip_collection = 0;
@@ -88,6 +88,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 	uint8_t i;
 
 	//
+	uint8_t buttons = 0;
 	uint8_t report_size, report_count;
 	uint16_t bit_count = 0, usage_count = 0;
 	uint16_t logical_minimum=0, logical_maximum=0;
@@ -115,16 +116,19 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 
 		rep++;
 		rep_size--;   // one byte consumed
-
+		if(rbytes) (*rbytes)++;
+		
 		uint32_t value = 0;
 		if(size) {      // size 1/2/3
 			value = *rep++;
 			rep_size--;
+			if(rbytes) (*rbytes)++;
 		}
 
 		if(size > 1) {  // size 2/3
 			value = (value & 0xff) + ((uint32_t)(*rep++)<<8);
 			rep_size--;
+			if(rbytes) (*rbytes)++;
 		}
 
 		if(size > 2) {  // size 3
@@ -132,6 +136,7 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 			value |= ((uint32_t)(*rep++)<<16);
 			value |= ((uint32_t)(*rep++)<<24);
 			rep_size-=2;
+			if(rbytes) (*rbytes) += 2;
 		}
 
 		//    hidp_extreme_debugf("Value = %d (%u)\n", value, value);
@@ -172,16 +177,16 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 						// scan for up to four buttons
 							char b;
 							for(b=0;b<12;b++) {
-								if(report_count > b) {
+								if(report_count > buttons) {
 								uint16_t this_bit = bit_count+b;
 
-									hidp_debugf("BUTTON%d @ %d (byte %d, mask %d)", b, 
+									hidp_debugf("BUTTON%d @ %d (byte %d, mask %d)", buttons, 
 										this_bit, this_bit/8, 1 << (this_bit%8));
 
-									conf->joystick_mouse.button[b].byte_offset = this_bit/8;
-									conf->joystick_mouse.button[b].bitmask = 1 << (this_bit%8);
+									conf->joystick_mouse.button[buttons].byte_offset = this_bit/8;
+									conf->joystick_mouse.button[buttons].bitmask = 1 << (this_bit%8);
+									buttons++;
 								}
-								conf->joystick_mouse.button_count = report_count * report_size;
 							}
 
 							// we found at least one button which is all we want to accept this as a valid 
@@ -280,9 +285,9 @@ bool parse_report_descriptor(uint8_t *rep, uint16_t rep_size, hid_report_t *conf
 						app_collection--;
 
 						// check if report is usable and stop parsing if it is
-						if(report_is_usable(bit_count, report_complete, conf))
-							return true;
-						else {
+						if(report_is_usable(bit_count, report_complete, conf)) {
+						        return true;
+						} else {
 							// retry with next report
 							bit_count = 0;
 							report_complete = 0;
