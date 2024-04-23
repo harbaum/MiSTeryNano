@@ -114,6 +114,8 @@ static const char system_form_c64[] =
   "L,Video Std:,PAL|NTSC,E;"
   "L,Midi:,Off|Sequential|Passport|DATEL|Namesoft,N;"
   "L,Pause OSD:,Off|On,G;"
+  "L,VIC-II:,656x|856x|Early 856x,C;"
+  "L,CIA:,6526|8521,M;"
   "B,c1541 Reset,Z;"
   "B,Cold Boot,B;"; 
 
@@ -156,6 +158,8 @@ menu_variable_t variables_c64[] = {
   { 'E', { 0 }},    // default standard = PAL
   { 'N', { 0 }},    // default MIDI = Off
   { 'G', { 0 }},    // default OSD Pause = Off
+  { 'C', { 0 }},    // default CIA
+  { 'M', { 0 }},    // default VIC-II
   { '\0',{ 0 }}
 };
 
