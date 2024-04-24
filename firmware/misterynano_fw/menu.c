@@ -114,6 +114,8 @@ static const char system_form_c64[] =
   "L,Video Std:,PAL|NTSC,E;"
   "L,Midi:,Off|Sequential|Passport|DATEL|Namesoft,N;"
   "L,Pause OSD:,Off|On,G;"
+  "L,VIC-II:,656x|856x|Early 856x,C;"
+  "L,CIA:,6526|8521,M;"
   "B,c1541 Reset,Z;"
   "B,Cold Boot,B;"; 
 
@@ -122,8 +124,8 @@ static const char storage_form_c64[] =
   // --------
   "F,Floppy 8:,0|d64+g64;"              // fileselector for Disk Drive 8:
   "F,CRT:,1|crt;"                       // fileselector for CRT
-//  "F,PRG:,2|prg;"                       // fileselector for PRG
-//  "F,C64 Kernal:,3|bin;"                // fileselector for Kernal ROM
+  "F,PRG:,2|prg;"                       // fileselector for PRG
+  "F,C64 Kernal:,3|bin;"                // fileselector for Kernal ROM
   "L,Disk prot.:,None|8:,P;";           // Enable/Disable Floppy write protection
 
 static const char settings_form_c64[] =
@@ -156,6 +158,8 @@ menu_variable_t variables_c64[] = {
   { 'E', { 0 }},    // default standard = PAL
   { 'N', { 0 }},    // default MIDI = Off
   { 'G', { 0 }},    // default OSD Pause = Off
+  { 'C', { 0 }},    // default CIA
+  { 'M', { 0 }},    // default VIC-II
   { '\0',{ 0 }}
 };
 
@@ -193,8 +197,8 @@ static const char storage_form_vic20[] =
   // --------
   "F,Floppy 8:,0|d64+g64;"              // fileselector for Disk Drive 8:
   "F,CRT:,1|crt;"                       // fileselector for CRT
-//  "F,PRG:,2|prg;"                       // fileselector for PRG
-//  "F,vic20 Kernal:,3|bin;"                // fileselector for Kernal ROM
+  "F,PRG:,2|prg;"                       // fileselector for PRG
+  "F,VIC20 Kernal:,3|bin;"                // fileselector for Kernal ROM
   "L,Disk prot.:,None|8:,P;";           // Enable/Disable Floppy write protection
 
 static const char settings_form_vic20[] =
