@@ -3117,7 +3117,7 @@
     (property "Datasheet" "~" (at 131.445 117.475 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "LCSC Part #" " C17530" (at 131.445 117.475 0)
+    (property "LCSC Part #" " C17590" (at 131.445 117.475 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (pin "1" (uuid 3ebb2d01-5dd0-4359-9c9e-abddde48d366))

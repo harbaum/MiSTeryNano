@@ -1545,7 +1545,7 @@
     (at 105.092 85.5 90)
     (descr "Resistor SMD 0805 (2012 Metric), square (rectangular) end terminal, IPC_7351 nominal, (Body size source: IPC-SM-782 page 72, https://www.pcb-3d.com/wordpress/wp-content/uploads/ipc-sm-782a_amendment_1_and_2.pdf), generated with kicad-footprint-generator")
     (tags "resistor")
-    (property "LCSC Part #" " C17530")
+    (property "LCSC Part #" " C17590")
     (property "Sheetfile" "misteryshield20k.kicad_sch")
     (property "Sheetname" "")
     (property "ki_description" "Resistor")
