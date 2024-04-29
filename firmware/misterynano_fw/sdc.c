@@ -11,6 +11,9 @@
 #include <string.h>
 #include "sysctrl.h"
 
+// enable to use old way to determine cluster position
+// #define USE_FSEEK
+
 static spi_t *spi = NULL;
 static int sdc_ready = 0;
 static SemaphoreHandle_t sdc_sem;
@@ -241,6 +244,28 @@ static const char *drivename(int drive) {
   return names[drive];  
 }
 
+#ifndef USE_FSEEK
+// this function has been taken from fatfs ff.c as it's static there
+static DWORD clmt_clust(FIL *fp, FSIZE_t ofs) {
+  DWORD cl, ncl;
+  DWORD *tbl;
+  FATFS *fs = fp->obj.fs;
+  
+  tbl = fp->cltbl + 1;                    /* Top of CLMT */
+  cl = (DWORD)(ofs / FF_MAX_SS / fs->csize); /* Cluster order from top of the file */
+  for (;;) {
+    ncl = *tbl++; /* Number of cluters in the fragment */
+    if (ncl == 0)
+      return 0; /* End of table? (error) */
+    if (cl < ncl)
+      break; /* In this fragment? */
+    cl -= ncl;
+    tbl++; /* Next fragment */
+  }
+  return cl + *tbl; /* Return the cluster number */
+}
+#endif
+
 int sdc_handle_event(void) {
   // printf("Handling SDC event\r\n");
 
@@ -270,10 +295,14 @@ int sdc_handle_event(void) {
   
     // translate sector into a cluster number inside image
     sdc_lock();
+#ifdef USE_FSEEK
     f_lseek(&fil[drive], (rsector+1)*512);
-
     // and add sector offset within cluster    
-    unsigned long dsector = clst2sect(fil[drive].clust) + rsector%fs.csize;
+    unsigned long dsector = clst2sect(fil[drive].clust) + rsector%fs.csize;    
+#else
+    // derive cluster directly from table
+    unsigned long dsector = clst2sect(clmt_clust(&fil[drive], rsector*512)) + rsector%fs.csize;
+#endif
     
     printf("%s: lba %lu = %lu\r\n", drivename(drive), rsector, dsector);
 
