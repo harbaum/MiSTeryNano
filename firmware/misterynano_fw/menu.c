@@ -445,11 +445,28 @@ menu_t *menu_init(u8g2_t *u8g2)
 	
 	for(int drive=0;drive<MAX_DRIVES;drive++)
 	  sdc_set_default(drive, default_names[drive]);
-      } else if(core_id == CORE_ID_C64||core_id == CORE_ID_VIC20) {
-    // the C64 core supports only one floppy drive
-    sdc_set_default(0, CARD_MOUNTPOINT "/disk8.d64");
-    sdc_set_default(1, CARD_MOUNTPOINT "/cartridge.crt");
-      }      
+      } else if(core_id == CORE_ID_C64) {
+    // C64 core
+	static const char *c64_default_names[] = {
+	  CARD_MOUNTPOINT "/disk8.d64",
+	  CARD_MOUNTPOINT "/c64crt.crt",
+	  CARD_MOUNTPOINT "/c64prg.prg",
+	  CARD_MOUNTPOINT "/c64kernal.bin" };
+
+	for(int drive=0;drive<MAX_DRIVES;drive++)
+	  sdc_set_default(drive, c64_default_names[drive]);
+    }
+      else if(core_id == CORE_ID_VIC20) {
+    // VIC20 core
+	static const char *vic20_default_names[] = {
+	  CARD_MOUNTPOINT "/disk8.d64",
+	  CARD_MOUNTPOINT "/vic20crt.crt",
+	  CARD_MOUNTPOINT "/vic20prg.prg",
+	  CARD_MOUNTPOINT "/vic20kernal.bin" };
+
+	for(int drive=0;drive<MAX_DRIVES;drive++)
+	  sdc_set_default(drive, vic20_default_names[drive]);
+    }
     }
   } else
     printf("SD wasn't ready, not loading settings\r\n");
