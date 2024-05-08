@@ -81,17 +81,20 @@ USB_NOCACHE_RAM_SECTION USB_MEM_ALIGNX uint8_t xbox_buffer[CONFIG_USBHOST_MAX_XB
 // include the keyboard mappings
 #include "atari_st.h"
 #include "cbm.h"
+#include "vic20.h"
 
 const unsigned char *keymap[] = {
   NULL,             // id 0: unknown core
   keymap_atarist,   // id 1: atari st
-  keymap_cbm        // id 2: c64
+  keymap_cbm,       // id 2: c64
+  keymap_vic20      // id 3: vic20
 };
 
 const unsigned char *modifier[] = {
   NULL,             // id 0: unknown core
   modifier_atarist, // id 1: atari st
-  modifier_cbm      // id 2: c64
+  modifier_cbm,     // id 2: c64
+  modifier_vic20    // id 3: vic20
 };
 
 void kbd_tx(spi_t *spi, unsigned char byte) {
@@ -171,12 +174,12 @@ void kbd_parse(spi_t *spi, hid_report_t *report, struct hid_kbd_state_S *state,
   }
 
   // prepare for parsing numpad joystick
-  if(core_id == CORE_ID_C64) kbd_num2joy(spi, 0, 0);
+  if(core_id == CORE_ID_C64||core_id == CORE_ID_VIC20) kbd_num2joy(spi, 0, 0);
   
   // check if regular keys have changed
   for(int i=0;i<6;i++) {
     // C64 uses some keys for joystick emulation
-    if(core_id == CORE_ID_C64) kbd_num2joy(spi, 1, buffer[2+i]);
+    if(core_id == CORE_ID_C64||core_id == CORE_ID_VIC20) kbd_num2joy(spi, 1, buffer[2+i]);
     
     if(buffer[2+i] != state->last_report[2+i]) {
       // key released?
@@ -219,7 +222,7 @@ void kbd_parse(spi_t *spi, hid_report_t *report, struct hid_kbd_state_S *state,
   memcpy(state->last_report, buffer, 8);
 
   // check if numpad joystick has changed state and send message if so
-  if(core_id == CORE_ID_C64) kbd_num2joy(spi, 2, 0);
+  if(core_id == CORE_ID_C64||core_id == CORE_ID_VIC20) kbd_num2joy(spi, 2, 0);
 }
 
 // collect bits from byte stream and assemble them into a signed word
