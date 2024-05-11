@@ -82,19 +82,22 @@ USB_NOCACHE_RAM_SECTION USB_MEM_ALIGNX uint8_t xbox_buffer[CONFIG_USBHOST_MAX_XB
 #include "atari_st.h"
 #include "cbm.h"
 #include "vic20.h"
+#include "amiga.h"
 
 const unsigned char *keymap[] = {
   NULL,             // id 0: unknown core
   keymap_atarist,   // id 1: atari st
   keymap_cbm,       // id 2: c64
-  keymap_vic20      // id 3: vic20
+  keymap_vic20,     // id 3: vic20
+  keymap_amiga      // id 4: amiga
 };
 
 const unsigned char *modifier[] = {
   NULL,             // id 0: unknown core
   modifier_atarist, // id 1: atari st
   modifier_cbm,     // id 2: c64
-  modifier_vic20    // id 3: vic20
+  modifier_vic20,   // id 3: vic20
+  modifier_amiga    // id 4: amiga
 };
 
 void kbd_tx(spi_t *spi, unsigned char byte) {

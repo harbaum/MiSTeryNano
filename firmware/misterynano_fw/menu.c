@@ -234,6 +234,23 @@ menu_variable_t variables_vic20[] = {
   { '\0',{ 0 }}
 };
 
+// ------------------------------------------------------------------
+// -----------------------  Amiga menu ------------------------------
+// ------------------------------------------------------------------
+
+static const char main_form_amiga[] =
+  "NanoMig,;"                           // main form has no parent
+  // --------
+  "B,Reset,R;";                         // system reset
+
+static const char *forms_amiga[] = {
+  main_form_amiga
+};
+
+menu_variable_t variables_amiga[] = {
+  { '\0',{ 0 }}
+};
+
 static void menu_goto_form(menu_t *menu, int form, int entry) {
   menu->form = form;
   menu->entry = entry;
@@ -405,6 +422,9 @@ menu_t *menu_init(u8g2_t *u8g2)
   } else if(core_id == CORE_ID_VIC20) {
     menu.vars = variables_vic20;
     menu.forms = forms_vic20;
+  } else if(core_id == CORE_ID_AMIGA) {
+    menu.vars = variables_amiga;
+    menu.forms = forms_amiga;
   } else {
     menu.vars = NULL;
     menu.forms = NULL;
@@ -455,9 +475,8 @@ menu_t *menu_init(u8g2_t *u8g2)
 
 	for(int drive=0;drive<MAX_DRIVES;drive++)
 	  sdc_set_default(drive, c64_default_names[drive]);
-    }
-      else if(core_id == CORE_ID_VIC20) {
-    // VIC20 core
+    } else if(core_id == CORE_ID_VIC20) {
+	// VIC20 core
 	static const char *vic20_default_names[] = {
 	  CARD_MOUNTPOINT "/disk8.d64",
 	  CARD_MOUNTPOINT "/vic20crt.crt",
@@ -466,10 +485,18 @@ menu_t *menu_init(u8g2_t *u8g2)
 
 	for(int drive=0;drive<MAX_DRIVES;drive++)
 	  sdc_set_default(drive, vic20_default_names[drive]);
+    } else if(core_id == CORE_ID_AMIGA) {
+	// Amiga core
+	static const char *amiga_default_names[] = {
+	  CARD_MOUNTPOINT "/disk0.adf",
+	  CARD_MOUNTPOINT "/disk1.adf",
+	  CARD_MOUNTPOINT "/disk2.adf",
+	  CARD_MOUNTPOINT "/disk3.adf" };
+
+	for(int drive=0;drive<MAX_DRIVES;drive++)
+	  sdc_set_default(drive, amiga_default_names[drive]);
     }
     }
-  } else
-    printf("SD wasn't ready, not loading settings\r\n");
   
   // try to mount (default) images
   for(int drive=0;drive<MAX_DRIVES;drive++) {
@@ -483,6 +510,8 @@ menu_t *menu_init(u8g2_t *u8g2)
       sdc_image_open(drive, local_name);
     }
   }
+  } else
+    printf("SD wasn't ready, not loading settings\r\n");
    
   // send initial values for all variables
   for(int i=0;menu.vars[i].id;i++)
@@ -497,7 +526,6 @@ menu_t *menu_init(u8g2_t *u8g2)
     sys_set_val(menu.osd->spi, 'Z', 1);
     sys_set_val(menu.osd->spi, 'Z', 0);
   }
-    
   return &menu;
 }
 

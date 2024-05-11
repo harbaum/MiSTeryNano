@@ -15,6 +15,7 @@
 #define CORE_ID_ATARI_ST 0x01
 #define CORE_ID_C64      0x02
 #define CORE_ID_VIC20    0x03
+#define CORE_ID_AMIGA    0x04
 
 extern unsigned char core_id;
 
