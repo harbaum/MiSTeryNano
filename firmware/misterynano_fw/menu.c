@@ -267,8 +267,9 @@ static void menu_goto_form(menu_t *menu, int form, int entry) {
 static const char *settings_file[] = {
   NULL,
   CARD_MOUNTPOINT "/atarist.ini",  // core id = 1
-  CARD_MOUNTPOINT "/c64.ini",       // core id = 2
-  CARD_MOUNTPOINT "/vic20.ini"     // core id = 3
+  CARD_MOUNTPOINT "/c64.ini",      // core id = 2
+  CARD_MOUNTPOINT "/vic20.ini",    // core id = 3
+  CARD_MOUNTPOINT "/amiga.ini"     // core id = 4
 };
 
 static int iswhite(char c) {
@@ -469,7 +470,7 @@ menu_t *menu_init(u8g2_t *u8g2)
 	  CARD_MOUNTPOINT "/acsi_0.hd",
 	  CARD_MOUNTPOINT "/acsi_1.hd" };
 	
-	for(int drive=0;drive<MAX_DRIVES;drive++)
+	for(int drive=0;drive<4;drive++)
 	  sdc_set_default(drive, default_names[drive]);
       } else if(core_id == CORE_ID_C64) {
     // C64 core
@@ -501,7 +502,7 @@ menu_t *menu_init(u8g2_t *u8g2)
 	  CARD_MOUNTPOINT "/disk2.adf",
 	  CARD_MOUNTPOINT "/disk3.adf" };
 
-	for(int drive=0;drive<MAX_DRIVES;drive++)
+	for(int drive=0;drive<4;drive++)
 	  sdc_set_default(drive, amiga_default_names[drive]);
     }
     }
