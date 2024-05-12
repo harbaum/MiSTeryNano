@@ -117,7 +117,7 @@ static const char system_form_c64[] =
   "L,CIA:,6526|8521,M;"
   "L,SID:,6581|8580,O;"
   "L,SID Digifix:,Off|On,U;"
-  "L,Right SID:,Same|DE00|D420|D500|DF00,K;"
+  "L,SID Right:,Same|DE00|D420|D500|DF00,K;"
   "B,c1541 Reset,Z;"
   "B,Cold Boot,B;"; 
 
@@ -147,7 +147,7 @@ static const char *forms_c64[] = {
 };
 
 menu_variable_t variables_c64[] = {
-  { 'U', { 1 }},    // default digifix = active
+  { 'U', { 0 }},    // default digifix disabled
   { 'X', { 0 }},    // default turbo mode = off
   { 'Y', { 0 }},    // default turbo speed = 2x
   { 'D', { 0 }},    // default c1541 dos = dolphin
