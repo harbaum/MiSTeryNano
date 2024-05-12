@@ -240,7 +240,7 @@ int sdc_is_ready(void) {
 }
 
 static const char *drivename(int drive) {
-  static const char *names[] = { "A", "B", "ACSI 0", "ACSI 1" };
+  static const char *names[] = { "A", "B", "ACSI 0", "ACSI 1", "C" };
   return names[drive];  
 }
 
@@ -282,8 +282,9 @@ int sdc_handle_event(void) {
   if(request == 2) drive = 1;  // 1 = Drive B:
   if(request == 4) drive = 2;  // 2 = ACSI 0:
   if(request == 8) drive = 3;  // 3 = ACSI 1:
+  if(request == 16) drive = 4; // 4 = Drive C:
   
-  if(request & 15) {
+  if(request & 31) {
     if(!fil[drive].flag) {
       // no file selected
       // this should actually never happen as the core won't request
@@ -338,7 +339,7 @@ static int sdc_image_inserted(char drive, unsigned long size) {
   
   sdc_spi_begin(spi);
   spi_tx_u08(spi, SPI_SDC_INSERTED);
-  // drive 0=Disk A:, 1=Disk B:, 2=ACSI 0:, 3=ACSI 1:
+  // drive 0=Disk A:, 1=Disk B:, 2=ACSI 0:, 3=ACSI 1:, 4=Disk C:
   spi_tx_u08(spi, drive);
   spi_tx_u08(spi, (size >> 24) & 0xff);
   spi_tx_u08(spi, (size >> 16) & 0xff);
