@@ -118,6 +118,7 @@ static const char system_form_c64[] =
   "L,SID:,6581|8580,O;"
   "L,SID Digifix:,Off|On,U;"
   "L,SID Right:,Same|DE00|D420|D500|DF00,K;"
+  "L,Tape Sound:,Off|On,I;"
   "B,c1541 Reset,Z;"
   "B,Cold Boot,B;"; 
 
@@ -126,9 +127,9 @@ static const char storage_form_c64[] =
   // --------
   "F,Floppy 8:,0|d64+g64;"              // fileselector for Disk Drive 8:
   "F,CRT ROM:,1|crt;"                   // fileselector for CRT
-  "F,PRG BASIC:,2|prg;"                       // fileselector for PRG
+  "F,PRG BASIC:,2|prg;"                 // fileselector for PRG
   "F,C64 Kernal:,3|bin;"                // fileselector for Kernal ROM
-  "F,TAP Tape:,4|tap;"                       // fileselector for TAP
+  "F,TAP Tape:,4|tap;"                  // fileselector for TAP
   "L,Disk prot.:,None|8:,P;";           // Enable/Disable Floppy write protection
 
 static const char settings_form_c64[] =
@@ -165,6 +166,7 @@ menu_variable_t variables_c64[] = {
   { 'M', { 0 }},    // default VIC-II 656x
   { 'O', { 0 }},    // default SID 6581
   { 'K', { 0 }},    // default right SID addr same
+  { 'I', { 1 }},    // default Tape sound = On
   { '\0',{ 0 }}
 };
 
@@ -194,6 +196,7 @@ static const char system_form_vic20[] =
   "L,Video Std:,PAL|NTSC,E;"
   "L,Vid. cent:,Off|Both|Horz|Vert,J;"
   "L,CRT write:,Off|On,V;"
+  "L,Tape Sound:,Off|On,I;"
   "B,c1541 Reset,Z;"
   "B,Cold Boot,B;"; 
 
@@ -202,9 +205,9 @@ static const char storage_form_vic20[] =
   // --------
   "F,Floppy 8:,0|d64+g64;"              // fileselector for Disk Drive 8:
   "F,CRT ROM:,1|prg+crt;"               // fileselector for CRT (special VIC20 prg)
-  "F,PRG BASIC:,2|prg;"                       // fileselector for PRG
+  "F,PRG BASIC:,2|prg;"                 // fileselector for PRG
   "F,VIC20 Kernal:,3|bin;"              // fileselector for Kernal ROM
-  "F,TAP Tape:,4|tap;"                       // fileselector for TAP
+  "F,TAP Tape:,4|tap;"                  // fileselector for TAP
   "L,Disk prot.:,None|8:,P;";           // Enable/Disable Floppy write protection
 
 static const char settings_form_vic20[] =
@@ -237,6 +240,7 @@ menu_variable_t variables_vic20[] = {
   { 'E', { 0 }},    // default standard = PAL
   { 'J', { 1 }},    // Screen center = Both
   { 'V', { 1 }},    // Cartridge writable = On
+  { 'I', { 1 }},    // default Tape sound = On
   { '\0',{ 0 }}
 };
 
