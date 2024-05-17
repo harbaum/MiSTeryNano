@@ -14,7 +14,7 @@ For the new version please use:
  - [bom_m0s.csv](bom_m0s.csv) containing the parts to be placed omn the PCB	
  - [positions_m0s.csv](positions_m0s.csv) containing placement information for the parts
 
-Please read [../README.md](here) about the two variants.
+If in doubt, please order the new version. Please read [here](../README.md) about the two variants.
 
 Remark: Early versions of these files had a 2k7 resistor for R9
 instead of a 270 ohms one. If you had your board produced by JLCPCB then
