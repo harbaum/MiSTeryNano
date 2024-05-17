@@ -226,7 +226,7 @@
 		(property ki_fp_filters "R_*")
 		(path "/289fb321-af26-4e15-8a23-dce1051a9152")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start -0.227064 0.735)
@@ -460,7 +460,7 @@
 		(property ki_fp_filters "SOT?23*")
 		(path "/a1f56f0d-12e4-4631-8ea2-2d51df51dc6d")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start 0 1.56)
@@ -724,7 +724,7 @@
 		(property ki_fp_filters "R_*")
 		(path "/d505456c-8efe-4f99-95b2-e1faa9981bda")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start -0.227064 -0.735)
@@ -936,7 +936,7 @@
 		(property ki_fp_filters "MountingHole*")
 		(path "/470c5ddb-51a5-404f-b7c6-07d34dd89224")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr exclude_from_pos_files exclude_from_bom)
 		(fp_circle
 			(center 0 0)
@@ -1058,7 +1058,7 @@
 		(property ki_fp_filters "R_*")
 		(path "/e12b43cc-fbac-4497-bd02-0c272f19c5c2")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start -0.227064 0.735)
@@ -1266,7 +1266,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Position Offset" "6.35,-1.5"
+		(property "JLCPCB Position Offset" "4.5,0"
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -1305,7 +1305,7 @@
 		(property ki_fp_filters "Connector*:*_2x??_*")
 		(path "/1762d929-4da6-47ac-b0bc-f4953cb3ba0a")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr through_hole)
 		(fp_line
 			(start -12.63 14.03)
@@ -2371,7 +2371,7 @@
 		(property ki_fp_filters "R_*")
 		(path "/6d6032fc-4f7a-4365-a793-840d070b5b6a")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start -0.227064 0.735)
@@ -2578,7 +2578,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Position Offset" "-3.81,-1.27"
+		(property "JLCPCB Position Offset" ""
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -2617,7 +2617,7 @@
 		(property ki_fp_filters "Connector*:*_1x??_*")
 		(path "/1ec48eef-d1de-47bd-a989-c5867172b164")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr through_hole)
 		(fp_line
 			(start -1.33 8.95)
@@ -2979,7 +2979,7 @@
 		(property ki_fp_filters "Connector*:*_1x??_*")
 		(path "/4ad3a3c3-ff04-41b6-a0a4-cc61a8bb9c01")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr through_hole)
 		(fp_line
 			(start -1.33 1.27)
@@ -3453,7 +3453,7 @@
 		(property ki_fp_filters "R_*")
 		(path "/ee4cc7ab-a0fc-41a4-b5c5-570d06e9b663")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start -0.227064 0.735)
@@ -3660,7 +3660,7 @@
 				)
 			)
 		)
-		(property "JLCPCB Position Offset" "1,5.5"
+		(property "JLCPCB Position Offset" "0,6"
 			(at 0 0 0)
 			(layer "F.Fab")
 			(hide yes)
@@ -3699,7 +3699,7 @@
 		(property ki_fp_filters "DSUB*Male*")
 		(path "/a7e7dbbf-eaa2-4de5-911e-70e2da328c57")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr through_hole)
 		(fp_line
 			(start -9.945 10.48)
@@ -4286,7 +4286,7 @@
 		(property ki_fp_filters "C_*")
 		(path "/e2d86516-4f02-4c49-ab6a-178d83e69e26")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start -0.261252 -0.735)
@@ -4519,7 +4519,7 @@
 		(property ki_fp_filters "DIN*")
 		(path "/4130d5b6-5f76-4e0a-b5a9-da0c9b6c684e")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr through_hole)
 		(fp_line
 			(start 8.49884 -9.4996)
@@ -5024,7 +5024,7 @@
 		(property ki_fp_filters "R_*")
 		(path "/882041df-bbf9-4a07-8ec5-238ca2b5c05e")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start -0.227064 0.735)
@@ -5236,7 +5236,7 @@
 		(property ki_fp_filters "MountingHole*")
 		(path "/4d6ad9f7-c427-44f2-9fef-7122814b0a18")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr exclude_from_pos_files exclude_from_bom)
 		(fp_circle
 			(center 0 0)
@@ -5358,7 +5358,7 @@
 		(property ki_fp_filters "Connector*:*_1x??_*")
 		(path "/1fea45d3-2126-48d3-b8be-3d0c073b4a1e")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr through_hole)
 		(fp_line
 			(start -1.33 1.27)
@@ -5843,7 +5843,7 @@
 		(property ki_fp_filters "R_*")
 		(path "/fb215cea-e6d4-4018-b1e7-423a494b49a7")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start -0.227064 -0.735)
@@ -6077,7 +6077,7 @@
 		(property ki_fp_filters "DIP*W7.62mm* DIP*W10.16mm* SMDIP*W9.53mm*")
 		(path "/540c800e-45f2-4a5f-afd1-deb026dd063b")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start -3.235 -3.87)
@@ -6380,7 +6380,7 @@
 		(property ki_fp_filters "R_*")
 		(path "/1b9e6f73-9901-4217-8a61-2cda03fc2f72")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start -0.227064 -0.735)
@@ -6614,7 +6614,7 @@
 		(property ki_fp_filters "SOT?23*")
 		(path "/b48b71fb-cf9b-403f-89b4-5e67e0bc7d00")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start 0 1.56)
@@ -6878,7 +6878,7 @@
 		(property ki_fp_filters "R_*")
 		(path "/6c21e7cc-e663-464e-bf9b-e24eec013ba1")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start -0.227064 -0.735)
@@ -7112,7 +7112,7 @@
 		(property ki_fp_filters "SOT?23*")
 		(path "/d5f8f4f3-a9b3-4770-8679-ee8aac094d0e")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start 0 1.56)
@@ -7376,7 +7376,7 @@
 		(property ki_fp_filters "R_*")
 		(path "/cc9af150-5f48-49e1-b365-166aad37a042")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start -0.227064 0.735)
@@ -7608,9 +7608,9 @@
 			)
 		)
 		(property ki_fp_filters "SG-* SOT*")
-		(path "/a1010ab5-1663-4892-b7c4-4f9016479349")
+		(path "/cdec1109-dc19-455a-9891-4470cc84d6ad")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start 0 -1.56)
@@ -7924,7 +7924,7 @@
 		(property ki_fp_filters "D*SOD?123*")
 		(path "/1b9a8c0f-b50d-4642-86c8-1e2a42387977")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start -2.36 1)
@@ -8240,7 +8240,7 @@
 		(property ki_fp_filters "SOT?23*")
 		(path "/9d7031ed-45e0-4e35-ae19-674d0d773527")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start 0 1.56)
@@ -8494,7 +8494,7 @@
 		(property ki_fp_filters "MountingHole*")
 		(path "/f27e1217-15c4-4fcb-8bfc-7f306dbea4d3")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr exclude_from_pos_files exclude_from_bom)
 		(fp_circle
 			(center 0 0)
@@ -8628,7 +8628,7 @@
 		(property ki_fp_filters "SOT?23*")
 		(path "/e4b6e3b4-6f87-403b-9321-b6d55110f6aa")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start 0 1.56)
@@ -8892,7 +8892,7 @@
 		(property ki_fp_filters "R_*")
 		(path "/a991a931-d3b9-47c6-8036-675c0b3df5f3")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start -0.227064 0.735)
@@ -9114,7 +9114,7 @@
 		(property ki_fp_filters "R_*")
 		(path "/dd8f8c35-482d-434e-a8e6-04caac46c600")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start -0.227064 -0.735)
@@ -9348,7 +9348,7 @@
 		(property ki_fp_filters "SOT?23*")
 		(path "/d8f91d0b-135a-4119-8980-972d4b0e1994")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start 0 1.56)
@@ -9602,7 +9602,7 @@
 		(property ki_fp_filters "MountingHole*")
 		(path "/0c72e42c-5810-454b-ad03-f445429938ea")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr exclude_from_pos_files exclude_from_bom)
 		(fp_circle
 			(center 0 0)
@@ -9724,7 +9724,7 @@
 		(property ki_fp_filters "R_*")
 		(path "/94533868-3596-44fb-9cee-61f3efe609b7")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start -0.227064 0.735)
@@ -9957,7 +9957,7 @@
 		(property ki_fp_filters "DIN*")
 		(path "/0f30f852-4c6b-4440-b717-72e28e8d4341")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr through_hole)
 		(fp_line
 			(start 8.49884 -9.4996)
@@ -10462,7 +10462,7 @@
 		(property ki_fp_filters "R_*")
 		(path "/aab476c5-24e3-46b9-902d-954a3c4fc954")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start -0.227064 -0.735)
@@ -10684,7 +10684,7 @@
 		(property ki_fp_filters "R_*")
 		(path "/a54c1d95-e609-47a8-9db6-8ee5a144d817")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start -0.227064 0.735)
@@ -10906,7 +10906,7 @@
 		(property ki_fp_filters "R_*")
 		(path "/0837cfa9-13eb-4c24-8be0-624ee7c9cccd")
 		(sheetname "Root")
-		(sheetfile "misteryshield20k_m0S.kicad_sch")
+		(sheetfile "misteryshield20k_m0s.kicad_sch")
 		(attr smd)
 		(fp_line
 			(start -0.227064 0.735)

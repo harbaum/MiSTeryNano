@@ -7168,7 +7168,7 @@
 			(uuid "d0df4242-2858-4694-9cf8-5b89b3f64594")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "R6")
 					(unit 1)
@@ -7235,7 +7235,7 @@
 			(uuid "10e4d4fd-ba7e-448f-9075-5ee4af0c59f7")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR028")
 					(unit 1)
@@ -7299,7 +7299,7 @@
 			)
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "H1")
 					(unit 1)
@@ -7394,7 +7394,7 @@
 			(uuid "0cb1b3e5-f00f-4a60-8aeb-b38f9910c8bb")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "J3")
 					(unit 1)
@@ -7473,7 +7473,7 @@
 				(hide yes)
 			)
 		)
-		(property "JLCPCB Position Offset" "6.35,-1.5"
+		(property "JLCPCB Position Offset" "4.5,0"
 			(at 222.885 113.665 0)
 			(effects
 				(font
@@ -7519,7 +7519,7 @@
 			(uuid "86f91daa-168f-4d2a-a5a8-871f13984747")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "J5")
 					(unit 1)
@@ -7616,7 +7616,7 @@
 			(uuid "b0f8e3ae-22c2-4b3e-ac08-236da6744e16")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "D1")
 					(unit 1)
@@ -7695,7 +7695,7 @@
 			(uuid "fb961917-56e0-420a-a3e6-c689c0e39666")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "R9")
 					(unit 1)
@@ -7778,7 +7778,7 @@
 				(hide yes)
 			)
 		)
-		(property "JLCPCB Position Offset" "-3.81,-1.27"
+		(property "JLCPCB Position Offset" ""
 			(at 257.81 68.58 0)
 			(effects
 				(font
@@ -7812,7 +7812,7 @@
 			(uuid "a0a7c74f-933c-4acf-8b1b-3a1e8b3e3aae")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "J8")
 					(unit 1)
@@ -7878,7 +7878,7 @@
 			(uuid "5bdbd8e2-faa6-475e-b609-094cf2bc657c")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR015")
 					(unit 1)
@@ -8012,7 +8012,7 @@
 			(uuid "98f570ae-8b4b-4d74-bfd2-f66e37170619")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "J7")
 					(unit 1)
@@ -8078,7 +8078,7 @@
 			(uuid "5a179efd-7408-473c-91a1-e99380911063")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR029")
 					(unit 1)
@@ -8145,7 +8145,7 @@
 			(uuid "bc23a9ec-a41c-4147-b538-0e88dc1e6df5")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR020")
 					(unit 1)
@@ -8222,7 +8222,7 @@
 			(uuid "8f3eb66e-7103-4e0d-b252-1bad8e7a3c16")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "R10")
 					(unit 1)
@@ -8288,7 +8288,7 @@
 			(uuid "aaafe5f3-40a4-4bfb-a2c2-7b2800b03ffe")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR016")
 					(unit 1)
@@ -8354,7 +8354,7 @@
 			(uuid "71a55107-6e8b-4457-be43-c49a6da39fd3")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR05")
 					(unit 1)
@@ -8536,7 +8536,7 @@
 			(uuid "a93d9d36-c0f9-4c49-b34b-83a8c27c9c5e")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "U2")
 					(unit 1)
@@ -8603,7 +8603,7 @@
 			(uuid "fabca2f1-7c1b-409e-9293-665835a0b85f")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR022")
 					(unit 1)
@@ -8669,7 +8669,7 @@
 			(uuid "b149b47e-3eb5-42b1-9c52-9a1432c32523")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR010")
 					(unit 1)
@@ -8765,7 +8765,7 @@
 			(uuid "927da8ff-72f1-4a9a-9032-3cc6e258c54a")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "J4")
 					(unit 1)
@@ -8831,7 +8831,7 @@
 			(uuid "3d18b8c5-d8dd-44c8-b7ba-91b250c5ea08")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR03")
 					(unit 1)
@@ -8895,7 +8895,7 @@
 			)
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "H3")
 					(unit 1)
@@ -9028,7 +9028,7 @@
 			(uuid "21664025-3bbc-4f6d-9105-f3fa0bc4ebc4")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "J6")
 					(unit 1)
@@ -9092,7 +9092,7 @@
 			)
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "H2")
 					(unit 1)
@@ -9159,7 +9159,7 @@
 			(uuid "884d9104-b887-43f9-addc-81e3bf8f8aeb")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR025")
 					(unit 1)
@@ -9257,7 +9257,7 @@
 			(uuid "79d51189-6a8e-424a-938b-893e6ba11cc9")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "U3")
 					(unit 1)
@@ -9324,7 +9324,7 @@
 			(uuid "fb97f936-d730-4c89-a3a9-9fe97f5137c1")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR027")
 					(unit 1)
@@ -9401,7 +9401,7 @@
 			(uuid "9a6dd5a8-8807-453d-b8b9-a0abfbf0fbc4")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "R5")
 					(unit 1)
@@ -9478,7 +9478,7 @@
 			(uuid "b764ee63-0a53-4d9f-a98e-ab1a4bb92cb3")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "R16")
 					(unit 1)
@@ -9545,7 +9545,7 @@
 			(uuid "2e54f9ce-57e4-4568-9e77-5f1e5726aa95")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR013")
 					(unit 1)
@@ -9612,7 +9612,7 @@
 			(uuid "f7a16fc8-ce7a-43fa-b9d9-8963e5538cb2")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR01")
 					(unit 1)
@@ -9679,7 +9679,7 @@
 			(uuid "937b3a42-41ca-4b94-82af-a96d3a4a1813")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR019")
 					(unit 1)
@@ -9777,7 +9777,7 @@
 			(uuid "14c05a1e-d0f1-442c-98fe-3a75851ccc6e")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "U1")
 					(unit 2)
@@ -9854,7 +9854,7 @@
 			(uuid "fd5e9fd7-babf-4c8e-bab0-a363e379edde")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "R13")
 					(unit 1)
@@ -9920,7 +9920,7 @@
 			(uuid "9a28bd74-bba6-4e0f-96f9-ac43cef0bb01")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR014")
 					(unit 1)
@@ -9987,7 +9987,7 @@
 			(uuid "81317355-a803-4cd1-89be-1579278c0ac6")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR011")
 					(unit 1)
@@ -10064,7 +10064,7 @@
 			(uuid "4dfbdfd0-b497-4041-a24f-fbb32a1271b6")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "R7")
 					(unit 1)
@@ -10159,7 +10159,7 @@
 			(uuid "554304f4-4090-441b-8bdb-b39de606ecbf")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "Q5")
 					(unit 1)
@@ -10259,7 +10259,7 @@
 			(uuid "14c05a1e-d0f1-442c-98fe-3a75851ccc6f")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "U1")
 					(unit 3)
@@ -10353,7 +10353,7 @@
 			(uuid "251d98df-a89f-4feb-84f9-3becac217751")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "Q4")
 					(unit 1)
@@ -10430,7 +10430,7 @@
 			(uuid "b0fefb46-7a7a-4703-bfdc-fe201556a2c7")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "R14")
 					(unit 1)
@@ -10496,7 +10496,7 @@
 			(uuid "7a789800-f8db-4679-bd6e-db5fdc8bcb19")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR09")
 					(unit 1)
@@ -10578,7 +10578,7 @@
 				(hide yes)
 			)
 		)
-		(property "JLCPCB Position Offset" "1,5.5"
+		(property "JLCPCB Position Offset" "0,6"
 			(at 65.405 72.39 0)
 			(effects
 				(font
@@ -10618,7 +10618,7 @@
 			(uuid "c64915ca-88b4-4ffa-822f-4d575e21aa42")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "J1")
 					(unit 1)
@@ -10694,7 +10694,7 @@
 			(uuid "200ca31c-903f-4ee1-8acc-2fb586bc0f3c")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "R18")
 					(unit 1)
@@ -10771,7 +10771,7 @@
 			(uuid "04eeebaf-981a-4a22-9738-e86256c17034")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "R2")
 					(unit 1)
@@ -10838,7 +10838,7 @@
 			(uuid "ca421822-ec88-458d-80ff-8d2b7a86cc22")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR021")
 					(unit 1)
@@ -10904,7 +10904,7 @@
 			(uuid "72b89e44-361a-4ed2-9cf1-ebae2b4ad443")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR02")
 					(unit 1)
@@ -10971,7 +10971,7 @@
 			(uuid "3e989eb8-a511-47d9-9717-61ebcb83e2c5")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR026")
 					(unit 1)
@@ -11037,7 +11037,7 @@
 			(uuid "b095e902-08a6-4763-97d2-ab9b9be35f1c")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR012")
 					(unit 1)
@@ -11131,7 +11131,7 @@
 			(uuid "6083888e-a09e-4063-9016-23f2d6daebb5")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "Q6")
 					(unit 1)
@@ -11197,7 +11197,7 @@
 			(uuid "e6ad7f0f-d860-47be-8f00-1c78bcc14a1c")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR04")
 					(unit 1)
@@ -11263,7 +11263,7 @@
 			(uuid "b84d3343-17fe-44c9-948e-90ca602c9495")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR030")
 					(unit 1)
@@ -11330,7 +11330,7 @@
 			(uuid "3c550c8f-8b15-49e8-bf60-36b82a025b30")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR023")
 					(unit 1)
@@ -11407,7 +11407,7 @@
 			(uuid "a32d9f1a-cc88-4dde-a585-fe150eaeedf5")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "R8")
 					(unit 1)
@@ -11505,7 +11505,7 @@
 			(uuid "14c05a1e-d0f1-442c-98fe-3a75851ccc70")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "U1")
 					(unit 1)
@@ -11582,7 +11582,7 @@
 			(uuid "47622b14-07d1-44e4-aea2-dc3a185a6cd0")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "R17")
 					(unit 1)
@@ -11676,7 +11676,7 @@
 			(uuid "9830a0f8-2401-4cbd-a551-db23ab8f891b")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "Q2")
 					(unit 1)
@@ -11743,7 +11743,7 @@
 			(uuid "e5da314b-acd0-4898-8504-edca75f14582")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR024")
 					(unit 1)
@@ -11838,7 +11838,7 @@
 			(uuid "2c40d620-e6f1-45f0-ae0f-bd6500dd88d0")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "Q3")
 					(unit 1)
@@ -11914,7 +11914,7 @@
 			(uuid "aa0ddd0c-212d-45f7-b847-b45a09aee5fb")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "R12")
 					(unit 1)
@@ -11991,7 +11991,7 @@
 			(uuid "aea86d57-6977-4f07-ac49-24e884c4a35e")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "R15")
 					(unit 1)
@@ -12058,7 +12058,7 @@
 			(uuid "1e62749f-7261-412c-84bf-879a6ce8070f")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR018")
 					(unit 1)
@@ -12134,7 +12134,7 @@
 			(uuid "2da6d4e3-8109-46d0-a998-e872e26f9d44")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "C1")
 					(unit 1)
@@ -12229,7 +12229,7 @@
 			(uuid "5a4dbbd9-e28a-4856-a35a-007b1f3a68a1")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "Q1")
 					(unit 1)
@@ -12306,7 +12306,7 @@
 			(uuid "615ed152-19d3-402d-bd5c-19ab74097705")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "R11")
 					(unit 1)
@@ -12370,7 +12370,7 @@
 			)
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "H4")
 					(unit 1)
@@ -12437,7 +12437,7 @@
 			(uuid "12b68a3b-f91f-408f-9243-7d7b11925eb5")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "#PWR017")
 					(unit 1)
@@ -12514,7 +12514,7 @@
 			(uuid "c8fbc552-e1f9-49d4-9eb0-2de32d8561c8")
 		)
 		(instances
-			(project "misteryshield20k_m0S"
+			(project "misteryshield20k_m0s"
 				(path "/18b63fd5-4a6d-47a9-b0d3-ab759ce46098"
 					(reference "R1")
 					(unit 1)
