@@ -4,6 +4,18 @@ These files can be uploaded to [JLCPCB](https://jlcpcb.com/) in order
 to have this board produced through their PCBA service (fully
 assembled and ready to run).
 
+To order the old variant please use the files:
+ - [gerber.zip](gerber.zip) containing the PCB data itself
+ - [bom.csv](bom.csv) containing the parts to be placed omn the PCB	
+ - [positions.csv](positions.csv) containing placement information for the parts
+
+For the new version please use:
+ - [gerber_m0s.zip](gerber_m0s.zip) containing the PCB data itself
+ - [bom_m0s.csv](bom_m0s.csv) containing the parts to be placed omn the PCB	
+ - [positions_m0s.csv](positions_m0s.csv) containing placement information for the parts
+
+Please read [../README.md](here) about the two variants.
+
 Remark: Early versions of these files had a 2k7 resistor for R9
 instead of a 270 ohms one. If you had your board produced by JLCPCB then
 you probably have the wrong resistor. Luckily, the wrong resistor is
