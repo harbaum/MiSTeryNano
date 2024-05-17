@@ -6,13 +6,13 @@ assembled and ready to run).
 
 To order the old variant please use the files:
  - [gerber.zip](gerber.zip) containing the PCB data itself
- - [bom.csv](bom.csv) containing the parts to be placed omn the PCB	
- - [positions.csv](positions.csv) containing placement information for the parts
+ - [bom.csv](bom.csv) containing the parts (BOM) to be placed on the PCB	
+ - [positions.csv](positions.csv) containing placement (CPL) information for the parts
 
 For the new version please use:
  - [gerber_m0s.zip](gerber_m0s.zip) containing the PCB data itself
- - [bom_m0s.csv](bom_m0s.csv) containing the parts to be placed omn the PCB	
- - [positions_m0s.csv](positions_m0s.csv) containing placement information for the parts
+ - [bom_m0s.csv](bom_m0s.csv) containing the parts (BOM) to be placed on the PCB	
+ - [positions_m0s.csv](positions_m0s.csv) containing placement (CPL) information for the parts
 
 If in doubt, please order the new version. Please read [here](../README.md) about the two variants.
 
