@@ -119,9 +119,9 @@ static const char system_form_c64[] =
   "L,SID Digifix:,Off|On,U;"
   "L,SID Right:,Same|DE00|D420|D500|DF00,K;"
   "L,SID Filter:,Default|Custom 1|Custom 2|Custom 3|Adjustable,H;"
-  "L,SID Fc Ofs:,0|1|2|3|4|5,a;"
-  "L,RS232 mode:,VIC-1011|UP9600,b;"
-  "L,GeoRAM:,Off|On,c;"
+  "L,SID Fc Ofs:,0|1|2|3|4|5,>;"
+  "L,RS232 mode:,VIC-1011|UP9600,<;"
+  "L,GeoRAM:,Off|On,#;"
   "L,Tape Sound:,Off|On,I;"
   "B,C1541 Reset,Z;"
   "B,Cold Boot,B;"; 
@@ -171,10 +171,10 @@ menu_variable_t variables_c64[] = {
   { 'O', { 0 }},    // default SID 6581
   { 'K', { 0 }},    // default right SID addr = same
   { 'I', { 1 }},    // default Tape sound = On
-  { 'a', { 0 }},    // default SID FC Offset
+  { '>', { 0 }},    // default SID FC Offset
   { 'H', { 0 }},    // default SID Filter = default
-  { 'c', { 0 }},    // default GeoRAM = off
-  { 'b', { 0 }},    // default RS232 mode = standard
+  { '#', { 0 }},    // default GeoRAM = off
+  { '<', { 0 }},    // default RS232 mode = standard
   { '\0',{ 0 }}
 };
 
