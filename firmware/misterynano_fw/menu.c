@@ -104,10 +104,10 @@ static const char main_form_c64[] =
 static const char system_form_c64[] =
   "System,0|2;"                         // return to form 0, entry 2
   // --------
-  "L,Joyport 1:,Retro D9|USB #1|USB #2|NumPad|DualShock|Mouse|Paddle|Off,Q;" // Joystick port 1 mapping
-  "L,Joyport 2:,Retro D9|USB #1|USB #2|NumPad|DualShock|Mouse|Paddle|Off,J;" // Joystick port 2 mapping, default c64 Joystick port
-  "L,REU 1750:,Off|On,V;"                  // REU enable
-  "L,c1541 ROM:,Dolphin DOS|CBM DOS|Speed DOS P|Jiffy DOS,D;"  // c1541 compatibility
+  "L,Joyport 1:,Retro D9|USB #1|USB #2|NumPad|DualShock|Mouse|Paddle|Off,Q;"
+  "L,Joyport 2:,Retro D9|USB #1|USB #2|NumPad|DualShock|Mouse|Paddle|Off,J;"
+  "L,REU 1750:,Off|On,V;"
+  "L,c1541 ROM:,Dolphin DOS|CBM DOS|Speed DOS P|Jiffy DOS,D;"
   "L,Turbo mode:,Off|C128|Smart,X;"
 	"L,Turbo speed:,2x|3x|4x,Y;"
   "L,Video Std:,PAL|NTSC,E;"
@@ -118,8 +118,12 @@ static const char system_form_c64[] =
   "L,SID:,6581|8580,O;"
   "L,SID Digifix:,Off|On,U;"
   "L,SID Right:,Same|DE00|D420|D500|DF00,K;"
+  "L,SID Filter:,Default|Custom 1|Custom 2|Custom 3|Adjustable,H;"
+  "L,SID Fc Ofs:,0|1|2|3|4|5,>;"
+  "L,RS232 mode:,VIC-1011|UP9600,<;"
+  "L,GeoRAM:,Off|On,#;"
   "L,Tape Sound:,Off|On,I;"
-  "B,c1541 Reset,Z;"
+  "B,C1541 Reset,Z;"
   "B,Cold Boot,B;"; 
 
 static const char storage_form_c64[] =
@@ -148,7 +152,7 @@ static const char *forms_c64[] = {
 };
 
 menu_variable_t variables_c64[] = {
-  { 'U', { 0 }},    // default digifix disabled
+  { 'U', { 0 }},    // default digifix = disabled
   { 'X', { 0 }},    // default turbo mode = off
   { 'Y', { 0 }},    // default turbo speed = 2x
   { 'D', { 0 }},    // default c1541 dos = dolphin
@@ -165,8 +169,12 @@ menu_variable_t variables_c64[] = {
   { 'C', { 0 }},    // default CIA 6526
   { 'M', { 0 }},    // default VIC-II 656x
   { 'O', { 0 }},    // default SID 6581
-  { 'K', { 0 }},    // default right SID addr same
+  { 'K', { 0 }},    // default right SID addr = same
   { 'I', { 1 }},    // default Tape sound = On
+  { '>', { 0 }},    // default SID FC Offset
+  { 'H', { 0 }},    // default SID Filter = default
+  { '#', { 0 }},    // default GeoRAM = off
+  { '<', { 0 }},    // default RS232 mode = standard
   { '\0',{ 0 }}
 };
 
