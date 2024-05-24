@@ -501,10 +501,10 @@ menu_t *menu_init(u8g2_t *u8g2)
     } else if(core_id == CORE_ID_AMIGA) {
 	// Amiga core
 	static const char *amiga_default_names[] = {
-	  CARD_MOUNTPOINT "/disk0.adf",
-	  CARD_MOUNTPOINT "/disk1.adf",
-	  CARD_MOUNTPOINT "/disk2.adf",
-	  CARD_MOUNTPOINT "/disk3.adf" };
+	  CARD_MOUNTPOINT "/df0.adf",
+	  CARD_MOUNTPOINT "/df1.adf",
+	  CARD_MOUNTPOINT "/df2.adf",
+	  CARD_MOUNTPOINT "/df3.adf" };
 
 	for(int drive=0;drive<4;drive++)
 	  sdc_set_default(drive, amiga_default_names[drive]);
