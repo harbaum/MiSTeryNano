@@ -59,7 +59,7 @@ static const unsigned char keymap_amiga[] = {
   0x42,   // 2b: tab		  
   0x40,   // 2c: space
 
-  0x08,   // 2d: -
+  0x0b,   // 2d: -
   0x0c,   // 2e: =
   0x1a,   // 2f: [			  
   0x1b,   // 30: ]
@@ -69,7 +69,7 @@ static const unsigned char keymap_amiga[] = {
   0x2a,   // 34: ' 
   0x00,   // 35: `
   0x38,   // 36: ,
-  0x19,   // 37: .
+  0x39,   // 37: .
   0x3a,   // 38: /
   0x62,   // 39: caps lock
 
