@@ -259,6 +259,8 @@ menu_variable_t variables_vic20[] = {
 static const char main_form_amiga[] =
   "NanoMig,;"                           // main form has no parent
   // --------
+  "F,Floppy DF0:,0|adf;"                // fileselector for DF0
+  "F,Floppy DF1:,1|adf;"                // fileselector for DF1
   "B,Reset,R;";                         // system reset
 
 static const char *forms_amiga[] = {
