@@ -260,14 +260,52 @@ static const char main_form_amiga[] =
   "NanoMig,;"                           // main form has no parent
   // --------
   "F,Floppy DF0:,0|adf;"                // fileselector for DF0
-  "F,Floppy DF1:,1|adf;"                // fileselector for DF1
+  "S,System,1;"                         // System submenu is #1
+  "S,Storage,2;"                        // Storage submenu is #2
+  "S,Settings,3;"                       // Settings submenu is #3
   "B,Reset,R;";                         // system reset
 
-static const char *forms_amiga[] = {
-  main_form_amiga
+static const char system_form_amiga[] =
+  "System,0|2;"                         // return to form 0, entry 2
+  // --------
+  "L,Chipset:,OCS|ECS,C;"               // Chipset
+  "L,Chipmem:,512k|1M|1.5M|2M,R;"       // Chip ram size
+  "L,Slowmem:,None|512k|1M|1.5M,X;"     // Slow ram size
+  "L,Video:,PAL|NTSC,V;";               // Video Standard
+
+  static const char storage_form_amiga[] =
+  "Storage,0|3;"                        // return to form 0, entry 3
+  // --------
+  "L,Drives:,1|2|3|4,D;"                // Floppy Drives
+  "L,Speed:,Normal|Fast,S;"             // Floppy Speed
+  "F,Floppy DF0,0|adf;"                 // image selector
+  "F,Floppy DF1,1|adf;" 
+  "F,Floppy DF2,2|adf;" 
+  "F,Floppy DF3,3|adf;"; 
+
+static const char settings_form_amiga[] =
+  "Settings,0|4;"                       // return to form 0, entry 4
+  // --------
+  "L,Scanlines:,off|25%|50%|75%,L;"     // Video Scanlines
+  "L,Filter:,None|H|V|H+V,F;"           // Video Filter
+  "B,Save settings,S;";
+
+  static const char *forms_amiga[] = {
+    main_form_amiga,
+    system_form_amiga,
+    storage_form_amiga,
+    settings_form_amiga
 };
 
 menu_variable_t variables_amiga[] = {
+  { 'D', { 0 }},    // default one floppy drive
+  { 'S', { 1 }},    // default fast floppy
+  { 'C', { 1 }},    // default ECS
+  { 'V', { 0 }},    // default PAL
+  { 'F', { 0 }},    // default no video filter
+  { 'L', { 0 }},    // default no scanlines
+  { 'R', { 3 }},    // default 2MB chip ram
+  { 'X', { 0 }},    // default no slow ram
   { '\0',{ 0 }}
 };
 
@@ -518,21 +556,21 @@ menu_t *menu_init(u8g2_t *u8g2)
 
 	for(int drive=0;drive<4;drive++)
 	  sdc_set_default(drive, amiga_default_names[drive]);
-    }
+      }
     }
   
-  // try to mount (default) images
-  for(int drive=0;drive<MAX_DRIVES;drive++) {
-    char *name = sdc_get_image_name(drive);
-    
-    if(name) {
-      // create a local copy as sdc_image_open frees its own copy
-      char local_name[strlen(name)+1];
-      strcpy(local_name, name);
+    // try to mount (default) images
+    for(int drive=0;drive<MAX_DRIVES;drive++) {
+      char *name = sdc_get_image_name(drive);
       
-      sdc_image_open(drive, local_name);
+      if(name) {
+	// create a local copy as sdc_image_open frees its own copy
+	char local_name[strlen(name)+1];
+	strcpy(local_name, name);
+	
+	sdc_image_open(drive, local_name);
+      }
     }
-  }
   } else
     printf("SD wasn't ready, not loading settings\r\n");
    
