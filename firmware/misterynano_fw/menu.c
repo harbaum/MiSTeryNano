@@ -269,7 +269,7 @@ static const char system_form_amiga[] =
   "System,0|2;"                         // return to form 0, entry 2
   // --------
   "L,Chipset:,OCS-A500|OCS-A1000|ECS,C;"// Chipset
-  "L,Chipmem:,512k|1M|1.5M|2M,R;"       // Chip ram size
+  "L,Chipmem:,512k|1M|1.5M|2M,Y;"       // Chip ram size
   "L,Slowmem:,None|512k|1M|1.5M,X;"     // Slow ram size
   "L,Video:,PAL|NTSC,V;";               // Video Standard
 
@@ -286,8 +286,8 @@ static const char system_form_amiga[] =
 static const char settings_form_amiga[] =
   "Settings,0|4;"                       // return to form 0, entry 4
   // --------
-  "L,Scanlines:,off|25%|50%|75%,L;"     // Video Scanlines
-  "L,Filter:,None|H|V|H+V,F;"           // Video Filter
+  "L,Scanlines:,None|Dim|Black,L;"      // Video Scanlines
+  "L,Filter:,None|Horizontal|Vertical|Hor+Ver,F;"  // Video Filter
   "B,Save settings,S;";
 
   static const char *forms_amiga[] = {
@@ -304,7 +304,7 @@ menu_variable_t variables_amiga[] = {
   { 'V', { 0 }},    // default PAL
   { 'F', { 0 }},    // default no video filter
   { 'L', { 0 }},    // default no scanlines
-  { 'R', { 0 }},    // default 512k chip ram
+  { 'Y', { 0 }},    // default 512k chip ram
   { 'X', { 1 }},    // default 512k slow ram
   { '\0',{ 0 }}
 };
@@ -682,16 +682,23 @@ static void menu_variable_set(menu_t *menu, const char *s, int val) {
 	  sys_set_val(menu->osd->spi, 'R', 0);
 	}
       }
-  if(core_id == CORE_ID_C64||core_id == CORE_ID_VIC20){
-    // c64 core, trigger core reset if Video mode / PLL changes
-    if(id == 'E') {
-      sys_set_val(menu->osd->spi, 'R', 3);
-      sys_set_val(menu->osd->spi, 'R', 0); }
-    // c64 core, trigger c1541 reset in case DOS ROM changed
-    if(id == 'D') {  
-        sys_set_val(menu->osd->spi, 'Z', 1);
-        sys_set_val(menu->osd->spi, 'Z', 0); }
-    }
+      if(core_id == CORE_ID_C64||core_id == CORE_ID_VIC20){
+	// c64 core, trigger core reset if Video mode / PLL changes
+	if(id == 'E') {
+	  sys_set_val(menu->osd->spi, 'R', 3);
+	  sys_set_val(menu->osd->spi, 'R', 0); }
+	// c64 core, trigger c1541 reset in case DOS ROM changed
+	if(id == 'D') {  
+	  sys_set_val(menu->osd->spi, 'Z', 1);
+	  sys_set_val(menu->osd->spi, 'Z', 0); }
+      }
+      if(core_id == CORE_ID_AMIGA) {      
+	// trigger reset if memory or chipset settings changed
+	if((id == 'Y') || (id == 'X') || (id == 'C')) {
+	  sys_set_val(menu->osd->spi, 'R', 1);
+	  sys_set_val(menu->osd->spi, 'R', 0);
+	}
+      }
     }
   }
 }
