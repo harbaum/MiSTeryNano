@@ -14,7 +14,6 @@
 #include "bl616_glb.h"
 
 #include "usb_config.h"
-#include "bt_ble.h"
 
 struct bflb_device_s *gpio;
 
@@ -24,6 +23,7 @@ struct bflb_device_s *gpio;
 #include "menu.h"
 #include "sdc.h"
 // #include "audio.h"
+#include "bt_ble.h"
 
 #ifndef M0S_DOCK
   #warning "Building for internal BL616"
@@ -310,14 +310,16 @@ int main(void) {
 #else
   // in the m0s dock case there's not much to do ...  
 #endif
+
+  // initialize bluetooth
+  // bt_ble_init(spi);
   
   // init audio and test play chime
   //  audio_init(spi);
   //  audio_chime();
+  
   usb_host(spi); 
 
-  bt_ble_init(spi);
-  
   // start a thread for the on screen display    
   xTaskCreate(osd_task, (char *)"osd_task", 2048, spi, configMAX_PRIORITIES-3, &osd_handle);
   
