@@ -268,7 +268,7 @@ static const char main_form_amiga[] =
 static const char system_form_amiga[] =
   "System,0|2;"                         // return to form 0, entry 2
   // --------
-  "L,Chipset:,OCS|ECS,C;"               // Chipset
+  "L,Chipset:,OCS-A500|OCS-A1000|ECS,C;"// Chipset
   "L,Chipmem:,512k|1M|1.5M|2M,R;"       // Chip ram size
   "L,Slowmem:,None|512k|1M|1.5M,X;"     // Slow ram size
   "L,Video:,PAL|NTSC,V;";               // Video Standard
@@ -300,12 +300,12 @@ static const char settings_form_amiga[] =
 menu_variable_t variables_amiga[] = {
   { 'D', { 0 }},    // default one floppy drive
   { 'S', { 1 }},    // default fast floppy
-  { 'C', { 1 }},    // default ECS
+  { 'C', { 2 }},    // default ECS
   { 'V', { 0 }},    // default PAL
   { 'F', { 0 }},    // default no video filter
   { 'L', { 0 }},    // default no scanlines
-  { 'R', { 3 }},    // default 2MB chip ram
-  { 'X', { 0 }},    // default no slow ram
+  { 'R', { 0 }},    // default 512k chip ram
+  { 'X', { 1 }},    // default 512k slow ram
   { '\0',{ 0 }}
 };
 
