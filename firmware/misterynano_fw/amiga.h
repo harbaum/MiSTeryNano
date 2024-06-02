@@ -134,11 +134,11 @@ static const unsigned char modifier_amiga[] = {
 
   0x63, // ctrl
   0x60, // lshift
-  0x64, // alt
+  0x64, // lalt
   0x66, // Win
   MISS, // ctrl (right)
   0x61, // rshift
-  0x64,
+  0x65, // ralt
   0x67  // Menu
 };
   
