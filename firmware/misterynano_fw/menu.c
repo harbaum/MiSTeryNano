@@ -118,9 +118,9 @@ static const char system_form_c64[] =
   "L,SID:,6581|8580,O;"
   "L,SID Digifix:,Off|On,U;"
   "L,SID Right:,Same|DE00|D420|D500|DF00,K;"
-  "L,SID Filter:,Default|Custom 1|Custom 2|Custom 3|Adjustable,H;"
+  "L,SID Filter:,Follin|Galway|Average|Strong|Extreme,H;"
   "L,SID Fc Ofs:,0|1|2|3|4|5,>;"
-  "L,RS232 mode:,VIC-1011|UP9600,<;"
+  "L,RS232 mode:,VIC-1011|UP9600|SwiftLnk DE|SwiftLnk DF|SwiftLnk D7,<;"
   "L,GeoRAM:,Off|On,#;"
   "L,Tape Sound:,Off|On,I;"
   "B,C1541 Reset,Z;"
@@ -152,7 +152,6 @@ static const char *forms_c64[] = {
 };
 
 menu_variable_t variables_c64[] = {
-  { 'U', { 0 }},    // default digifix = disabled
   { 'X', { 0 }},    // default turbo mode = off
   { 'Y', { 0 }},    // default turbo speed = 2x
   { 'D', { 0 }},    // default c1541 dos = dolphin
@@ -169,12 +168,13 @@ menu_variable_t variables_c64[] = {
   { 'C', { 0 }},    // default CIA 6526
   { 'M', { 0 }},    // default VIC-II 656x
   { 'O', { 0 }},    // default SID 6581
+  { 'U', { 0 }},    // default digifix = disabled
   { 'K', { 0 }},    // default right SID addr = same
-  { 'I', { 1 }},    // default Tape sound = On
+  { 'H', { 2 }},    // default SID Filter = average
   { '>', { 0 }},    // default SID FC Offset
-  { 'H', { 0 }},    // default SID Filter = default
-  { '#', { 0 }},    // default GeoRAM = off
   { '<', { 0 }},    // default RS232 mode = standard
+  { '#', { 0 }},    // default GeoRAM = off
+  { 'I', { 1 }},    // default Tape sound = On
   { '\0',{ 0 }}
 };
 
