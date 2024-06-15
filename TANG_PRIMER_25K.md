@@ -1,7 +1,7 @@
 # MiSTeryNano on Tang Primer 25K
 
 MiSTeryNano can be used in the [Tang Primer 25K](https://wiki.sipeed.com/hardware/en/tang/tang-primer-25k/primer-25k.html). This offers a 10%
-bigger FPGA than the [Tang Nano 20K])https://wiki.sipeed.com/hardware/en/tang/tang-nano-20k/nano-20k.html)
+bigger FPGA than the [Tang Nano 20K](https://wiki.sipeed.com/hardware/en/tang/tang-nano-20k/nano-20k.html)
 the MiSTeryNano was initially developed for. Unlike the TN20K, the
 TP25k's FPGA does not come with an internal SDRAM. Nor does the board
 come with HDMI or an SD card slot.

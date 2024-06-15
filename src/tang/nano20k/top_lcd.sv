@@ -44,6 +44,8 @@ module top(
   output [5:0]	lcd_g, //lcd green
   output [4:0]	lcd_b, //lcd blue
 
+  // interface to external BL616/M0S
+  inout [5:0]	m0s,
   // SD card slot
   output		sd_clk,
   inout			sd_cmd, // MOSI
@@ -57,8 +59,8 @@ module top(
   input			spi_dat, // in (io?)
   // spi_dir has a low-pass filter which makes it impossible to use
   // we thus use jtag_tck as a replacement
-  output		jtag_tck,
-  output		jtag_tdi, // this is being used for interrupt
+  //  output		jtag_tck,
+  //  output		jtag_tdi, // this is being used for interrupt
 
   // audio
   output		hp_bck,
@@ -88,13 +90,34 @@ wire spi_intn;
 
 // intn and dout are outputs driven by the FPGA to the MCU
 // din, ss and clk are inputs coming from the MCU
-// assign m0s[5:0] = { 1'bz, spi_intn, 3'bzzz, spi_io_dout };
-wire spi_io_din = spi_dat;
-wire spi_io_ss = spi_csn;
-wire spi_io_clk = spi_sclk;
-assign spi_dir = spi_io_dout;   // spi_dir has filter cap and pulldown any basic
-assign jtag_tck = spi_io_dout;
-assign jtag_tdi = spi_intn;
+assign spi_dir = spi_io_dout;   // spi_dir has filter cap and pulldown any basically doesn't work
+// assign jtag_tck = spi_io_dout;
+assign m0s[5:0] = { 1'bz, spi_intn, 3'bzzz, spi_io_dout };
+// assign jtag_tdi = spi_intn;
+
+// by default the internal SPI is being used. Once there is
+// a select from the external spi, then the connection is
+// being switched
+reg spi_ext;
+always @(posedge clk32) begin
+    if(por)
+        spi_ext = 1'b0;
+    else begin
+        // spi_ext is activated once the m0s pins 2 (ss or csn) is
+        // driven low by the m0s dock. This means that a m0s dock
+        // is connected and the FPGA switches its inputs to the
+        // m0s. Until then the inputs of the internal BL616 are
+        // being used.
+        if(m0s[2] == 1'b0)
+            spi_ext = 1'b1;
+    end
+end
+
+// switch between internal SPI connected to the on-board bl616
+// or to the external one possibly connected to a M0S Dock
+wire spi_io_din = spi_ext?m0s[1]:spi_dat;
+wire spi_io_ss = spi_ext?m0s[2]:spi_csn;
+wire spi_io_clk = spi_ext?m0s[3]:spi_sclk;
    
 wire r0, b0;  // lowest color bits to be left unconnected
 

@@ -19,9 +19,43 @@ Currently supported variants are:
   * ```atari_tp25k``` - Tang Primer 25K + HMDI
   * ```atari_tm138k``` - Tang Mega 138K + HMDI
 
-Some of these variants use the ID and come with config files for the
+### ```atari```
+
+This is the regular MiSTeryNano Atari ST implementation as descibed
+elsewhere in this repository.
+
+### ```atari_lcd```
+
+This variant works with the 5inch 800x480 RGB LCD available as an odd-on
+to the Tang nano 20K. Since the LCD uses most of the IO signals the
+interface to the M0S/BL616/MCU uses different pins. See 
+[atarist_lcd.cst](https://github.com/harbaum/MiSTeryNano/blob/main/src/tang/nano20k/atarist_lcd.cst) for the pin mapping.
+
+Audio is output via the Tang Nano 20K audio amplifier.
+
+### ```atari_parport```
+
+This is an mainly untested variant implementing a printer port instead
+of the joystick interface. This can be used to control peripherals meant
+to be connected to the Atari ST printer port like e.g. the
+[fischertechnik computing interface 30566](https://www.ftcommunity.de/knowhow/computing/computing_interfaces/). Be aware that this likely needs
+additional level shifting since the Tang Nano 20k runs its IOs at 3.3 volts
+while the centronics printer port was 5 volts.
+
+### ```atari_tp25k```
+
+This is a variant for the [Tang Primer 25k](https://github.com/harbaum/MiSTeryNano/blob/main/TANG_PRIMER_25K.md).
+
+### ```atari_tm138k```
+
+This is a variant for the [Tang Mega 128k](https://github.com/harbaum/MiSTeryNano/blob/main/TANG_PRIMER_138K.md).
+
+
+
+Some of these variants use the IDE and come with config files for the
 GoWin IDE (files ending in ```.gprj```), some use TCL based command
 line scripts (files ending in ```.tcl```) and some use both.
+
 
 The ```.gprj``` files can be opened from within the GoWin IDE. The
 ```.tcl``` files can be given as a parmater to the GoWin shell:
