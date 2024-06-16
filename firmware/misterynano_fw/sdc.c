@@ -283,7 +283,8 @@ int sdc_handle_event(void) {
   if(request == 4) drive = 2;  // 2 = ACSI 0:
   if(request == 8) drive = 3;  // 3 = ACSI 1:
   if(request == 16) drive = 4; // 4 = Drive C:
-  
+  if(request == 32) drive = 5; // 4 = Drive D:
+
   if(request & 31) {
     if(!fil[drive].flag) {
       // no file selected
