@@ -135,7 +135,6 @@ static const char storage_form_c64[] =
   "F,PRG BASIC:,2|prg;"                 // fileselector for PRG
   "F,C64 Kernal:,3|bin;"                // fileselector for Kernal ROM
   "F,TAP Tape:,4|tap;"                  // fileselector for TAP
-  "F,FLT Filter:,5|flt;"                // fileselector for FLT SID Filter
   "L,Disk prot.:,None|8:,P;";           // Enable/Disable Floppy write protection
 
 static const char settings_form_c64[] =
@@ -533,9 +532,7 @@ menu_t *menu_init(u8g2_t *u8g2)
 	  CARD_MOUNTPOINT "/c64crt.crt",
 	  CARD_MOUNTPOINT "/c64prg.prg",
 	  CARD_MOUNTPOINT "/c64kernal.bin",
-	  CARD_MOUNTPOINT "/c64tap.tap",
-  	CARD_MOUNTPOINT "/c64flt.flt"
-    };
+	  CARD_MOUNTPOINT "/c64tap.tap"};
 
 	for(int drive=0;drive<MAX_DRIVES;drive++)
 	  sdc_set_default(drive, c64_default_names[drive]);
