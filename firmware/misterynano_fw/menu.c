@@ -135,6 +135,7 @@ static const char storage_form_c64[] =
   "F,PRG BASIC:,2|prg;"                 // fileselector for PRG
   "F,C64 Kernal:,3|bin;"                // fileselector for Kernal ROM
   "F,TAP Tape:,4|tap;"                  // fileselector for TAP
+  "F,FLT Filter:,5|flt;"                // fileselector for FLT SID Filter
   "L,Disk prot.:,None|8:,P;";           // Enable/Disable Floppy write protection
 
 static const char settings_form_c64[] =
