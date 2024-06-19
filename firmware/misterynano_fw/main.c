@@ -23,7 +23,7 @@ struct bflb_device_s *gpio;
 #include "menu.h"
 #include "sdc.h"
 // #include "audio.h"
-#include "bt_ble.h"
+// #include "bt_ble.h"
 
 #ifndef M0S_DOCK
   #warning "Building for internal BL616"
@@ -313,7 +313,7 @@ int main(void) {
 
   // initialize bluetooth
   // bt_ble_init(spi);
-  
+
   // init audio and test play chime
   //  audio_init(spi);
   //  audio_chime();
