@@ -118,7 +118,6 @@ static const char system_form_c64[] =
   "L,SID:,6581|8580,O;"
   "L,SID Digifix:,Off|On,U;"
   "L,SID Right:,Same|DE00|D420|D500|DF00,K;"
-//"L,SID Filter:,Follin|Galway|Average|Strong|Extreme,H;"
   "L,SID Filter:,Default|Custom 1|Custom 2|Custom 3|Adjustable,H;"
   "L,SID Fc Ofs:,0|1|2|3|4|5,>;"
   "L,RS232 mode:,VIC-1011|UP9600|SwiftLnk DE|SwiftLnk DF|SwiftLnk D7,<;"
@@ -533,9 +532,10 @@ menu_t *menu_init(u8g2_t *u8g2)
 	  CARD_MOUNTPOINT "/c64crt.crt",
 	  CARD_MOUNTPOINT "/c64prg.prg",
 	  CARD_MOUNTPOINT "/c64kernal.bin",
-	  CARD_MOUNTPOINT "/c64tap.tap"};
+	  CARD_MOUNTPOINT "/c64tap.tap",
+	  CARD_MOUNTPOINT "/c64flt.flt"};
 
-	for(int drive=0;drive<MAX_DRIVES;drive++)
+	for(int drive=0;drive<MAX_DRIVES;drive++) // max 6 drives
 	  sdc_set_default(drive, c64_default_names[drive]);
     } else if(core_id == CORE_ID_VIC20) {
 	// VIC20 core
@@ -546,7 +546,7 @@ menu_t *menu_init(u8g2_t *u8g2)
 	  CARD_MOUNTPOINT "/vic20kernal.bin",
 	  CARD_MOUNTPOINT "/vic20tap.tap"};
 
-	for(int drive=0;drive<MAX_DRIVES;drive++)
+	for(int drive=0;drive<5;drive++) // limit to 5 drives
 	  sdc_set_default(drive, vic20_default_names[drive]);
     } else if(core_id == CORE_ID_AMIGA) {
 	// Amiga core
