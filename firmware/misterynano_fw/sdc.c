@@ -285,7 +285,7 @@ int sdc_handle_event(void) {
   if(request == 16) drive = 4; // 4 = Drive C:
   if(request == 32) drive = 5; // 5 = Drive D:
   
-  if(request & 31) {
+  if(request & 63) {
     if(!fil[drive].flag) {
       // no file selected
       // this should actually never happen as the core won't request
