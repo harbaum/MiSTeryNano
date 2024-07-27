@@ -57,7 +57,7 @@ static const unsigned char keymap_c64[] = {
   MATRIXC64( 1,0), // 28: return
   MATRIXC64( 7,7), // 29: esc  as run/stop
   MATRIXC64( 0,0), // 2a: backspace as del
-  MISS,            // 2b: tab
+  MATRIXC64( 7,1), // lshift // 2b: tab
   MATRIXC64( 4,7), // 2c: space
 
   MATRIXC64( 3,5), // 2d: - as -
@@ -85,18 +85,18 @@ static const unsigned char keymap_c64[] = {
   MATRIXC64( 3,0), // 41: F8
   MATRIXC64( 6,6), // 42: F9  as arrow up
   MATRIXC64( 5,6), // 43: F10 as equal
-  MISS,            // 44: F11 as restore (NMI) WIP !
+  MATRIXC64( 7,1), // lshift // 44: F11 as restore (NMI) !
   MISS,            // 45: F12 (OSD)
 
-  MISS,            // 46: PrtScr
-  MISS,            // 47: Scroll Lock
-  MISS,            // 48: Pause
+  MATRIXC64( 7,1), // lshift // 46: PrtScr
+  MATRIXC64( 7,1), // lshift // 47: Scroll Lock
+  MATRIXC64( 7,1), // lshift // 48: Pause
   MATRIXC64( 3,6), // 49: Insert as CLR
-  MISS,            // 4a: Home
-  MISS,            // 4b: PageUp
+  MATRIXC64( 7,1), // lshift // 4a: Home
+  MATRIXC64( 7,1), // lshift // 4b: PageUp
   MATRIXC64( 3,6), // 4c: Delete as CLR
-  MISS,            // 4d: End
-  MISS,            // 4e: PageDown
+  MATRIXC64( 7,1), // lshift // 4d: End
+  MATRIXC64( 7,1), // lshift // 4e: PageDown
   
   // cursor keys
   MATRIXC64( 2,0), // 4f: right
@@ -104,26 +104,26 @@ static const unsigned char keymap_c64[] = {
   MATRIXC64( 7,0), // 51: down
   MATRIXC64( 7,0), // 52: up
   
-  MISS,            // 53: Num Lock
+  MATRIXC64( 7,1), // lshift             // 53: Num Lock
 
   // keypad
-  MISS,//  MATRIXC64(,), // 54: KP /
-  MISS,//  MATRIXC64(,), // 55: KP *
-  MISS,//  MATRIXC64(,), // 56: KP -
-  MISS,//  MATRIXC64(,), // 57: KP +
-  MISS,//  MATRIXC64(,), // 58: KP Enter
-  MISS,//  MATRIXC64(,), // 59: KP 1
-  MISS,//  MATRIXC64(,), // 5a: KP 2
-  MISS,//  MATRIXC64(,), // 5b: KP 3
-  MISS,//  MATRIXC64(,), // 5c: KP 4
-  MISS,//  MATRIXC64(,), // 5d: KP 5
-  MISS,//  MATRIXC64(,), // 5e: KP 6
-  MISS,//  MATRIXC64(,), // 5f: KP 7
-  MISS,//  MATRIXC64(,), // 60: KP 8
-  MISS,//  MATRIXC64(,), // 61: KP 9
-  MISS,//  MATRIXC64(,), // 62: KP 0
-  MISS,//  MATRIXC64(,), // 63: KP .
-  MISS,//  MATRIXC64(,), // 64: EUR-2
+  MATRIXC64( 7,1), // lshift // 54: KP /
+  MATRIXC64( 7,1), // lshift // 55: KP *
+  MATRIXC64( 7,1), // lshift // 56: KP -
+  MATRIXC64( 7,1), // lshift // 57: KP +
+  MATRIXC64( 7,1), // lshift // 58: KP Enter
+  MATRIXC64( 7,1), // lshift // 59: KP 1
+  MATRIXC64( 7,1), // lshift // 5a: KP 2
+  MATRIXC64( 7,1), // lshift // 5b: KP 3
+  MATRIXC64( 7,1), // lshift // 5c: KP 4
+  MATRIXC64( 7,1), // lshift // 5d: KP 5
+  MATRIXC64( 7,1), // lshift // 5e: KP 6
+  MATRIXC64( 7,1), // lshift // 5f: KP 7
+  MATRIXC64( 7,1), // lshift // 60: KP 8
+  MATRIXC64( 7,1), // lshift // 61: KP 9
+  MATRIXC64( 7,1), // lshift // 62: KP 0
+  MATRIXC64( 7,1), // lshift // 63: KP .
+  MATRIXC64( 7,1), // lshift // 64: EUR-2
 };  
   
 static const unsigned char modifier_c64[] = {
@@ -135,10 +135,10 @@ static const unsigned char modifier_c64[] = {
   MATRIXC64( 2,7), // ctrl (left)
   MATRIXC64( 7,1), // lshift
   MATRIXC64( 5,7), // lalt as CBM 
-  MISS,            // lgui
+  MATRIXC64( 7,1), // lshift // lgui
   MATRIXC64( 2,7), // ctrl (right)
   MATRIXC64( 4,6), // rshift
   MATRIXC64( 5,7), // ralt as CBM
-  MISS             // rgui
+  MATRIXC64( 7,1) // lshift // rgui
 };
   
