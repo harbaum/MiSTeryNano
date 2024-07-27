@@ -57,7 +57,7 @@ static const unsigned char keymap_vic20[] = {
   MATRIXVIC20( 1,7), // 28: return
   MATRIXVIC20( 3,0), // 29: esc  as run/stop
   MATRIXVIC20( 0,7), // 2a: backspace as del
-  MISS,              // 2b: tab
+  MATRIXVIC20( 3,1), // lshift // 2b: tab
   MATRIXVIC20( 4,0), // 2c: space
 
   MATRIXVIC20( 7,5), // 2d: - as -
@@ -85,18 +85,18 @@ static const unsigned char keymap_vic20[] = {
   MATRIXVIC20( 7,7), // 41: F8
   MATRIXVIC20( 6,6), // 42: F9  as arrow up
   MATRIXVIC20( 5,6), // 43: F10 as equal
-  MISS,              // 44: F11 as restore
+  MATRIXVIC20( 3,1), // lshift // 44: F11 as restore
   MISS,              // 45: F12 (OSD)
 
-  MISS,            // 46: PrtScr
-  MISS,            // 47: Scroll Lock
-  MISS,            // 48: Pause
+  MATRIXVIC20( 3,1), // lshift // 46: PrtScr
+  MATRIXVIC20( 3,1), // lshift // 47: Scroll Lock
+  MATRIXVIC20( 3,1), // lshift // 48: Pause
   MATRIXVIC20( 7,6), // 49: Insert as CLR
-  MISS,            // 4a: Home
-  MISS,            // 4b: PageUp
+  MATRIXVIC20( 3,1), // lshift // 4a: Home
+  MATRIXVIC20( 3,1), // lshift // 4b: PageUp
   MATRIXVIC20( 7,6), // 4c: Delete as CLR
-  MISS,            // 4d: End
-  MISS,            // 4e: PageDown
+  MATRIXVIC20( 3,1), // lshift // 4d: End
+  MATRIXVIC20( 3,1), // lshift // 4e: PageDown
   
   // cursor keys
   MATRIXVIC20( 2,7), // 4f: right
@@ -104,26 +104,26 @@ static const unsigned char keymap_vic20[] = {
   MATRIXVIC20( 3,7), // 51: down
   MATRIXVIC20( 3,7), // 52: up
   
-  MISS,// 53: Num Lock
+  MATRIXVIC20( 3,1), // lshift // 53: Num Lock
 
   // keypad
-  MISS,//  54: KP /
-  MISS,//  55: KP *
-  MISS,//  56: KP -
-  MISS,//  57: KP +
-  MISS,//  58: KP Enter
-  MISS,//  59: KP 1
-  MISS,//  a: KP 2
-  MISS,//  5b: KP 3
-  MISS,//  5c: KP 4
-  MISS,//  5d: KP 5
-  MISS,//  5e: KP 6
-  MISS,//  f: KP 7
-  MISS,//  60: KP 8
-  MISS,//  61: KP 9
-  MISS,//  62: KP 0
-  MISS,//  63: KP .
-  MISS,//  64: EUR-2
+  MATRIXVIC20( 3,1), // lshift //  54: KP /
+  MATRIXVIC20( 3,1), // lshift //  55: KP *
+  MATRIXVIC20( 3,1), // lshift //  56: KP -
+  MATRIXVIC20( 3,1), // lshift //  57: KP +
+  MATRIXVIC20( 3,1), // lshift //  58: KP Enter
+  MATRIXVIC20( 3,1), // lshift //  59: KP 1
+  MATRIXVIC20( 3,1), // lshift //  a: KP 2
+  MATRIXVIC20( 3,1), // lshift //  5b: KP 3
+  MATRIXVIC20( 3,1), // lshift //  5c: KP 4
+  MATRIXVIC20( 3,1), // lshift //  5d: KP 5
+  MATRIXVIC20( 3,1), // lshift //  5e: KP 6
+  MATRIXVIC20( 3,1), // lshift //  f: KP 7
+  MATRIXVIC20( 3,1), // lshift //  60: KP 8
+  MATRIXVIC20( 3,1), // lshift //  61: KP 9
+  MATRIXVIC20( 3,1), // lshift //  62: KP 0
+  MATRIXVIC20( 3,1), // lshift //  63: KP .
+  MATRIXVIC20( 3,1), // lshift //  64: EUR-2
 };  
   
 static const unsigned char modifier_vic20[] = {
@@ -135,10 +135,10 @@ static const unsigned char modifier_vic20[] = {
   MATRIXVIC20( 2,0), // ctrl (left)
   MATRIXVIC20( 3,1), // lshift
   MATRIXVIC20( 5,0), // lalt as CBM 
-  MISS,            // lgui
+  MATRIXVIC20( 3,1), // lshift // lgui
   MATRIXVIC20( 2,0), // ctrl (right)
   MATRIXVIC20( 4,6), // rshift
   MATRIXVIC20( 5,0), // ralt as CBM
-  MISS             // rgui
+  MATRIXVIC20( 3,1)  // lshift // rgui
 };
   

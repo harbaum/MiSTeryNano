@@ -85,7 +85,7 @@ static const unsigned char keymap_c64[] = {
   MATRIXC64( 3,0), // 41: F8
   MATRIXC64( 6,6), // 42: F9  as arrow up
   MATRIXC64( 5,6), // 43: F10 as equal
-  MISS,            // 44: F11 as restore (NMI) WIP !
+  MATRIXC64( 7,1), // lshift // 44: F11 as restore (NMI) !
   MISS,            // 45: F12 (OSD)
 
   MATRIXC64( 7,1), // lshift // 46: PrtScr
