@@ -1,8 +1,8 @@
 /*
-    top.sv - atarist on tang nano 20k toplevel
+    top_lcd.sv - atarist on tang nano 20k toplevel
 
-    This top level implements the default variant for 20k with M0S
-    Dock, DB9-Joystick and MIDI
+    This top level implements the lcd variant for 20k with 
+    FPGA Companion
 */ 
 
 module top(
@@ -36,31 +36,23 @@ module top(
   output [1:0]	O_sdram_ba, // two banks
   output [3:0]	O_sdram_dqm, // 32/4
 
-  output		lcd_dclk,
-  output		lcd_hs, //lcd horizontal synchronization
-  output		lcd_vs, //lcd vertical synchronization        
-  output		lcd_de, //lcd data enable     
-  output [4:0]	lcd_r, //lcd red
-  output [5:0]	lcd_g, //lcd green
-  output [4:0]	lcd_b, //lcd blue
+  // interface to external FPGA companion
+  inout [4:0]	m0s,
 
-  // interface to external BL616/M0S
-  inout [5:0]	m0s,
+  // internal lcd
+  output		lcd_dclk,
+  output		lcd_hs, // lcd horizontal synchronization
+  output		lcd_vs, // lcd vertical synchronization        
+  output		lcd_de, // lcd data enable     
+  output		lcd_bl, // lcd backlight control
+  output [4:0]	lcd_r,  // lcd red
+  output [5:0]	lcd_g,  // lcd green
+  output [4:0]	lcd_b,  // lcd blue
+
   // SD card slot
   output		sd_clk,
   inout			sd_cmd, // MOSI
   inout [3:0]	sd_dat, // 0: MISO
-
-  // SPI connection to ob-board BL616. By default an external
-  // connection is used with a M0S Dock
-  input			spi_sclk, // in... 
-  input			spi_csn, // in (io?)
-  output		spi_dir, // out
-  input			spi_dat, // in (io?)
-  // spi_dir has a low-pass filter which makes it impossible to use
-  // we thus use jtag_tck as a replacement
-  //  output		jtag_tck,
-  //  output		jtag_tdi, // this is being used for interrupt
 
   // audio
   output		hp_bck,
@@ -84,44 +76,9 @@ pll_32m pll_32m (
 // are up and running.
 wire por;
 
-// map output data onto both spi outputs
-wire spi_io_dout;
-wire spi_intn;
-
-// intn and dout are outputs driven by the FPGA to the MCU
-// din, ss and clk are inputs coming from the MCU
-assign spi_dir = spi_io_dout;   // spi_dir has filter cap and pulldown any basically doesn't work
-// assign jtag_tck = spi_io_dout;
-assign m0s[5:0] = { 1'bz, spi_intn, 3'bzzz, spi_io_dout };
-// assign jtag_tdi = spi_intn;
-
-// by default the internal SPI is being used. Once there is
-// a select from the external spi, then the connection is
-// being switched
-reg spi_ext;
-always @(posedge clk32) begin
-    if(por)
-        spi_ext = 1'b0;
-    else begin
-        // spi_ext is activated once the m0s pins 2 (ss or csn) is
-        // driven low by the m0s dock. This means that a m0s dock
-        // is connected and the FPGA switches its inputs to the
-        // m0s. Until then the inputs of the internal BL616 are
-        // being used.
-        if(m0s[2] == 1'b0)
-            spi_ext = 1'b1;
-    end
-end
-
-// switch between internal SPI connected to the on-board bl616
-// or to the external one possibly connected to a M0S Dock
-wire spi_io_din = spi_ext?m0s[1]:spi_dat;
-wire spi_io_ss = spi_ext?m0s[2]:spi_csn;
-wire spi_io_clk = spi_ext?m0s[3]:spi_sclk;
-   
 wire r0, b0;  // lowest color bits to be left unconnected
 
-wire [15:0] audio [2];
+wire [15:0] audio_stereo [2];
 
 // sdram address can be up to 13 bits wide. tang nano 20k uses only 11
 wire [13:0] sdram_addr;
@@ -164,11 +121,11 @@ misterynano misterynano (
   .io          ( 1'b11111111    ), // unused
 
   // mcu interface
-  .mcu_sclk ( spi_io_clk  ),
-  .mcu_csn  ( spi_io_ss   ),
-  .mcu_miso ( spi_io_dout ), // from FPGA to MCU
-  .mcu_mosi ( spi_io_din  ), // from MCU to FPGA
-  .mcu_intn ( spi_intn    ),
+  .mcu_sclk ( m0s[3]      ),
+  .mcu_csn  ( m0s[2]      ),
+  .mcu_miso ( m0s[0]      ), // from FPGA to MCU
+  .mcu_mosi ( m0s[1]      ), // from MCU to FPGA
+  .mcu_intn ( m0s[4]      ),
 
   // parallel port
   .parallel_strobe_oe ( ),
@@ -199,19 +156,20 @@ misterynano misterynano (
   .lcd_b    ( { lcd_b, b0 } ),  // -"- 
 
   // digital 16 bit audio output
-  .audio ( audio )
+  .audio ( audio_stereo )
 );
 
+// enable lcd backlight if cpu is out of reset
+assign lcd_bl = !por;
+   
 /* ------------------- audio processing --------------- */
 
-assign pa_en = 1'b1;   // enable amplifier
+assign pa_en = !por;   // enable amplifier
 
-// generate 48k * 32 = 1536kHz audio clock. TODO: this is too
-// imprecise
 reg clk_audio;
 reg [7:0] aclk_cnt;
 always @(posedge clk32) begin
-    if(aclk_cnt < 32000000 / 1536000 / 2 -1)
+    if(aclk_cnt < 32000000 / (24000*32) / 2 - 1)
         aclk_cnt <= aclk_cnt + 8'd1;
     else begin
         aclk_cnt <= 8'd0;
@@ -219,19 +177,25 @@ always @(posedge clk32) begin
     end
 end
 
+// mix both stereo channels into one mono channel
+wire [15:0] audio_mixed = audio_stereo[0] + audio_stereo[1];		
+
 // count 32 bits
+reg [15:0] audio;
 reg [4:0] audio_bit_cnt;
 always @(posedge clk_audio) begin
-    if(por)
-        audio_bit_cnt <= 5'd0;
-    else 
-        audio_bit_cnt <= audio_bit_cnt + 5'd1;
+    if(por) audio_bit_cnt <= 5'd0;
+    else    audio_bit_cnt <= audio_bit_cnt + 5'd1;
+
+   // latch data so it's stable during transmission
+   if(audio_bit_cnt == 5'd31)
+	 audio <= 16'h8000 + audio_mixed; 
 end
 
 // generate i2s signals
-assign hp_bck = clk_audio;
+assign hp_bck = !clk_audio;
 assign hp_ws = por?1'b0:audio_bit_cnt[4];
-assign hp_din = por?1'b0:audio[hp_ws][15-audio_bit_cnt[3:0]];
+assign hp_din = por?1'b0:audio[15-audio_bit_cnt[3:0]];
 
 endmodule
 
