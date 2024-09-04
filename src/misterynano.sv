@@ -333,6 +333,12 @@ hid hid (
 wire sdc_int;
 wire sdc_iack = int_ack[3];
 
+wire       serial_tx_available;
+wire       serial_tx_strobe;
+wire [7:0] serial_tx_data;
+wire       serial_rx_strobe;
+wire [7:0] serial_rx_data;
+
 sysctrl sysctrl (
         .clk(clk32),
         .reset(por),
@@ -343,6 +349,13 @@ sysctrl sysctrl (
         .data_in(mcu_data_out),
         .data_out(sys_data_out),
 
+		// port io (used to expose rs232)
+		.port_out_available(serial_tx_available),
+        .port_out_strobe(serial_tx_strobe),
+		.port_out_data(serial_tx_data),	 
+        .port_in_strobe(serial_rx_strobe),
+		.port_in_data(serial_rx_data),	 
+				 
         // values controlled by the OSD
         .system_chipset(system_chipset),
         .system_memory(system_memory),
@@ -391,7 +404,6 @@ wire [7:0] acsi_sd_rd_byte = sd_rd_data;
 wire [7:0] acsi_sd_wr_byte;
 wire [8:0] acsi_sd_byte_addr = sd_byte_index;
 
-
 atarist atarist (
     .clk_32(clk32),
     .resb(!system_reset[0] && !reset && !por && ram_ready && flash_ready && sd_ready),       // user reset button
@@ -419,6 +431,13 @@ atarist atarist (
     // MIDI UART
     .midi_rx(midi_in),
     .midi_tx(midi_out),
+
+    // serial/rs232
+	.serial_tx_available ( serial_tx_available ),
+	.serial_tx_strobe    ( serial_tx_strobe    ),
+	.serial_tx_data      ( serial_tx_data      ),
+	.serial_rx_strobe    ( serial_rx_strobe    ),
+	.serial_rx_data      ( serial_rx_data      ),
 
 	// parallel port
     .parallel_strobe_oe  ( parallel_strobe_oe  ),

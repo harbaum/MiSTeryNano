@@ -534,7 +534,7 @@ mfp mfp (
 
 wire ikbd_tx, ikbd_rx;
   
-ikbd #( .DIV(5) ) ikbd (
+ikbd #( .DIV(4) ) ikbd (
 	.clk(clk_32),		    // clock is divided to 2MHz (/16 == 2^4) inside ikbd
 	.res(peripheral_reset),
       

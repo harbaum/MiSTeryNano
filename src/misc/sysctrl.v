@@ -1,7 +1,7 @@
 /*
     sysctrl.v
  
-    generic system control interface fro/via the MCU
+    generic system control interface from/via the MCU
 
     TODO: This is currently very core specific. This needs to be
     generic for all cores.
@@ -26,6 +26,13 @@ module sysctrl (
   output reg [1:0]  leds, // two leds can be controlled from the MCU
   output reg [23:0] color, // a 24bit color to e.g. be used to drive the ws2812
 
+  // IO port interface
+  output reg	    port_out_strobe,
+  input		    port_out_available,
+  input [7:0]	    port_out_data,
+  output reg	    port_in_strobe,
+  output reg [7:0]  port_in_data,
+		
   // values that can be configured by the user
   output reg [1:0]  system_chipset,
   output reg	    system_memory,
@@ -37,7 +44,7 @@ module sysctrl (
   output reg [1:0]  system_floppy_wprot,
   output reg	    system_cubase_en,
   output reg [1:0]  system_port_mouse,
-  output reg        system_tos_slot
+  output reg	    system_tos_slot
 );
 
 reg [3:0] state;
@@ -48,10 +55,17 @@ reg [7:0] id;
 wire [7:0] data_in_rev = { data_in[0], data_in[1], data_in[2], data_in[3], 
                            data_in[4], data_in[5], data_in[6], data_in[7] };
 
-reg coldboot = 1'b1;
-   
-assign int_out_n = (int_in != 8'h00 || coldboot)?1'b0:1'b1;
+// coldboot flash and system interrupt   
+reg coldboot = 1'b1;   
+reg sys_int = 1'b1;
 
+// the system cobtrol interrupt or any other interrupt (e,g sdc, hid, ...)
+// activates the interrupt line to the MCU by pulling it low
+assign int_out_n = (int_in != 8'h00 || sys_int)?1'b0:1'b1;
+   
+reg port_out_availableD;
+reg [7:0] data_out_reg;   
+   
 // process mouse events
 always @(posedge clk) begin
    if(reset) begin
@@ -61,7 +75,11 @@ always @(posedge clk) begin
 
       int_ack <= 8'h00;
       coldboot = 1'b1;      // reset is actually the power-on-reset
+      sys_int = 1'b1;       // coldboot interrupt
 
+      port_out_strobe <= 1'b0;
+      port_in_strobe <= 1'b0;
+      
       // OSD value defaults. These should be sane defaults, but the MCU
       // will very likely override these early
       system_chipset <= 2'd0;       // regular ST
@@ -76,9 +94,16 @@ always @(posedge clk) begin
       system_tos_slot <= 1'b0;      // primary tos slot
    end else begin
       int_ack <= 8'h00;
+      port_out_strobe <= 1'b0;
+      port_in_strobe <= 1'b0;
 
-      // iack bit 0 acknowledges the coldboot notification
-      if(int_ack[0]) coldboot <= 1'b0;      
+      // iack bit 0 acknowledges the system control interrupt
+      if(int_ack[0]) sys_int <= 1'b0;      
+            
+      // (further) data has just become available, so raise interrupt
+      port_out_availableD <= port_out_available;      
+      if(port_out_available && !port_out_availableD)
+	sys_int <= 1'b1;
       
       if(data_in_strobe) begin      
         if(data_in_start) begin
@@ -151,10 +176,43 @@ always @(posedge clk) begin
 
 	        // interrupt[0] notifies the MCU of a FPGA cold boot e.g. if
                 // the FPGA has been loaded via USB
-                data_out <= { int_in[7:1], coldboot };
+                data_out <= { int_in[7:1], sys_int };
             end
-         end
-      end
+	   
+            // CMD 6: read system interrupt source
+            if(command == 8'd6) begin
+	        // bit[0]: coldboot flag
+	        // bit[1]: port data is available
+                data_out <= { 6'b000000, port_out_available, coldboot };
+	        // reading the interrupt source acknowledges the coldboot notification
+	        if(state == 4'd1) coldboot <= 1'b0;            
+	    end
+
+            // CMD 7: read port output status and data
+            if(command == 8'd7) begin
+	        // first byte returns data availability flag
+                if(state == 4'd1) begin
+		   data_out <= { 7'd0, port_out_available };
+		   // latch data as it may become available after this first 
+		   // access but before reading the second byte. We'd the ack'
+		   // a byte which we previously haven't been indicated as valid.
+		   data_out_reg <= port_out_data;
+		   // reading the byte ack's the mfp's fifo, but only if data
+		   // was actually available
+		   if(port_out_available) port_out_strobe <= 1'b1;
+	        end else if(state == 4'd2)
+		  data_out <= data_out_reg;		   
+            end // if (command == 8'd7)
+	   
+            // CMD 8: write port data
+            if(command == 8'd8) begin
+               if(state == 4'd1) begin
+		  port_in_data <= data_in;
+		  port_in_strobe <= 1'b1;
+	       end
+	    end
+	end
+      end // if (data_in_strobe)
    end
 end
     
