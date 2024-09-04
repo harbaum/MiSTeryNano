@@ -18,6 +18,8 @@ module acia (
 	output dout_strobe
 );
 
+parameter INPUT_FILTER = 1;    // enable input filter, usually only needed for external signals
+   
 parameter TX_DELAY = 8'd16; // delay from writing to the TDR to really write the data from the buffer to the shift register
 
 reg E_d;
@@ -80,6 +82,9 @@ reg serial_rx_overrun;
 reg serial_rx_data_available;
 reg serial_in_filtered;
 
+// bypass the input filter if it's not needed
+wire	serial_in = INPUT_FILTER?serial_in_filtered:rx;   
+   
 always @(posedge clk) begin
 	if(reset) begin
 		serial_rx_cnt <= 8'd0;
@@ -115,7 +120,7 @@ always @(posedge clk) begin
 			// receiver not running
 			if(serial_rx_cnt == 8'd0) begin
 				// seeing start bit?
-				if(serial_in_filtered == 1'b0) begin
+				if(serial_in == 1'b0) begin
 					// expecing 10 bits starting half a bit time from now
 					serial_rx_cnt <= { 4'd9, 4'd7 };
 				end
@@ -126,12 +131,12 @@ always @(posedge clk) begin
 			   // received a bit
 				if(serial_rx_cnt[3:0] == 4'd0) begin
 					// in the middle of the bit -> shift new bit into msb
-					serial_rx_shift_reg <= { serial_in_filtered, serial_rx_shift_reg[7:1] };
+					serial_rx_shift_reg <= { serial_in, serial_rx_shift_reg[7:1] };
 				end
 
 				// receiving last (stop) bit
 				if(serial_rx_cnt[7:0] == 8'd1) begin
-					if(serial_in_filtered == 1'b1) begin
+					if(serial_in == 1'b1) begin
 						if (serial_rx_data_available)
 							// previous data still not read? report overrun
 							serial_rx_overrun <= 1'b1;

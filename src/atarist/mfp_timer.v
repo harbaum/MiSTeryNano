@@ -69,17 +69,7 @@ wire      delay_mode;
 wire      event_mode;
 wire      pulse_mode;
 
-// async clock edge detect
-reg xclk, xclk_r, xclk_r2;
-
-// generate xclk_en from async clock input
-always @(posedge XCLK_I) xclk <= ~xclk;
-
-wire xclk_en = xclk_r2 ^ xclk_r;
-always @(posedge CLK) begin
-	xclk_r <= xclk;
-	xclk_r2 <= xclk_r;
-end
+wire	  xclk_en = XCLK_I;   
 
 // from datasheet: 
 // read value when the DS pin last gone high prior to the current read cycle

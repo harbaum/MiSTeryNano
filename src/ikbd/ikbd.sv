@@ -5,27 +5,41 @@
 //
 
 module ikbd (
+		input	      clk,
+	     
 	     // 2MHz clock (equals 4Mhz on a real 6301) and system reset
-		input	    clk,
-		input	    res,
+		input	      res,
 
 	     // ikbd rx/tx to be connected to the 6850
-		output	    tx,
- 		input	    rx,
+		output	      tx,
+ 		input	      rx,
 
 	     // caps lock output. This is present in the schematics
 	     // but it is not implemented nor used in the Atari ST
-		output	    caps_lock,
+		output	      caps_lock,
 
 	     // keyboard matrix
-        output [14:0] matrix_out,
-		input [7:0] matrix_in,
+		output [14:0] matrix_out,
+		input [7:0]   matrix_in,
 	     
 		// digital joystick with one fire button (FRLDU) or mouse with two buttons
-		input [5:0] joystick0,  // joystick port usually used with a mouse
-		input [4:0] joystick1   // regular joystick port
+		input [5:0]   joystick0, // joystick port usually used with a mouse
+		input [4:0]   joystick1   // regular joystick port
 		);
 
+   // by default divide clock by 16 (e.g. for 32 MHz input clock and effective 2Mhz)
+   parameter DIV = 4;    // 4 == /16
+      
+   reg [DIV:0] clk_cnt;
+   always @(posedge clk)
+     clk_cnt <= clk_cnt + 1;   
+
+   // generate various enable signals correlating to the negative and positive clock
+   // edge of the original clock
+   wire	 en    = &clk_cnt;                               // 11111...
+   wire	 en2   = !clk_cnt[DIV] && &clk_cnt[DIV-1:0];     // 01111...
+   wire	 en2x  = !clk_cnt[DIV-1] && &clk_cnt[DIV-2:0];   // X0111...
+   
    // this implements the 74ls244. This is technically not needed in the FPGA since
    // in and out are seperate lines.
    wire [7:0] pi4 = po2[0]?8'hff:~{joystick1[3:0], joystick0[3:0]};
@@ -41,8 +55,12 @@ module ikbd (
    assign caps_lock = po3[0];   
 
    HD63701V0_M6 HD63701V0_M6 (
-			      .CLKx2(clk),
-			      .RST(res),
+			      .CLK(clk),
+			      .EN(en),
+			      .EN2(en2),
+			      .EN2X(en2x),
+
+			      .RES(res),
 			      .NMI(1'b0),
 			      .IRQ(1'b0),
 

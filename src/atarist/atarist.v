@@ -4,19 +4,19 @@
 
 module atarist (
 	// System clocks / reset / settings
-	input wire		   clk_32,
-	input wire		   porb,
-	input wire		   resb,
+	input wire 		   clk_32,
+	input wire 		   porb,
+	input wire 		   resb,
 
 	// Video output
-	input wire		   mono_detect, // low for monochrome
+	input wire 		   mono_detect, // low for monochrome
 	output wire [3:0]  r,
 	output wire [3:0]  g,
 	output wire [3:0]  b,
-	output wire		   hsync_n,
-	output wire		   vsync_n,
-	output wire		   de,
-	output wire		   blank_n,
+	output wire 	   hsync_n,
+	output wire 	   vsync_n,
+	output wire 	   de,
+	output wire 	   blank_n,
 
     // keyboard, mouse and joystick(s)
 	output wire [14:0] keyboard_matrix_out,
@@ -29,62 +29,69 @@ module atarist (
 	output wire [14:0] audio_mix_r,
 
     // floppy disk/sd card interface
-	output [31:0]	   sd_lba,
-	output [1:0]	   sd_rd,
-	output [1:0]	   sd_wr,
-	input			   sd_ack,
-	input [8:0]		   sd_buff_addr,
-	input [7:0]		   sd_dout,
-	output [7:0]	   sd_din,
-	input			   sd_dout_strobe,
+	output [31:0] 	   sd_lba,
+	output [1:0] 	   sd_rd,
+	output [1:0] 	   sd_wr,
+	input 			   sd_ack,
+	input [8:0] 	   sd_buff_addr,
+	input [7:0] 	   sd_dout,
+	output [7:0] 	   sd_din,
+	input 			   sd_dout_strobe,
 
 	// generic sd card services
-	input [3:0]		   sd_img_mounted,
-	input [31:0]	   sd_img_size,
+	input [3:0] 	   sd_img_mounted,
+	input [31:0] 	   sd_img_size,
 
     // ACSI disk/sd card interface
-	output [1:0]	   acsi_rd_req,
-	output [1:0]	   acsi_wr_req,
-	output [31:0]	   acsi_sd_lba,
- 	input			   acsi_sd_done,
- 	input			   acsi_sd_busy,
-	input			   acsi_sd_rd_byte_strobe,
-	input [7:0]		   acsi_sd_rd_byte,
-	output [7:0]	   acsi_sd_wr_byte,
-	input [8:0]		   acsi_sd_byte_addr,
-
+	output [1:0] 	   acsi_rd_req,
+	output [1:0] 	   acsi_wr_req,
+	output [31:0] 	   acsi_sd_lba,
+ 	input 			   acsi_sd_done,
+ 	input 			   acsi_sd_busy,
+	input 			   acsi_sd_rd_byte_strobe,
+	input [7:0] 	   acsi_sd_rd_byte,
+	output [7:0] 	   acsi_sd_wr_byte,
+	input [8:0] 	   acsi_sd_byte_addr,
+					 
+    // serial/rs232 to MCU
+	output             serial_tx_available,
+	input              serial_tx_strobe,
+	output [7:0]       serial_tx_data,
+	input              serial_rx_strobe,
+	input [7:0]        serial_rx_data,
+				
 	// MIDI UART
-	input wire		   midi_rx,
-	output wire		   midi_tx,
+	input wire 		   midi_rx,
+	output wire 	   midi_tx,
 
 	// printer signals
-	output			   parallel_strobe_oe,
-	input			   parallel_strobe_in, 
-	output			   parallel_strobe_out, 
-	output			   parallel_data_oe,
-	input [7:0]		   parallel_data_in,
-	output [7:0]	   parallel_data_out,
-	input			   parallel_busy, 
+	output 			   parallel_strobe_oe,
+	input 			   parallel_strobe_in, 
+	output 			   parallel_strobe_out, 
+	output 			   parallel_data_oe,
+	input [7:0] 	   parallel_data_in,
+	output [7:0] 	   parallel_data_out,
+	input 			   parallel_busy, 
 
     // enable STE and extra 8MB ram
-    input wire		   ste,
-    input wire		   enable_extra_ram,
-    input wire		   blitter_en,
-    input [1:0]		   floppy_protected, // floppy A/B write protect
-	input			   cubase_en,
+    input wire 		   ste,
+    input wire 		   enable_extra_ram,
+    input wire 		   blitter_en,
+    input [1:0] 	   floppy_protected, // floppy A/B write protect
+	input 			   cubase_en,
 				
 	// DRAM interface
-	output wire		   ram_ras_n,
-	output wire		   ram_cash_n,
-	output wire		   ram_casl_n,
-	output wire		   ram_we_n,
-	output wire		   ram_ref,
+	output wire 	   ram_ras_n,
+	output wire 	   ram_cash_n,
+	output wire 	   ram_casl_n,
+	output wire 	   ram_we_n,
+	output wire 	   ram_ref,
 	output wire [23:1] ram_addr,
 	output wire [15:0] ram_data_in,
 	input wire [15:0]  ram_data_out,
 
 	// TOS ROM interface
-	output wire		   rom_n, 
+	output wire 	   rom_n, 
 	output wire [23:1] rom_addr,
 	input wire [15:0]  rom_data_out,
 				
@@ -123,20 +130,23 @@ end
 
 // generate 2.4576MHz MFP clock
 reg [31:0]  clk_cnt_mfp;
-reg 	    clk_mfp;
+reg 	    clk_mfp_en;
 
 wire [31:0] SYSTEM_CLOCK = 32'd32084988;
 wire [31:0] MFP_CLOCK = 32'd2457600;
 
 always @(posedge clk_32) begin
-    if(!porb)
+    if(!porb) begin
         clk_cnt_mfp <= 32'd0;
-    else begin
+	    clk_mfp_en <= 1'b0;
+    end else begin
+	    clk_mfp_en <= 1'b0;
+	   
         if(clk_cnt_mfp < SYSTEM_CLOCK/2)
             clk_cnt_mfp <= clk_cnt_mfp + MFP_CLOCK;
         else begin
             clk_cnt_mfp <= clk_cnt_mfp - (SYSTEM_CLOCK/2 - MFP_CLOCK);
-            clk_mfp <= !clk_mfp;
+            clk_mfp_en <= 1'b1;
         end
     end   
 end
@@ -298,9 +308,9 @@ gstmcu gstmcu (
 	.RAS0_N     ( ras0_n ),
 	.RAS1_N     ( ras1_n ),
 	.CAS0L_N    ( cas0l_n ),
-        .CAS0H_N    ( cas0h_n ),
-        .CAS1L_N    ( cas1l_n ),
-        .CAS1H_N    ( cas1h_n ),
+	.CAS0H_N    ( cas0h_n ),
+	.CAS1L_N    ( cas1l_n ),
+	.CAS1H_N    ( cas1h_n ),
 	.RAM_LDS    ( ),
 	.RAM_UDS    ( ),
 	.REF        ( ram_ref ),
@@ -381,15 +391,50 @@ gstshifter gstshifter (
 /* ------------------------------------ CPU ------------------------------------- */
 /* ------------------------------------------------------------------------------ */
 
-wire        phi1 = mhz8_en1;
-wire        phi2 = mhz8_en2;
+/* --- experimental 16Mhz turbo mode --- */
+   
+wire cpu_16mhz_enable = 1'b0;  
+   
+wire		clk16_en = ~clk16;
+wire		phi1 = cpu_16mhz_enable? clk16_en:mhz8_en1;   
+wire		phi2 = cpu_16mhz_enable?~clk16_en:mhz8_en2;  
 
-wire        mcu_dtack_n_adj = mcu_dtack_n;
+// In 16mhz the dtack for ram and rom needs to be delayed, so the cycle
+// would not get too short as our ram and rom aren't very fast.
+// Especially the serial SPI rom already runs close to the limits.
+reg		  as_n_D;
+reg	[3:0] as_n_cnt;   
+
+// run a counter from the begin of as_n   
+always @(posedge clk_32) begin
+   as_n_D <= cpu_as_n;
+   if(!cpu_as_n) begin
+	  if(as_n_D)
+		as_n_cnt <= 4'd0;
+	  else begin
+		 // make sure counter does not run while RAM is accessed and ram is in refresh
+		 // or being used for video
+		 if(as_n_cnt != 4'd15 && !(cpu_a[23:22] == 2'b00 && (ram_ref || !dcyc_n)))
+		   as_n_cnt <= as_n_cnt + 4'd1;
+	  end
+   end else
+	 as_n_cnt <= 4'd0;
+end
+
+wire rom = !cpu_as_n && (cpu_a[23:18] == 6'b111111);
+wire ram = !cpu_as_n && (cpu_a[23:22] == 2'b00);   
+	 
+wire mcu_dtack_n_adj = 
+	 !cpu_16mhz_enable ? mcu_dtack_n:      // normal dtack in non-turbo mode
+//	 (rom && as_n_cnt<6)?1'b1:  // suppress dtack at begin of rom cycle
+//	 (ram && as_n_cnt<6)?1'b1:  // suppress dtack at begin of ram cycle
+	 (as_n_cnt<7)?1'b1:  // suppress dtack at begin of cycle
+	 mcu_dtack_n;
 
 fx68k fx68k (
 	.clk        ( clk_32     ),
 	.extReset   ( reset      ),
-	.pwrUp      ( reset      ),  // porb?
+	.pwrUp      ( !porb      ),
 	.enPhi1     ( phi1       ),
 	.enPhi2     ( phi2       ),
 
@@ -469,16 +514,16 @@ mfp mfp (
 	.dtack    ( mfp_dtack     ),
 
 	// serial/rs232 interface io-controller<->mfp
-	.serial_data_out_available (),
-	.serial_strobe_out         (1'b0),
-	.serial_data_out           (),
+	.serial_data_out_available (serial_tx_available),
+	.serial_strobe_out         (serial_tx_strobe),
+	.serial_data_out           (serial_tx_data),
 	.serial_status_out         (),
 
-	.serial_strobe_in          (1'b0),
-	.serial_data_in            (8'h00),
+	.serial_strobe_in          (serial_rx_strobe),
+	.serial_data_in            (serial_rx_data),
 
 	// input signals
-	.clk_ext  ( clk_mfp       ),  // 2.457MHz clock
+	.clk_ext  ( clk_mfp_en    ),  // 2.457MHz clock enable
 	.t_i      ( mfp_timer_in  ),  // timer a/b inputs
 	.i        ( mfp_gpio_in   )   // gpio-in
 );
@@ -487,21 +532,11 @@ mfp mfp (
 /* ---------------------------------- IKBD -------------------------------------- */
 /* ------------------------------------------------------------------------------ */
 
-// generate 2Mhz IKBD clock from 32 MHz
-reg [3:0]   clk_div_ikbd;
-wire        clk_2 = clk_div_ikbd[3];  
-   
-always @(posedge clk_32)
-  clk_div_ikbd <= clk_div_ikbd + 4'd1;
-   
-reg         ikbd_reset;
-always @(posedge clk_2) ikbd_reset <= peripheral_reset;
-
 wire ikbd_tx, ikbd_rx;
   
-ikbd ikbd (
-	.clk(clk_2),
-	.res(ikbd_reset),
+ikbd #( .DIV(5) ) ikbd (
+	.clk(clk_32),		    // clock is divided to 2MHz (/16 == 2^4) inside ikbd
+	.res(peripheral_reset),
       
 	.tx(ikbd_tx),
 	.rx(ikbd_rx),
@@ -522,7 +557,7 @@ ikbd ikbd (
 wire [7:0] kbd_acia_data_out;
 wire       kbd_acia_irq;
 
-acia kbd_acia (
+acia #( .INPUT_FILTER(0) ) kbd_acia (
 	// cpu interface
 	.clk      ( clk_32             ),
 	.E        ( cpu_E              ),
@@ -670,8 +705,8 @@ assign Clks.aRESETn = !peripheral_reset;
 assign Clks.sReset = !porb | peripheral_reset;
 assign Clks.pwrUp = !porb;
 
-assign Clks.enPhi1 = mhz8_en1;
-assign Clks.enPhi2 = mhz8_en2;
+assign Clks.enPhi1 = cpu_16mhz_enable? clk16_en:mhz8_en1;
+assign Clks.enPhi2 = cpu_16mhz_enable?~clk16_en:mhz8_en2;
 assign Clks.anyPhi = Clks.enPhi2 | Clks.enPhi1;
 
 assign { Clks.extReset, Clks.phi1, Clks.phi2} = 3'b000;

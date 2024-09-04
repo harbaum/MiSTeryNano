@@ -6,6 +6,7 @@
 module HD63701_MCROM
 (
 	input			CLK,
+	input			EN,
 	input [5:0] PHASE,
 	input [7:0] OPCODE,
 
@@ -18,16 +19,16 @@ reg [5:0] p;
 always @( posedge CLK ) p <= PHASE;
 
 wire `mcwidth mc0,mc1,mc2,mc3,mc4,mc5,mc6,mc7,mc8,mc9;
-HD63701_MCROM_S0 r0(CLK,OPCODE,mc0);
-HD63701_MCROM_S1 r1(CLK,OPCODE,mc1);
-HD63701_MCROM_S2 r2(CLK,OPCODE,mc2);
-HD63701_MCROM_S3 r3(CLK,OPCODE,mc3);
-HD63701_MCROM_S4 r4(CLK,OPCODE,mc4);
-HD63701_MCROM_S5 r5(CLK,OPCODE,mc5);
-HD63701_MCROM_S6 r6(CLK,OPCODE,mc6);
-HD63701_MCROM_S7 r7(CLK,OPCODE,mc7);
-HD63701_MCROM_S8 r8(CLK,OPCODE,mc8);
-HD63701_MCROM_S9 r9(CLK,OPCODE,mc9);
+HD63701_MCROM_S0 r0(CLK,EN,OPCODE,mc0);
+HD63701_MCROM_S1 r1(CLK,EN,OPCODE,mc1);
+HD63701_MCROM_S2 r2(CLK,EN,OPCODE,mc2);
+HD63701_MCROM_S3 r3(CLK,EN,OPCODE,mc3);
+HD63701_MCROM_S4 r4(CLK,EN,OPCODE,mc4);
+HD63701_MCROM_S5 r5(CLK,EN,OPCODE,mc5);
+HD63701_MCROM_S6 r6(CLK,EN,OPCODE,mc6);
+HD63701_MCROM_S7 r7(CLK,EN,OPCODE,mc7);
+HD63701_MCROM_S8 r8(CLK,EN,OPCODE,mc8);
+HD63701_MCROM_S9 r9(CLK,EN,OPCODE,mc9);
 
 assign mcode = 
 				(p==`phRST  ) ? {`mcLDV,  `vaRST,   `mcrn,`mcpN,`amE0,`pcN}: 	//(Load Reset Vector)
@@ -61,53 +62,53 @@ assign mcode =
 				
 endmodule
 
-module HD63701_MCROM_S0( input CLK, input [7:0] OPCODE, output reg `mcwidth mcode );
+module HD63701_MCROM_S0( input CLK, input EN, input [7:0] OPCODE, output reg `mcwidth mcode );
 `include "HD63701_MCODE.i"
-always @( posedge CLK ) mcode <= MCODE_S0(OPCODE);
+always @( posedge CLK ) if( EN ) mcode <= MCODE_S0(OPCODE);
 endmodule
 
-module HD63701_MCROM_S1( input CLK, input [7:0] OPCODE, output reg `mcwidth mcode );
+module HD63701_MCROM_S1( input CLK, input EN, input [7:0] OPCODE, output reg `mcwidth mcode );
 `include "HD63701_MCODE.i"
-always @( posedge CLK ) mcode <= MCODE_S1(OPCODE);
+always @( posedge CLK ) if( EN ) mcode <= MCODE_S1(OPCODE);
 endmodule
 
-module HD63701_MCROM_S2( input CLK, input [7:0] OPCODE, output reg `mcwidth mcode );
+module HD63701_MCROM_S2( input CLK, input EN, input [7:0] OPCODE, output reg `mcwidth mcode );
 `include "HD63701_MCODE.i"
-always @( posedge CLK ) mcode <= MCODE_S2(OPCODE);
+always @( posedge CLK ) if( EN ) mcode <= MCODE_S2(OPCODE);
 endmodule
 
-module HD63701_MCROM_S3( input CLK, input [7:0] OPCODE, output reg `mcwidth mcode );
+module HD63701_MCROM_S3( input CLK, input EN, input [7:0] OPCODE, output reg `mcwidth mcode );
 `include "HD63701_MCODE.i"
-always @( posedge CLK ) mcode <= MCODE_S3(OPCODE);
+always @( posedge CLK ) if( EN ) mcode <= MCODE_S3(OPCODE);
 endmodule
 
-module HD63701_MCROM_S4( input CLK, input [7:0] OPCODE, output reg `mcwidth mcode );
+module HD63701_MCROM_S4( input CLK, input EN, input [7:0] OPCODE, output reg `mcwidth mcode );
 `include "HD63701_MCODE.i"
-always @( posedge CLK ) mcode <= MCODE_S4(OPCODE);
+always @( posedge CLK ) if( EN ) mcode <= MCODE_S4(OPCODE);
 endmodule
 
-module HD63701_MCROM_S5( input CLK, input [7:0] OPCODE, output reg `mcwidth mcode );
+module HD63701_MCROM_S5( input CLK, input EN, input [7:0] OPCODE, output reg `mcwidth mcode );
 `include "HD63701_MCODE.i"
-always @( posedge CLK ) mcode <= MCODE_S5(OPCODE);
+always @( posedge CLK ) if( EN ) mcode <= MCODE_S5(OPCODE);
 endmodule
 
-module HD63701_MCROM_S6( input CLK, input [7:0] OPCODE, output reg `mcwidth mcode );
+module HD63701_MCROM_S6( input CLK, input EN, input [7:0] OPCODE, output reg `mcwidth mcode );
 `include "HD63701_MCODE.i"
-always @( posedge CLK ) mcode <= MCODE_S6(OPCODE);
+always @( posedge CLK ) if( EN ) mcode <= MCODE_S6(OPCODE);
 endmodule
 
-module HD63701_MCROM_S7( input CLK, input [7:0] OPCODE, output reg `mcwidth mcode );
+module HD63701_MCROM_S7( input CLK, input EN, input [7:0] OPCODE, output reg `mcwidth mcode );
 `include "HD63701_MCODE.i"
-always @( posedge CLK ) mcode <= MCODE_S7(OPCODE);
+always @( posedge CLK ) if( EN ) mcode <= MCODE_S7(OPCODE);
 endmodule
 
-module HD63701_MCROM_S8( input CLK, input [7:0] OPCODE, output reg `mcwidth mcode );
+module HD63701_MCROM_S8( input CLK, input EN, input [7:0] OPCODE, output reg `mcwidth mcode );
 `include "HD63701_MCODE.i"
-always @( posedge CLK ) mcode <= MCODE_S8(OPCODE);
+always @( posedge CLK ) if( EN ) mcode <= MCODE_S8(OPCODE);
 endmodule
 
-module HD63701_MCROM_S9( input CLK, input [7:0] OPCODE, output reg `mcwidth mcode );
+module HD63701_MCROM_S9( input CLK, input EN, input [7:0] OPCODE, output reg `mcwidth mcode );
 `include "HD63701_MCODE.i"
-always @( posedge CLK ) mcode <= MCODE_S9(OPCODE);
+always @( posedge CLK ) if( EN ) mcode <= MCODE_S9(OPCODE);
 endmodule
 

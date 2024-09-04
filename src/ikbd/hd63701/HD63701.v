@@ -4,9 +4,11 @@
 *******************************************************/
 module HD63701V0_M6
 (
- input 	       CLKx2, // XTAL/EXTAL (200K~2.0MHz)
+ input 	       CLK,
+ input 	       EN, EN2,
+ input 	       EN2X,
 
- input 	       RST, // RES
+ input 	       RES, // RES
  input 	       NMI, // NMI
  input 	       IRQ, // IRQ1
 
@@ -24,6 +26,10 @@ module HD63701V0_M6
  output [7:0]  PO2  //       OUT
 );
 
+reg	       RST = 1'b1;   
+always @(posedge CLK)
+  if ( EN ) RST <= RES;   
+   
 // map sci tx onto PO3 if transmitter is enabled
 assign PO2 = te?{PO2I[7:5],txd,PO2I[3:0]}:PO2I;      
 wire [7:0] 	  PO2I;
@@ -38,19 +44,19 @@ assign AD = (PO2I[7:5] == 3'b111)?{ PO4, PO3 }:ADI;
 // Built-In Instruction ROM TODO: include mode (POI[7:5]) here
 wire en_birom = (ADI[15:12]==4'b1111);			// $F000-$FFFF
 wire [7:0] biromd;
-MCU_BIROM irom( CLKx2, ADI[11:0], biromd );
+MCU_BIROM irom( CLK, EN2X, ADI[11:0], biromd );
 
 
 // Built-In WorkRAM
 wire		  en_biram;
 wire [7:0] biramd;
-HD63701_BIRAM biram( CLKx2, ADI, RW, DO, en_biram, biramd );
+HD63701_BIRAM biram( CLK, EN2X, ADI, RW, DO, en_biram, biramd );
 
 
 // Built-In I/O Ports
 wire		  en_biio;
 wire [7:0] biiod;
-HD63701_IOPort iopt( RST, CLKx2, ADI, RW, DO, en_biio, biiod, PI1, PI2, DI, PI4, PO1, PO2I, PO3, PO4 );
+HD63701_IOPort iopt( RST, CLK, EN2X, ADI, RW, DO, en_biio, biiod, PI1, PI2, DI, PI4, PO1, PO2I, PO3, PO4 );
 
 
 // Built-In Serial Communication Hardware
@@ -59,14 +65,14 @@ wire		  txd;
 wire		  te;
 wire		  en_bisci;
 wire [7:0] biscid;
-HD63701_SCI sci( RST, CLKx2, ADI, RW, DO, PI2[3], txd, te, irq2_sci, en_bisci, biscid );
+HD63701_SCI sci( RST, CLK, EN2X, ADI, RW, DO, PI2[3], txd, te, irq2_sci, en_bisci, biscid );
 
 
 // Built-In Timer
 wire		  irq2_tim;
 wire		  en_bitim;
 wire [7:0] bitimd;
-HD63701_Timer timer( RST, CLKx2, ADI, RW, DO, irq2_tim, en_bitim, bitimd );
+HD63701_Timer timer( RST, CLK, EN2X, EN || EN2, ADI, RW, DO, irq2_tim, en_bitim, bitimd );
 
 
 // Built-In Devices Data Selector
@@ -85,7 +91,7 @@ HD63701_BIDSEL bidsel
 // Processor Core
 HD63701_Core core
   (
-   .CLKx2(CLKx2),.RST(RST),
+   .CLK(CLK),.EN(EN),.EN2(EN2),.RST(RST),
    .NMI(NMI),.IRQ(IRQ),.IRQ2_TIM(irq2_tim),.IRQ2_SCI(irq2_sci),
    .RW(RW),.AD(ADI),.DO(DO),.DI(biddi)
    );
@@ -117,7 +123,8 @@ endmodule
 
 module HD63701_BIRAM
 (
- input 		  mcu_clx2,
+ input 		  mcu_clk,
+ input 		  mcu_en,
  input [15:0] 	  mcu_ad,
  input 		  mcu_wr,
  input [7:0] 	  mcu_do,
@@ -129,9 +136,11 @@ assign en_biram = (mcu_ad[15: 7]==9'b000000001);	// $0080-$00FF
 wire [6:0] biad = mcu_ad[6:0];
 
 reg [7:0] bimem[0:127];
-always @( posedge mcu_clx2 ) begin
-	if (en_biram & mcu_wr) bimem[biad] <= mcu_do;
-	else biramd <= bimem[biad];
+always @( posedge mcu_clk ) begin
+        if ( mcu_en ) begin
+	        if (en_biram & mcu_wr) bimem[biad] <= mcu_do;
+	        else biramd <= bimem[biad];
+	end
 end
 
 endmodule
@@ -140,7 +149,8 @@ endmodule
 module HD63701_IOPort
 (
  input 		  mcu_rst,
- input 		  mcu_clx2,
+ input 		  mcu_clk,
+ input 		  mcu_en,
  input [15:0] 	  mcu_ad,
  input 		  mcu_wr,
  input [7:0] 	  mcu_do,
@@ -174,7 +184,7 @@ module HD63701_IOPort
    reg [7:0] 	  PO3R;   
    reg [7:0] 	  PO4R;
   
-always @( posedge mcu_clx2 ) begin
+always @( posedge mcu_clk ) begin
    if (mcu_rst) begin
       DDR1 <= 8'h00;
       DDR2 <= 5'h00;      
@@ -183,7 +193,7 @@ always @( posedge mcu_clx2 ) begin
       PO2R[7:5] <= PI2[2:0];
       // other output registers are undefined after reset
    end
-   else begin
+   else if (mcu_en) begin
       if (mcu_wr) begin
 	 if (mcu_ad==16'h0) DDR1 <= mcu_do;
 	 if (mcu_ad==16'h1) DDR2 <= mcu_do[4:0];
@@ -216,7 +226,8 @@ endmodule
 module HD63701_SCI
 (
  input 	      mcu_rst,
- input 	      mcu_clx2,
+ input 	      mcu_clk,
+ input 	      mcu_en,
  input [15:0] mcu_ad,
  input 	      mcu_wr,
  input [7:0]  mcu_do,
@@ -248,7 +259,7 @@ module HD63701_SCI
    reg        clr_rd;
    reg        clr_td;
       
-   always @( posedge mcu_clx2 or posedge mcu_rst ) begin
+   always @( posedge mcu_clk or posedge mcu_rst ) begin
       if (mcu_rst) begin
 	 RMCR  <= 8'h00;
 	 TRCSR <= 8'h00;
@@ -266,7 +277,7 @@ module HD63701_SCI
 	 txsr <= 9'h000;
 	 tx <= 1'b1;
       end
-      else begin
+      else if(mcu_en) begin
 
 	 if(en_sci && !mcu_wr) begin
 	    if (mcu_ad==16'h11) {clr_rd, clr_td} <= 2'b11;
@@ -368,7 +379,9 @@ endmodule
 module HD63701_Timer
 (
 	input			 mcu_rst,
-	input			 mcu_clx2,
+	input			 mcu_clk,
+	input			 mcu_en,
+	input			 mcu_en2,
 	input [15:0] mcu_ad,
 	input 		 mcu_wr,
 	input  [7:0] mcu_do,
@@ -385,7 +398,7 @@ reg [16:0] frc;
 reg  [7:0] frt;
 reg  [7:0] rmc;
 
-always @( posedge mcu_clx2 or posedge mcu_rst ) begin
+always @( posedge mcu_clk or posedge mcu_rst ) begin
 	if (mcu_rst) begin
 		oce <= 0;
 		ocr <= 16'hFFFF;
@@ -394,7 +407,7 @@ always @( posedge mcu_clx2 or posedge mcu_rst ) begin
 		frt <= 0;
 		rmc <= 8'h40;
 	end
-	else begin
+	else if (mcu_en) begin
 		frc <= frc+17'd1;
 		if (mcu_wr) begin
 			case (mcu_ad)
@@ -412,11 +425,11 @@ always @( posedge mcu_clx2 or posedge mcu_rst ) begin
 	end
 end
 
-always @( negedge mcu_clx2 or posedge mcu_rst ) begin
+always @( posedge mcu_clk or posedge mcu_rst ) begin
 	if (mcu_rst) begin
 		oci <= 1'b0;
 	end
-	else begin
+	else if(mcu_en2) begin
 		case (mcu_ad)
 			16'h0B: oci <= 1'b0;
 			16'h0C: oci <= 1'b0;

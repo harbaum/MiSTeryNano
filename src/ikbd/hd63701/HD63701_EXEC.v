@@ -7,6 +7,8 @@
 module HD63701_EXEC
 (
 	input						CLK,
+	input						EN,
+	input						EN2,
 	input						RST,
 	
 	input			[7:0]		DI,
@@ -112,15 +114,17 @@ HD63701_DSEL8 sAB(
 // Update Registers
 reg [4:0] pmcop;
 always @( posedge CLK ) begin
+   if(EN) begin
 		  if (pmcop==`mcPSH) rS <= rSp-16'h1;
 	else if (pmcop==`mcPUL) rS <= rSp+16'h1;
 	else rS <= rSp;
+   end
 end
 
 wire noCCop = (mcop!=`mcLDV)&(mcop!=`mcLDN)&(mcop!=`mcPSH)&(mcop!=`mcPUL)&(mcop!=`mcAPC)&(mcop!=`mcTST)&(~fncu);
 wire noCCrg = (mcr2!=`mcrC )&(mcr2!=`mcrS )&(mcr2!=`mcrP )&(mcr0!=`mcrC );
 
-always @( negedge CLK or posedge RST ) begin
+always @( posedge CLK or posedge RST ) begin
 	if (RST) begin
 		pmcop <= 0;
 		vect <= 0;
@@ -130,7 +134,7 @@ always @( negedge CLK or posedge RST ) begin
 		rC   <= 6'b010000;
 		DO   <= 0;
 	end
-	else begin
+	else if(EN2) begin
 		if ((mcr2!=`mcrP)&(mcpi==`pcI)) rP <= rP+16'h1;
 		if (noCCrg & noCCop) rC <= {CC[5],rC[4],CC[3:0]};
 		if (mcr2!=`mcrS) rSp <= rS;
@@ -164,7 +168,13 @@ always @( negedge CLK or posedge RST ) begin
 	end
 end
 
-assign RW = !CLK & ((mcr2==`mcrN)|(mcr2==`mcrM)) & (~mcnw);
+reg CLK_PH;
+always @(posedge CLK) begin
+  if(EN)  CLK_PH <= 1'b1;
+  if(EN2) CLK_PH <= 1'b0;
+end
+
+assign RW =  !CLK_PH & ((mcr2==`mcrN)|(mcr2==`mcrM)) & (~mcnw);
 
 assign inte = ~rC[4];
 

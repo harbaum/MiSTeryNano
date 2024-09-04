@@ -6,7 +6,9 @@
 
 module HD63701_Core
 (
-	input					CLKx2,
+	input					CLK,
+	input					EN,
+	input					EN2,
 
 	input					RST,
 	input					NMI,
@@ -19,20 +21,17 @@ module HD63701_Core
 	output	 [7:0]	DO,
 	input     [7:0]	DI
 );
-
-reg CLK = 0;
-always @( negedge CLKx2 ) CLK <= ~CLK;
-
+   
 wire `mcwidth mcode;
 wire [7:0] 	  vect;
 wire		  	  inte, fncu;
 
-HD63701_SEQ   SEQ(.CLK(CLK),.RST(RST),
+HD63701_SEQ   SEQ(.CLK(CLK),.EN(EN),.RST(RST),
 						.NMI(NMI),.IRQ(IRQ),.IRQ2_TIM(IRQ2_TIM),.IRQ2_SCI(IRQ2_SCI),
 						.DI(DI),
 						.mcout(mcode),.vect(vect),.inte(inte),.fncu(fncu));
 
-HD63701_EXEC EXEC(.CLK(CLK),.RST(RST),.DI(DI),.AD(AD),.RW(RW),.DO(DO),
+HD63701_EXEC EXEC(.CLK(CLK),.EN(EN),.EN2(EN2),.RST(RST),.DI(DI),.AD(AD),.RW(RW),.DO(DO),
 						.mcode(mcode),.vect(vect),.inte(inte),.fncu(fncu));
 
 endmodule

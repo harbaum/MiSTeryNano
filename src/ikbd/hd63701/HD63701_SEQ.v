@@ -8,6 +8,7 @@
 module HD63701_SEQ
 (
 	input						CLK,
+	input						EN,
 	input						RST,
 
 	input						NMI,
@@ -51,7 +52,7 @@ always @( posedge CLK or posedge RST ) begin
 		mcode  <= 0;
 		mcside <= 0;
 	end
-	else begin
+	else if(EN) begin
 
 
 		case (PHASE)
@@ -100,7 +101,7 @@ always @( posedge CLK or posedge RST ) begin
 					end
 
 		// HALT (Bug in MicroCode)
-		`phHALT: $stop;
+//		`phHALT: $stop;
 
 		default:;
 		endcase // case (PHASE)
@@ -113,7 +114,7 @@ end
 wire [2:0] mcph = mcout[6:4];
 always @( negedge CLK or posedge RST ) begin
 	if (RST) PHASE <= 0;
-	else begin
+	else if(EN) begin
 		case (mcph)
 			`mcpN: PHASE <= PHASE+6'h1;
 			`mcp0: PHASE <=`phEXEC;
@@ -128,7 +129,7 @@ end
 
 // Output MicroCode
 wire `mcwidth mcoder;
-HD63701_MCROM mcr( CLK, PHASE, (PHASE==`phEXEC) ? DI : opcode, mcoder );
+HD63701_MCROM mcr( CLK, EN, PHASE, (PHASE==`phEXEC) ? DI : opcode, mcoder );
 assign mcout = mcside ? mcoder : mcode;
 
 assign fncu = ( opcode[7:4]==4'h2)|
