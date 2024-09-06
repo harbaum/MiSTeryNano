@@ -1,3 +1,8 @@
+# Old firmware
+
+This directory contains an old version of the firmware. The firmware is now developed as a seperate project in the
+[FPGA Companion repository](https://github.com/harbaum/FPGA-Companion).
+
 # BL616
 
 The [Bouffalow Lab BL616](https://en.bouffalolab.com/product/?type=detail&id=25) is a Risc V microcontroller. It's comparable with the ESP32 and comes with integrated WiFi, Bluetooth, USB device, USB host and various other peripherals. In combination with a FPGA the BL616 can perform sopport tasks like handling SD card and their file systems or dealing with USB peripherals.

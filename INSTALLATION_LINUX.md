@@ -89,12 +89,18 @@ in the OSD. The addresses for all TOS are:
 
 ### Step 3: Installation of the MCU firmware
 
+MiSTeryNano now uses the [FPGA Companion](https://github.com/harbaum/FPGA-Companion)
+for the external MCU. This still supports the BL616/M0S initially used for the
+MiSTeryNano but also the RP2040 or ESP32. The following instructions assume that
+a M0S Dock is being used. Please refer to the [FPGA Companion](https://github.com/harbaum/FPGA-Companion) for
+the other MCUs.
+
 Releases V1.2.0 and later of MiSTeryNano expects a [M0S
 Dock](https://wiki.sipeed.com/hardware/en/maixzero/m0s/m0s.html) to be
 used for USB connectivity and system control. The
-```misterynano_fw_bl616_cfg.ini``` and ```misterynano_fw_bl616.bin```
+```fpga_companion_bl616_cfg.ini``` and ```fpga_companion_bl616.bin```
 files from the [release
-page](https://github.com/harbaum/MiSTeryNano/releases) contain the
+page](https://github.com/harbaum/FPGA-Companion/releases) contain the
 firmware for the M0S Dock.
 
 Use the graphical [BLFlashCube
@@ -106,7 +112,7 @@ to flash the firmware onto the M0S Dock using these steps:
   * Connect the M0S to the PCs USB
   * Release the boot button (the M0S/BL616 will now be in "update" mode)
   * Open the bouffalo_flash_cube
-  * Select ```misterynano_fw_bl616_cfg.ini``` as the config file using the Browse button
+  * Select ```fpga_companion_bl616_cfg.ini``` as the config file using the Browse button
   * Select the correct COM port under "Port/SN"
   * Hit download, wait for completion
   * Unplug the M0S from USB and connect it to the Tang Nano 20k as depicted below
@@ -120,7 +126,7 @@ At this point mouse and keyboard should be working and you should be
 able to use the F12 key to open the on-screen-display (OSD) to control
 the core.
 
-Look [here](firmware) for more info about the firmware.
+Look [here](https://github.com/harbaum/FPGA-Companion) for more info about the firmware.
 
 ### Step 4: Installation of a floppy disk image
 

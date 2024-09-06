@@ -86,6 +86,12 @@ Their use and installation is optional.
 
 ## Flashing the M0S-Dock/BL616
 
+MiSTeryNano now uses the [FPGA Companion](https://github.com/harbaum/FPGA-Companion)
+for the external MCU. This still supports the BL616/M0S initially used for the
+MiSTeryNano but also the RP2040 or ESP32. The following instructions assume that
+a M0S Dock is being used. Please refer to the [FPGA Companion](https://github.com/harbaum/FPGA-Companion) for
+the other MCUs.
+
 For the BL616 you have to extract and start the BuffaloLabDevCube. 
 
 Using the internal BL616 of the Tang Nano 20k is currently not supported
@@ -106,7 +112,7 @@ or otherwise flashing will fail.**
   device with a COM port. If not take a look in the device manager to check for
   the correct device detection.
 - On the top click on MCU and browse to the firmware image file named
-  ```misterynano_fw_bl616.bin```
+  ```fpga_companion_bl616.bin```
 - Choose “Open Uart” and than press “Create & Download”. The firmware should now be
   flashed
 
