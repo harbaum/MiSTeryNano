@@ -132,8 +132,8 @@ end
 reg [31:0]  clk_cnt_mfp;
 reg 	    clk_mfp_en;
 
-wire [31:0] SYSTEM_CLOCK = 32'd32084988;
-wire [31:0] MFP_CLOCK = 32'd2457600;
+localparam SYSTEM_CLOCK = 32'd32_084_988;
+localparam MFP_CLOCK    =  32'd2_457_600;
 
 always @(posedge clk_32) begin
     if(!porb) begin
@@ -142,10 +142,10 @@ always @(posedge clk_32) begin
     end else begin
 	    clk_mfp_en <= 1'b0;
 	   
-        if(clk_cnt_mfp < SYSTEM_CLOCK/2)
+        if(clk_cnt_mfp < SYSTEM_CLOCK)
             clk_cnt_mfp <= clk_cnt_mfp + MFP_CLOCK;
         else begin
-            clk_cnt_mfp <= clk_cnt_mfp - (SYSTEM_CLOCK/2 - MFP_CLOCK);
+            clk_cnt_mfp <= clk_cnt_mfp - SYSTEM_CLOCK + MFP_CLOCK;
             clk_mfp_en <= 1'b1;
         end
     end   
@@ -533,7 +533,7 @@ mfp mfp (
 /* ------------------------------------------------------------------------------ */
 
 wire ikbd_tx, ikbd_rx;
-  
+
 ikbd #( .DIV(4) ) ikbd (
 	.clk(clk_32),		    // clock is divided to 2MHz (/16 == 2^4) inside ikbd
 	.res(peripheral_reset),
