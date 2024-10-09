@@ -15,14 +15,17 @@ Currently supported variants are:
 
   * ```atari``` - Tang Nano 20K + HDMI + DB9 joystick + MIDI
   * ```atari_lcd``` - Tang Nano 20K + RGB LCD
+  * ```atari_lcd_hdmi``` - Tang Nano 20K + HDMI but FPGA Companion attached on the same pins as it was on ```atari_lcd``` option.
   * ```atari_parport``` - Tang Nano 20K + HDMI + parallel port
   * ```atari_tp25k``` - Tang Primer 25K + HMDI
   * ```atari_tm138k``` - Tang Mega 138K + HMDI
 
-### ```atari```
+### ```atari``` and ```atari_lcd_hdmi```
 
 This is the regular MiSTeryNano Atari ST implementation as descibed
 elsewhere in this repository.
+
+```atari_lcd_hdmi``` differs only with FPGA companion pins.
 
 ### ```atari_lcd```
 
