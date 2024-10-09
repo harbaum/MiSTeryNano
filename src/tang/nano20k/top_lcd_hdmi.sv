@@ -1,8 +1,8 @@
 /*
-    top.sv - atarist on tang nano 20k toplevel
+    top_lcd_hdmi.sv - atarist on tang nano 20k toplevel
 
-    This top level implements the default variant for 20k with M0S
-    Dock, DB9-Joystick and MIDI
+    This top level implements the default variant for 20k with FPGA Companion
+    connected on the same pins as LCD version.
 */ 
 
 module top(
@@ -37,8 +37,8 @@ module top(
   output [3:0]	O_sdram_dqm, // 32/4
 
 
-  // interface to external BL616/M0S
-  inout [4:0]	m0s,
+  // interface to RP2040
+  inout [4:0]	fpga_companion,
 
   // SD card slot
   output		sd_clk,
@@ -56,25 +56,12 @@ module top(
 wire clk32;
 wire pll_lock_hdmi;
 
-// On the Tang Nano 20k we support two different MCU setups. Once uses the internal
-// BL616 of the Tang Nano 20k and one uses an external M0S Dock. The MCU control signals
-// of the MiSTeryNano have to be connected to both of them. This is simple for signals
-// being sent out of the FPGA as these are simply connected to both MCU ports (even
-// if no M0S may actually be connected at all). But for the input signals coming from
-// the MCUs, the active one needs to be selected. This happens here.
-
-// map output data onto both spi outputs
-wire spi_io_dout;
-wire spi_intn;
-
 wire        por;
 
 wire [15:0] audio [2];
 wire        vreset;
 wire [1:0]  vmode;
 wire        vwide;
-
-wire midi_in, midi_out;
 
 wire [5:0]  r;
 wire [5:0]  g;
@@ -122,11 +109,11 @@ misterynano misterynano (
   .io ( 8'b11111111 ),
 
   // mcu interface
-  .mcu_sclk ( m0s[3]      ),
-  .mcu_csn  ( m0s[2]      ),
-  .mcu_miso ( m0s[0]      ), // from FPGA to MCU
-  .mcu_mosi ( m0s[1]      ), // from MCU to FPGA
-  .mcu_intn ( m0s[4]      ),
+  .mcu_sclk ( fpga_companion[3]      ),
+  .mcu_csn  ( fpga_companion[2]      ),
+  .mcu_miso ( fpga_companion[0]      ), // from FPGA to MCU
+  .mcu_mosi ( fpga_companion[1]      ), // from MCU to FPGA
+  .mcu_intn ( fpga_companion[4]      ),
  
   // parallel port
   .parallel_strobe_oe ( ),
