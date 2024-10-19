@@ -83,13 +83,15 @@ USB_NOCACHE_RAM_SECTION USB_MEM_ALIGNX uint8_t xbox_buffer[CONFIG_USBHOST_MAX_XB
 #include "c64.h"
 #include "vic20.h"
 #include "amiga.h"
+#include "a2600.h"
 
 const unsigned char *keymap[] = {
   NULL,             // id 0: unknown core
   keymap_atarist,   // id 1: atari st
   keymap_c64,       // id 2: c64
   keymap_vic20,     // id 3: vic20
-  keymap_amiga      // id 4: amiga
+  keymap_amiga,     // id 4: amiga
+  keymap_a2600      // id 5: a2600
 };
 
 const unsigned char *modifier[] = {
@@ -97,7 +99,8 @@ const unsigned char *modifier[] = {
   modifier_atarist, // id 1: atari st
   modifier_c64,     // id 2: c64
   modifier_vic20,   // id 3: vic20
-  modifier_amiga    // id 4: amiga
+  modifier_amiga,   // id 4: amiga
+  modifier_a2600    // id 5: a2600
 };
 
 void kbd_tx(spi_t *spi, unsigned char byte) {
@@ -177,12 +180,12 @@ void kbd_parse(spi_t *spi, hid_report_t *report, struct hid_kbd_state_S *state,
   }
 
   // prepare for parsing numpad joystick
-  if(core_id == CORE_ID_C64||core_id == CORE_ID_VIC20) kbd_num2joy(spi, 0, 0);
+  if(core_id == CORE_ID_C64||core_id == CORE_ID_VIC20||core_id == CORE_ID_A2600) kbd_num2joy(spi, 0, 0);
   
   // check if regular keys have changed
   for(int i=0;i<6;i++) {
     // C64 uses some keys for joystick emulation
-    if(core_id == CORE_ID_C64||core_id == CORE_ID_VIC20) kbd_num2joy(spi, 1, buffer[2+i]);
+    if(core_id == CORE_ID_C64||core_id == CORE_ID_VIC20||core_id == CORE_ID_A2600) kbd_num2joy(spi, 1, buffer[2+i]);
     
     if(buffer[2+i] != state->last_report[2+i]) {
       // key released?
@@ -225,7 +228,7 @@ void kbd_parse(spi_t *spi, hid_report_t *report, struct hid_kbd_state_S *state,
   memcpy(state->last_report, buffer, 8);
 
   // check if numpad joystick has changed state and send message if so
-  if(core_id == CORE_ID_C64||core_id == CORE_ID_VIC20) kbd_num2joy(spi, 2, 0);
+  if(core_id == CORE_ID_C64||core_id == CORE_ID_VIC20 || core_id == CORE_ID_A2600) kbd_num2joy(spi, 2, 0);
 }
 
 // collect bits from byte stream and assemble them into a signed word
@@ -324,22 +327,44 @@ void joystick_parse(spi_t *spi, hid_report_t *report, struct hid_joystick_state_
     if(buffer[report->joystick_mouse.button[i].byte_offset] & 
        report->joystick_mouse.button[i].bitmask)
       joy |= (0x10<<i);
-  
+
+  // ... and the eight extra buttons
+  unsigned char btn_extra = 0;
+  for(int i=4;i<12;i++)
+    if(buffer[report->joystick_mouse.button[i].byte_offset] & 
+      report->joystick_mouse.button[i].bitmask) 
+      btn_extra |= (1<<(i-4));
+
   // map directions to digital
   if(a[0] > 0xc0) joy |= 0x01;
   if(a[0] < 0x40) joy |= 0x02;
   if(a[1] > 0xc0) joy |= 0x04;
   if(a[1] < 0x40) joy |= 0x08;
 
-  if(joy != state->last_state) {  
+  int ax = 0;
+  int ay = 0;
+  ax = a[0];
+  ay = a[1];
+
+  if((joy != state->last_state) ||
+     (ax != state->last_state_x) ||
+     (ay != state->last_state_y) ||
+     (btn_extra != state->last_state_btn_extra)) {
     state->last_state = joy;
-    printf("JOY%d: %02x\r\n", state->js_index, joy);
+    state->last_state_x = ax;
+    state->last_state_y = ay;
+    state->last_state_btn_extra = btn_extra;
+
+    printf("JOY%d: %02x A0 %02x A1 %02x B %02x\r\n", state->js_index, joy, ax, ay, btn_extra);
   
     spi_begin(spi);
     spi_tx_u08(spi, SPI_TARGET_HID);
     spi_tx_u08(spi, SPI_HID_JOYSTICK);
     spi_tx_u08(spi, state->js_index);
     spi_tx_u08(spi, joy);
+    spi_tx_u08(spi,ax); // e.g. gamepad X
+    spi_tx_u08(spi,ay); // e.g. gamepad Y
+    spi_tx_u08(spi,btn_extra); // e.g. gamepad extra buttons
     spi_end(spi);
   }
 }
