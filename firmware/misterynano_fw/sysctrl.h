@@ -16,6 +16,7 @@
 #define CORE_ID_C64      0x02
 #define CORE_ID_VIC20    0x03
 #define CORE_ID_AMIGA    0x04
+#define CORE_ID_A2600    0x05
 
 extern unsigned char core_id;
 
