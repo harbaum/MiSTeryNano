@@ -104,6 +104,7 @@ static const char main_form_c64[] =
 static const char system_form_c64[] =
   "System,0|2;"                         // return to form 0, entry 2
   // --------
+  "B,Detach Cartridge & Reset,F;"
   "L,Joyport 1:,Retro D9|USB #1 Joy|USB #2 Joy|NumPad|DualShock 2|Mouse|DS2 Paddle|USB #1 Padd|USB #2 Padd|Off,Q;"
   "L,Joyport 2:,Retro D9|USB #1 Joy|USB #2 Joy|NumPad|DualShock 2|Mouse|DS2 Paddle|USB #1 Padd|USB #2 Padd|Off,J;"
   "L,Swap Joyst:,Off|On,&;"
@@ -670,6 +671,7 @@ menu_t *menu_init(u8g2_t *u8g2)
   if(core_id == CORE_ID_C64||core_id == CORE_ID_VIC20) {  // c64 core, c1541 reset at power-up
     sys_set_val(menu.osd->spi, 'Z', 1);
     sys_set_val(menu.osd->spi, 'Z', 0);
+    sys_set_val(menu.osd->spi, 'F', 0); // CRT unload default
   }
   return &menu;
 }
@@ -1169,6 +1171,13 @@ static void menu_select(menu_t *menu) {
     if(id == 'Z') {    
       sys_set_val(menu->osd->spi, 'Z', 1);
       sys_set_val(menu->osd->spi, 'Z', 0);
+      osd_enable(menu->osd, OSD_INVISIBLE);  // hide OSD
+    }
+
+    // c64 and vic20 core, detach cartridge
+    if(id == 'F') {
+      sys_set_val(menu->osd->spi, 'F', 1);
+      sys_set_val(menu->osd->spi, 'F', 0);
       osd_enable(menu->osd, OSD_INVISIBLE);  // hide OSD
     }
   } break;
