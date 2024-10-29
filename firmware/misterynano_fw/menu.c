@@ -104,8 +104,10 @@ static const char main_form_c64[] =
 static const char system_form_c64[] =
   "System,0|2;"                         // return to form 0, entry 2
   // --------
-  "L,Joyport 1:,Retro D9|USB #1|USB #2|NumPad|DualShock|Mouse|Paddle|Off,Q;"
-  "L,Joyport 2:,Retro D9|USB #1|USB #2|NumPad|DualShock|Mouse|Paddle|Off,J;"
+  "B,Detach Cartridge & Reset,F;"
+  "L,Joyport 1:,Retro D9|USB #1 Joy|USB #2 Joy|NumPad|DualShock 2|Mouse|DS2 Paddle|USB #1 Padd|USB #2 Padd|Off,Q;"
+  "L,Joyport 2:,Retro D9|USB #1 Joy|USB #2 Joy|NumPad|DualShock 2|Mouse|DS2 Paddle|USB #1 Padd|USB #2 Padd|Off,J;"
+  "L,Swap Joyst:,Off|On,&;"
   "L,REU 1750:,Off|On,V;"
   "L,c1541 ROM:,Dolphin DOS|CBM DOS|Speed DOS P|Jiffy DOS,D;"
   "L,Turbo mode:,Off|C128|Smart,X;"
@@ -123,6 +125,7 @@ static const char system_form_c64[] =
   "L,RS232 mode:,VIC-1011|UP9600|SwiftLnk DE|SwiftLnk DF|SwiftLnk D7,<;"
   "L,GeoRAM:,Off|On,#;"
   "L,Tape Sound:,Off|On,I;"
+	"L,RS232 port:,Tang USB-C|External|reserved,*;"
   "B,C1541 Reset,Z;"
   "B,Cold Boot,B;"; 
 
@@ -161,8 +164,8 @@ menu_variable_t variables_c64[] = {
   { 'A', { 2 }},    // default volume = 66%
   { 'W', { 0 }},    // default normal (4:3) screen
   { 'P', { 0 }},    // default no floppy write protected
-  { 'Q', { 7 }},    // Joystick port 1 mapping, OFF
-  { 'J', { 0 }},    // Joystick port 2 mapping, DB9
+  { 'Q', { 9 }},    // Joystick port 1 mapping, OFF
+  { 'J', { 1 }},    // Joystick port 2 mapping, USB #1
   { 'E', { 0 }},    // default standard = PAL
   { 'N', { 0 }},    // default MIDI = Off
   { 'G', { 0 }},    // default OSD Pause = Off
@@ -176,6 +179,8 @@ menu_variable_t variables_c64[] = {
   { '<', { 0 }},    // default RS232 mode = standard
   { '#', { 0 }},    // default GeoRAM = off
   { 'I', { 1 }},    // default Tape sound = On
+  { '*', { 0 }},    // default RS232 connection = Tang USB-C
+  { '&', { 0 }},    // default Joystick swap = Off
   { '\0',{ 0 }}
 };
 
@@ -195,7 +200,7 @@ static const char main_form_vic20[] =
 static const char system_form_vic20[] =
   "System,0|2;"                         // return to form 0, entry 2
   // --------
-  "L,Joyport:,Retro D9|USB #1|USB #2|NumPad|DualShock|Mouse|Paddle|Off,Q;" // Joystick port 1 mapping
+  "L,Joyport:,Retro D9|USB #1 Joy|USB #2 Joy|NumPad|DualShock 2|Mouse|DS2 Paddle|USB #1 Padd|USB #2 Padd|Off,Q;" // Joystick port 1 mapping
   "L,c1541 ROM:,Dolphin DOS|CBM DOS|Speed DOS P|Jiffy DOS,D;"  // c1541 compatibility
   "L,RAM $04 3K:,Off|On,U;"
   "L,RAM $20 8K:,Off|On,X;"
@@ -317,12 +322,80 @@ static void menu_goto_form(menu_t *menu, int form, int entry) {
   menu->offset = 0;
 }
 
+// ------------------------------------------------------------------
+// -----------------------  A2600 menu ------------------------------
+// ------------------------------------------------------------------
+
+static const char main_form_atari2600[] =
+  "A2600Nano,;"                           // main form has no parent
+  // --------
+  "F,Cartridge:,0|BIN+A26+F8+F6+FE+E0+3F+F4+P2+FA+CV+2K+UA+E7+F0+32+AR;" // fileselector for ROM
+  "S,System,1;"                         // System submenu is form 1
+  "S,Storage,2;"                        // Storage submenu
+  "S,Settings,3;"                       // Settings submenu is form 2
+  "B,Reset,R;";                         // system reset
+
+static const char system_form_atari2600[] =
+  "System,0|2;"                         // return to form 0, entry 2
+  // --------
+  "L,Joyport 1:,Retro D9|USB #1 Joy|USB #2 Joy|NumPad|DualShock 2|Mouse|Off,Q;"
+  "L,Joyport 2:,Retro D9|USB #1 Joy|USB #2 Joy|NumPad|DualShock 2|Mouse|Off,J;"
+  "L,Swap Joyst:,Off|On,&;"
+  "L,Invert Paddle:,Off|On,V;"
+  "L,Difficulty P1:,A|B,X;"
+  "L,Difficulty P2:,A|B,Y;"
+  "L,De-comb:,Off|On,C;"
+  "L,VBlank:,Original|Regenerate,M;"
+  "L,Black&White:,Mono|Color,O;"
+  "L,SuperChip:,Auto|Off|On,U;"
+  "L,Region:,Auto|NTSC|PAL,E;"
+  "B,Cold Boot,B;"; 
+
+static const char storage_form_atari2600[] =
+  "Storage,0|3;"                        // return to form 0, entry 3
+  // --------
+  "F,Cartridge:,0|BIN+A26+F8+F6+FE+E0+3F+F4+P2+FA+CV+2K+UA+E7+F0+32+AR;";  // fileselector 
+
+static const char settings_form_atari2600[] =
+  "Settings,0|4;"                       // return to form 0, entry 3
+  // --------
+  "L,Screen:,Normal|Wide,W;"
+  "L,Scanlines:,None|25%|50%|75%,S;"
+  "L,Volume:,Mute|33%|66%|100%,A;"
+  "B,Save settings,S;";
+
+const char *forms_a2600[] = {
+  main_form_atari2600,
+  system_form_atari2600,
+  storage_form_atari2600,
+  settings_form_atari2600
+};
+
+menu_variable_t variables_a2600[] = {
+  { 'X', { 0 }},    // default Difficulty P1 = A
+  { 'Y', { 0 }},    // default Difficulty P2 = A
+  { '&', { 0 }},    // default Joystick swap = Off
+  { 'V', { 0 }},    // default Invert Paddle = off
+  { 'S', { 0 }},    // default scanlines = none
+  { 'A', { 2 }},    // default volume = 66%
+  { 'W', { 0 }},    // default normal (4:3) screen
+  { 'Q', { 1 }},    // Joystick port 1 mapping, USB #1
+  { 'J', { 6 }},    // Joystick port 2 mapping, OFF
+  { 'E', { 0 }},    // default standard = Auto
+  { 'C', { 0 }},    // default De-comb = off
+  { 'M', { 0 }},    // default VBlank = original
+  { 'O', { 1 }},    // default Video mode = color
+  { 'U', { 0 }},    // default SuperChip = auto
+  { '\0',{ 0 }}
+};
+
 static const char *settings_file[] = {
   NULL,
   CARD_MOUNTPOINT "/atarist.ini",  // core id = 1
   CARD_MOUNTPOINT "/c64.ini",      // core id = 2
   CARD_MOUNTPOINT "/vic20.ini",    // core id = 3
-  CARD_MOUNTPOINT "/amiga.ini"     // core id = 4
+  CARD_MOUNTPOINT "/amiga.ini",    // core id = 4
+  CARD_MOUNTPOINT "/atari2600.ini" // core id = 5
 };
 
 static int iswhite(char c) {
@@ -485,6 +558,9 @@ menu_t *menu_init(u8g2_t *u8g2)
   } else if(core_id == CORE_ID_AMIGA) {
     menu.vars = variables_amiga;
     menu.forms = forms_amiga;
+  } else if(core_id == CORE_ID_A2600) {
+    menu.vars = variables_a2600;
+    menu.forms = forms_a2600;
   } else {
     menu.vars = NULL;
     menu.forms = NULL;
@@ -558,6 +634,13 @@ menu_t *menu_init(u8g2_t *u8g2)
 
 	for(int drive=0;drive<4;drive++)
 	  sdc_set_default(drive, amiga_default_names[drive]);
+      } else if(core_id == CORE_ID_A2600) {
+	// A2600 core
+	static const char *a2600_default_names[] = {
+    CARD_MOUNTPOINT "/a2600crt.bin" };
+
+	for(int drive=0;drive<5;drive++)
+	  sdc_set_default(drive, a2600_default_names[drive]);
       }
     }
   
@@ -588,6 +671,7 @@ menu_t *menu_init(u8g2_t *u8g2)
   if(core_id == CORE_ID_C64||core_id == CORE_ID_VIC20) {  // c64 core, c1541 reset at power-up
     sys_set_val(menu.osd->spi, 'Z', 1);
     sys_set_val(menu.osd->spi, 'Z', 0);
+    sys_set_val(menu.osd->spi, 'F', 0); // CRT unload default
   }
   return &menu;
 }
@@ -1087,6 +1171,13 @@ static void menu_select(menu_t *menu) {
     if(id == 'Z') {    
       sys_set_val(menu->osd->spi, 'Z', 1);
       sys_set_val(menu->osd->spi, 'Z', 0);
+      osd_enable(menu->osd, OSD_INVISIBLE);  // hide OSD
+    }
+
+    // c64 and vic20 core, detach cartridge
+    if(id == 'F') {
+      sys_set_val(menu->osd->spi, 'F', 1);
+      sys_set_val(menu->osd->spi, 'F', 0);
       osd_enable(menu->osd, OSD_INVISIBLE);  // hide OSD
     }
   } break;
