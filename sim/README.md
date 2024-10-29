@@ -12,6 +12,14 @@ The simulations all work similar. E.g. a ```make wave``` will
 compile and run the simulation and will show the resulting
 waveforms in gtkview.
 
+## atari_tb
+
+[Atari_tb](atari_tb) simulates the complete Atari ST incl. video,
+floppy and ACSI harddisk. The simulated Atari runs at about 1% real
+speed depending on the speed of your PC. This allows for extensive
+debugging of the Atari ST core and can even be used to boot games
+and demos.
+
 ## floppy_tb
 
 [Floppy_tb](floppy_tb) simulates the connection between the verilog
