@@ -3234,6 +3234,17 @@
 				(xyz 0 0 -90)
 			)
 		)
+		(model "../wrl/control.wrl"
+			(offset
+				(xyz 0 0 9)
+			)
+			(scale
+				(xyz 0.1968 0.1968 0.1968)
+			)
+			(rotate
+				(xyz 0 0 90)
+			)
+		)
 	)
 	(footprint "sw_dpdt_6pin:sw_7x7_dpdt_6pin"
 		(layer "F.Cu")
@@ -8695,6 +8706,29 @@
 				(xyz 0 0 -90)
 			)
 		)
+		(model "../../wrl/left_shift_us.wrl"
+			(hide yes)
+			(offset
+				(xyz 0 0 9)
+			)
+			(scale
+				(xyz 0.1968 0.1968 0.1968)
+			)
+			(rotate
+				(xyz 0 0 90)
+			)
+		)
+		(model "../../wrl/left_shift_intl.wrl"
+			(offset
+				(xyz 0 0 9)
+			)
+			(scale
+				(xyz 0.1968 0.1968 0.1968)
+			)
+			(rotate
+				(xyz 0 0 90)
+			)
+		)
 	)
 	(footprint "Diode_SMD:D_SOD-323"
 		(layer "F.Cu")
@@ -9925,6 +9959,18 @@
 			)
 			(scale
 				(xyz 0.1968 0.1968 0.1968)
+			)
+			(rotate
+				(xyz 0 0 90)
+			)
+		)
+		(model "../wrl/align_main.wrl"
+			(opacity 0.5200)
+			(offset
+				(xyz 0 0 0)
+			)
+			(scale
+				(xyz 0.3937 0.3937 0.3937)
 			)
 			(rotate
 				(xyz 0 0 90)
@@ -11664,6 +11710,17 @@
 				(xyz 0 0 -90)
 			)
 		)
+		(model "../wrl/backspace.wrl"
+			(offset
+				(xyz 0 0 9)
+			)
+			(scale
+				(xyz 0.1968 0.1968 0.1968)
+			)
+			(rotate
+				(xyz 0 0 90)
+			)
+		)
 	)
 	(footprint "sw_dpdt_6pin:sw_7x7_dpdt_6pin"
 		(layer "F.Cu")
@@ -13024,8 +13081,7 @@
 				(xyz 0 0 -90)
 			)
 		)
-		(model "../../wrl/Z.wrl"
-			(hide yes)
+		(model "../../wrl/intl.wrl"
 			(offset
 				(xyz 0 0 9)
 			)
@@ -18071,6 +18127,17 @@
 			)
 			(rotate
 				(xyz 0 0 -90)
+			)
+		)
+		(model "../wrl/undo.wrl"
+			(offset
+				(xyz 0 0 9)
+			)
+			(scale
+				(xyz 0.1968 0.1968 0.1968)
+			)
+			(rotate
+				(xyz 0 0 90)
 			)
 		)
 	)
@@ -24578,6 +24645,17 @@
 				(xyz 0 0 -90)
 			)
 		)
+		(model "../wrl/help.wrl"
+			(offset
+				(xyz 0 0 9)
+			)
+			(scale
+				(xyz 0.1968 0.1968 0.1968)
+			)
+			(rotate
+				(xyz 0 0 90)
+			)
+		)
 	)
 	(footprint "sw_dpdt_6pin:sw_7x7_dpdt_6pin"
 		(layer "F.Cu")
@@ -30895,6 +30973,18 @@
 				(xyz 0 0 90)
 			)
 		)
+		(model "../../wrl/align_fkeys.wrl"
+			(opacity 0.5100)
+			(offset
+				(xyz 0 0 0)
+			)
+			(scale
+				(xyz 0.3937 0.3937 0.3937)
+			)
+			(rotate
+				(xyz 0 0 90)
+			)
+		)
 	)
 	(footprint "Resistor_SMD:R_0805_2012Metric"
 		(layer "F.Cu")
@@ -31360,6 +31450,17 @@
 			)
 			(rotate
 				(xyz 0 0 -90)
+			)
+		)
+		(model "../wrl/right_shift.wrl"
+			(offset
+				(xyz 0 0 9)
+			)
+			(scale
+				(xyz 0.1968 0.1968 0.1968)
+			)
+			(rotate
+				(xyz 0 0 90)
 			)
 		)
 	)
@@ -37374,6 +37475,17 @@
 			)
 			(rotate
 				(xyz 0 0 -90)
+			)
+		)
+		(model "../wrl/tab.wrl"
+			(offset
+				(xyz 0 0 9)
+			)
+			(scale
+				(xyz 0.1968 0.1968 0.1968)
+			)
+			(rotate
+				(xyz 0 0 90)
 			)
 		)
 	)

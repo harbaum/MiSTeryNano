@@ -4,7 +4,7 @@ This is a work in progress. It's meant to become a half size keyboard
 inspired by the Atari ST series. It's meant to become the basis
 of some kind of Mini Atari ST based on the MiSTeryNano FPGA.
 
-![Rendering](pcb/keyboard.jpg)
+![Rendering](keyboard_us.jpg)
 
 They keyboard is primarily designed to be a fully functional design
 suited for simple use cases like renaming a file or selecting game
@@ -41,3 +41,9 @@ The keycaps are being designed in FreeCAD using a small macro script
 to derive the various variants from a small set of designs. This also
 exports [STL files](stl) for printing as well as [WRL files](wrl) for
 rendering in kicad.
+
+The image at the top shows they keyboard with US keycaps as currently
+designed. The PCB supports the international key right to the left
+shift key as well. In the US variant it's covered by the bigger keycap
+of the left shift key.
+
