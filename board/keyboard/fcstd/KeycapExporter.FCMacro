@@ -1,4 +1,4 @@
-# KeycapExporter
+# KeycapExporter - http://github.com/harbaum/misterynano
 #
 # This FreeCAD Macro is meant to be used with the MiSTeryNano keycap designs. It allows to export
 # STL files for printing and wrl files for kicad rendering. Multiple key of the same shape but with 
@@ -15,6 +15,17 @@ print("=====================")
 # the KEYMAP descipbes which keys are to be generated from which design and gives
 # some more informations on label positions and colors etc
 KEYMAP = { 
+	# Backspace, Help and Undo
+	"help": {
+		"basecolor": (0.8,0.8,0.8),
+		"labelcolor": (0.3,0.3,0.3),
+		"labels": [  "Help", "Undo", "←" ],
+		"files": { "←": "backspace", "Help": "help", "Undo": "undo" },
+		"sizes": { "←": 2 },
+		"offsets": { "←": (0,.8,0) },
+		"fonts": { "←": "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" }
+	},
+	
 	# F2 to F10 are derived from F1 and are bright grey on dark grey
 	"F1": {
 		"basecolor": (0.5,0.5,0.5),
@@ -71,13 +82,15 @@ KEYMAP = {
 	"V": { 
 		"basecolor": (0.8,0.8,0.8),
 		"labelcolor": (0.3,0.3,0.3),
- 		"labels": [  "Z", "X", "C", "B", "N", "M", [ ",","<"], [".",">"], ["/","?"], "1", "2", "3", "V" ] ,
+ 		"labels": [  "Z", "X", "C", "B", "N", "M", [ ",","<"], [".",">"], ["/","?"], "1", "2", "3", "☰", "V" ] ,
 		# use modified file names for those that would be pure special char
-		"files": { ",": "comma" , ".": "dot", "/": "slash", "1":"kp1", "2": "kp2", "3": "kp3" },
+		"files": { ",": "comma" , ".": "dot", "/": "slash", "1":"kp1", "2": "kp2", "3": "kp3", "☰": "intl" },
 		# some labels may need some positional adjustments to print nicely
-		"offsets": { ",": (0,1.5,0), ".": (0,1.5,0) , "/": (1,0,0) },
+		"offsets": { ",": (0,1.5,0), ".": (0,1.5,0) , "/": (1,0,0), "☰": (0,-1,0) },
 		# some labels need to be resized so they are thick enough for 0.4mm printing
-		"sizes": { "<": 1.1, ">": 1.1 }
+		"sizes": { "<": 1.1, ">": 1.1, "☰": 2 },
+		# some special chars are in different fonts
+		"fonts": { "☰": "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" }
 	},
 
 	# bottom row
