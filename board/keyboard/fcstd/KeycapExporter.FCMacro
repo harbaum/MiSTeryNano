@@ -19,7 +19,7 @@ KEYMAP = {
 	"help": {
 		"basecolor": (0.8,0.8,0.8),
 		"labelcolor": (0.3,0.3,0.3),
-		"labels": [  "Help", "Undo", "←" ],
+		"labels": [ "Undo", "←", "Help" ],
 		"files": { "←": "backspace", "Help": "help", "Undo": "undo" },
 		"sizes": { "←": 2 },
 		"offsets": { "←": (0,.8,0) },
@@ -39,7 +39,9 @@ KEYMAP = {
 		"labelcolor": (0.3,0.3,0.3),
 		# the keypad star/( and ) include a trailing space to be distibguishable from the 8/star key
  		"labels": [ "Esc", [ "1","!" ], [ "2","@" ], [ "3","#" ], [ "4","$" ], [ "5","%" ], [ "6","^" ] , [ "7","&" ],
-				[ "8","*" ], [ "9","(" ], [ "0",")" ], ["-","_"], ["=","+"], ["`","~"], "( ", ") ", "/", "* " ],
+				[ "9","(" ], [ "0",")" ], ["-","_"], ["=","+"], ["`","~"], "( ", ") ", "/", "* ", [ "8","*" ] ],
+		"sizes": { "* ": 1.2 },
+		"offsets": { "* ": (0,-1.5,0) },
 		"files": { "Esc":"esc", "!":"1", "@":"2", "#":"3","$":"4", "%":"5","^":"6", "&":"7", "*":"8", "(":"9", ")":"0",
 			"_":"minus", "+":"equal", "~":"accent",
 			"( ":"kpopenbrace", ") ":"kpclosebrace", "/":"kpslash", "* ":"kpstar"  }, 
