@@ -40,8 +40,9 @@ KEYMAP = {
 		# the keypad star/( and ) include a trailing space to be distibguishable from the 8/star key
  		"labels": [ "Esc", [ "1","!" ], [ "2","@" ], [ "3","#" ], [ "4","$" ], [ "5","%" ], [ "6","^" ] , [ "7","&" ],
 				[ "9","(" ], [ "0",")" ], ["-","_"], ["=","+"], ["`","~"], "( ", ") ", "/", "* ", [ "8","*" ] ],
-		"sizes": { "* ": 1.2 },
-		"offsets": { "* ": (0,-1.5,0) },
+		# some labels need to be resized so they are thick enough for 0.4mm printing
+		"sizes": { "* ": 1.2, "*": 1.2, "@": 1.1, "^": 1.2, "_": 1.5, "-": 1.2, "`":1.3 ,"~":1.3 },
+		"offsets": { "* ": (0,-1.5,0), "*": (0,-1.5,0), "^": (0,-1.5,0), "_": (0,1.5,0) },
 		"files": { "Esc":"esc", "!":"1", "@":"2", "#":"3","$":"4", "%":"5","^":"6", "&":"7", "*":"8", "(":"9", ")":"0",
 			"_":"minus", "+":"equal", "~":"accent",
 			"( ":"kpopenbrace", ") ":"kpclosebrace", "/":"kpslash", "* ":"kpstar"  }, 

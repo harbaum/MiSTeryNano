@@ -8452,6 +8452,18 @@
 				(xyz 0 0 90)
 			)
 		)
+		(model "../wrl/align_keypad.wrl"
+			(opacity 0.5100)
+			(offset
+				(xyz 0 0 0)
+			)
+			(scale
+				(xyz 0.3937 0.3937 0.3937)
+			)
+			(rotate
+				(xyz 0 0 90)
+			)
+		)
 	)
 	(footprint "sw_dpdt_6pin:sw_7x7_dpdt_6pin"
 		(layer "F.Cu")
