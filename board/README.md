@@ -12,4 +12,5 @@ hardware:
 
   - The [M0S PMOD](m0s_pmod) allows to use the M0S Dock on a PMOD
   port as e.g. available on the Tang Primer 25K or the Tang Mega 138K
-  
+
+  - The [Keyboard](keyboard) design is a tiny 50% Atari ST style keyboard which is meant to become the basis for a Mini Atari ST
