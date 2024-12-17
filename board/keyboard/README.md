@@ -36,14 +36,15 @@ The MiSTeryNano keyboard comes with two Arduino sketches. The
 [kbd_test](kbd_test) sketch can be installed onto any regular Arduino
 Uno, Nano or the Micro and permanently scans the keyboard for pressed
 keys and reports the in plain text on the serial monitor. The sketch
-also permanently flashes the user led in the top left corner of the keyboard.
-The [arduino_hid](arduino_hid) sketch is meant to be used in a Sparkfun
-Pro Micro or Arduino Micro and presents the MiSTeryNano keyboard as a
-regular USB keyboard to e.g. a PC or Raspberry Pi. This sketch currently
-doesn't address the user LED and emits F12 for the international key. This
-is useful for the US keycaps only as the international key (right of the
-left shift key) is not present on US keyboards. If on a US keyboard this
-key is installed then it can be used to e.g. open an emulator menu.
+also permanently flashes the user led in the top left corner of the
+keyboard.  The [arduino_hid](arduino_hid) sketch is meant to be used
+in a Sparkfun Pro Micro or Arduino Micro and presents the MiSTeryNano
+keyboard as a regular USB keyboard to e.g. a PC or Raspberry Pi. This
+sketch uses the user LED to indicate the Caps Lock state and emits F12
+for the international key. The later is useful for the US keycaps as
+the international key (right of the left shift key) is not present on
+US keyboards and can this way be used to open the on-screen-display
+or an emulator menu.
 
 ## Keycaps
 
