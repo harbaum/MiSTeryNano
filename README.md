@@ -46,29 +46,31 @@ The MiSTeryNano is a work in progress. Current features are:
 
 These videos primarily document the progress during development:
 
-  * [MiSTeryNano #21: I built a half sized keyboard for my FPGA Atari ST](https://www.youtube.com/shorts/clQujxjdr9I)
-  * [MiSTeryNano #20: Atari STE on Tang Primer 25k FPGA](https://www.youtube.com/shorts/i-hUT1_UNOY)
+  * [MiSTeryNano #21: I built a half sized keyboard for my FPGA Atari ST](https://youtube.com/shorts/clQujxjdr9I)
+  * [MiSTeryNano #20: Atari STE on Tang Primer 25k FPGA](https://youtube.com/shorts/i-hUT1_UNOY)
   * [MiSTeryNano #19: Atari STE Stardust on Tang Mega 138K FPGA](https://youtube.com/shorts/CI1L_LBodlw)
 
 <details><summary>More ...</summary>
-  * [MiSTeryNano #18: Cheap RGB LCD for Atari ST in FPGA](https://youtube.com/shorts/_D7Gc8IL2GA)
-  * [MiSTeryNano #17: C64 on Tang Nano 20K](https://youtube.com/shorts/qh_TCCgo1xY)
-  * [MiSTeryNano #16: Atari ST MIDI Space Quest 3 on Roland MT32](https://youtube.com/shorts/IOfeoJvnrmE)
-  * [MiSTeryNano #15: Power Without the Price: The Tang Nano 20k is the cheapest Atari ST](https://youtube.com/shorts/-kPpSlpkzvA)
-  * [MiSTeryNano #14: Cubase MIDI audio replay with Atari ST FPGA and SAM2695](https://youtube.com/shorts/w8RZCzeMpiw)
-  * [MiSTeryNano #13: Atari ST in Tang Nano 20k FPGA running Cubase 3 from Harddisk image](https://youtube.com/shorts/o6ABtje7zZ8)
-  * [MiSTeryNano #12: Atari ST first boot from virtual hard disk](https://www.youtube.com/shorts/UPiLkYA_o0o)
-  * [MiSTeryNano #11: Advanced SD card for FPGA Atari ST](https://www.youtube.com/shorts/NP1EnRj4Fk0)
-  * [MiSTeryNano #10: New OSD for the FPGA Atari ST](https://www.youtube.com/shorts/zsHYcolqtpc)
-  * [MiSTeryNano #9: Tang Nano 20k as USB host](https://www.youtube.com/shorts/bP5gK3nmv-o)
-  * [MiSTeryNano #8: Atari ST with USB keyboard and touchpad](https://www.youtube.com/shorts/jjps1x1NjhE)
-  * [MiSTeryNano #7: Tang Nano 20k running Atari ST Oxyd2](https://www.youtube.com/shorts/Ud1P1vE5j84)
-  * [MiSTeryNano #6: B.I.G. DEMO](https://www.youtube.com/shorts/EXPfdhlpuFI)
-  * [MiSTeryNano #5: Playing Atari ST Frontier](https://www.youtube.com/shorts/xJHF-LlaHFo)
-  * [MiSTeryNano #4: Drives and Blitter](https://www.youtube.com/shorts/FfL01D0Zg0o)
-  * [MiSTeryNano #3: We got a rainbow!](https://www.youtube.com/shorts/9wFxQvKtOY8)
-  * [MiSTeryNano #2: Booting TOS 1.04 for the first time](https://www.youtube.com/shorts/yLxXRR_04UE)
-  * [MiSTeryNano #1: Is the Tang Nano 20k the cheapest and smallest Atari ST?](https://www.youtube.com/shorts/qndojsbH9jw)
+<ul>
+  <li><a href="https://youtube.com/shorts/_D7Gc8IL2GA">MiSTeryNano #18: Cheap RGB LCD for Atari ST in FPGA</a></li>
+  <li><a href="https://youtube.com/shorts/qh_TCCgo1xY">MiSTeryNano #17: C64 on Tang Nano 20K</a></li>
+  <li><a href="https://youtube.com/shorts/IOfeoJvnrmE">MiSTeryNano #16: Atari ST MIDI Space Quest 3 on Roland MT32</a></li>
+  <li><a href="https://youtube.com/shorts/-kPpSlpkzvA">MiSTeryNano #15: Power Without the Price: The Tang Nano 20k is the cheapest Atari ST</a></li>
+  <li><a href="https://youtube.com/shorts/w8RZCzeMpiw">MiSTeryNano #14: Cubase MIDI audio replay with Atari ST FPGA and SAM2695</a></li>
+  <li><a href="https://youtube.com/shorts/o6ABtje7zZ8">MiSTeryNano #13: Atari ST in Tang Nano 20k FPGA running Cubase 3 from Harddisk image</a></li>
+  <li><a href="https://youtube.com/shorts/UPiLkYA_o0o">MiSTeryNano #12: Atari ST first boot from virtual hard disk</a></li>
+  <li><a href="https://youtube.com/shorts/NP1EnRj4Fk0">MiSTeryNano #11: Advanced SD card for FPGA Atari ST</a></li>
+  <li><a href="https://youtube.com/shorts/zsHYcolqtpc">MiSTeryNano #10: New OSD for the FPGA Atari ST</a></li>
+  <li><a href="https://youtube.com/shorts/bP5gK3nmv-o"></a>MiSTeryNano #9: Tang Nano 20k as USB host</li>
+  <li><a href="https://youtube.com/shorts/jjps1x1NjhE">MiSTeryNano #8: Atari ST with USB keyboard and touchpad</a></li>
+  <li><a href="https://youtube.com/shorts/Ud1P1vE5j84">MiSTeryNano #7: Tang Nano 20k running Atari ST Oxyd2</a></li>
+  <li><a href="https://youtube.com/shorts/EXPfdhlpuFI">MiSTeryNano #6: B.I.G. DEMO</a></li>
+  <li><a href="https://youtube.com/shorts/xJHF-LlaHFo">MiSTeryNano #5: Playing Atari ST Frontier</a></li>
+  <li><a href="https://youtube.com/shorts/FfL01D0Zg0o">MiSTeryNano #4: Drives and Blitter</a></li>
+  <li><a href="https://youtube.com/shorts/9wFxQvKtOY8">MiSTeryNano #3: We got a rainbow!</a></li>
+  <li><a href="https://youtube.com/shorts/yLxXRR_04UE">MiSTeryNano #2: Booting TOS 1.04 for the first time</a></li>
+  <li><a href="https://youtube.com/shorts/qndojsbH9jw">MiSTeryNano #1: Is the Tang Nano 20k the cheapest and smallest Atari ST?</a></li>
+</ul>
 </details>
 
 ## Getting started
