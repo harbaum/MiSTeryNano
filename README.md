@@ -61,7 +61,7 @@ These videos primarily document the progress during development:
   <li><a href="https://youtube.com/shorts/UPiLkYA_o0o">MiSTeryNano #12: Atari ST first boot from virtual hard disk</a></li>
   <li><a href="https://youtube.com/shorts/NP1EnRj4Fk0">MiSTeryNano #11: Advanced SD card for FPGA Atari ST</a></li>
   <li><a href="https://youtube.com/shorts/zsHYcolqtpc">MiSTeryNano #10: New OSD for the FPGA Atari ST</a></li>
-  <li><a href="https://youtube.com/shorts/bP5gK3nmv-o"></a>MiSTeryNano #9: Tang Nano 20k as USB host</li>
+  <li><a href="https://youtube.com/shorts/bP5gK3nmv-o">MiSTeryNano #9: Tang Nano 20k as USB host</a></li>
   <li><a href="https://youtube.com/shorts/jjps1x1NjhE">MiSTeryNano #8: Atari ST with USB keyboard and touchpad</a></li>
   <li><a href="https://youtube.com/shorts/Ud1P1vE5j84">MiSTeryNano #7: Tang Nano 20k running Atari ST Oxyd2</a></li>
   <li><a href="https://youtube.com/shorts/EXPfdhlpuFI">MiSTeryNano #6: B.I.G. DEMO</a></li>
