@@ -71,6 +71,8 @@ to contacts being simulated using tweezers or the like.
 
 ![PCB](images/keyboard_pcb.jpg)
 
+Be careful about the orientation when mounting the switches. They will only work correctly in one of the possible two orientations. There are different variants, one e.g. having a bigger opening on the white cover tab or a dot painted on indicating the side to face the keyboards front. It's recommended to test a few switches without soldering them in to verify the correct orientation.
+
 Some optional aligmment spacer grids can be used to help align the
 switches during assembly.
 
