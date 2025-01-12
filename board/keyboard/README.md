@@ -76,10 +76,6 @@ switches during assembly.
 
 ![PCB](images/spacer.jpeg)
 
-These go directly on the PCB.
-
-![Keypad spacer](images/keypad_spacer.jpeg)
-
 All switches and keys are then plugged into these
 spacers.
 
