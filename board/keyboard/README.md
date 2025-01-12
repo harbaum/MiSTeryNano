@@ -102,3 +102,6 @@ act as a real USB HID keyboard to be used with any PC
 or Raspberry Pi or even the FPGA Compantion.
 
 ![Keyboard](images/arduino_hid.jpeg)
+
+See [this video](https://youtube.com/shorts/clQujxjdr9I) for some
+real life typing action.
