@@ -4,7 +4,7 @@ This is a work in progress. It's meant to become a half size keyboard
 inspired by the Atari ST series. It's meant to become the basis
 of some kind of Mini Atari ST based on the MiSTeryNano FPGA.
 
-![Rendering](keyboard_us.jpg)
+![Rendering](images/keyboard_us_render.jpg)
 
 They keyboard is primarily designed to be a fully functional design
 suited for simple use cases like renaming a file or selecting game
@@ -51,7 +51,7 @@ or an emulator menu.
 The keycaps have been designed to be printable on a Bambulab Carbon X1
 using a 0.4mm nozzle, 0.8mm layer height and two colors of PETG filament.
 
-![Keycaps](fcstd/keycaps.jpg)
+![Keycaps](images/keys.jpeg)
 
 The keycaps are being designed in FreeCAD using a small macro script
 to derive the various variants from a small set of designs. This also
@@ -63,3 +63,46 @@ designed. The PCB supports the international key right to the left
 shift key as well. In the US variant it's covered by the bigger keycap
 of the left shift key.
 
+## Assembly
+
+Initially all SMD parts are mounted. The general function can then
+be tested with the Arduino test sketch controlling the LED and reacting
+to contacts being simulated using tweezers or the like.
+
+![PCB](images/keyboard_pcb.jpeg)
+
+Some optional aligmment spacer grids can be used to help align the
+switches during assembly.
+
+![PCB](images/spacer.jpeg)
+
+These go directly on the PCB.
+
+![Keypad spacer](images/keypad_spacer.jpeg)
+
+All switches and keys are then plugged into these
+spacers.
+
+![Keypad spacer](images/keypad_spacer.jpeg)
+
+All keypad switches are in place.
+
+![Keypad switches](images/keypad_switches.jpeg)
+
+The remaining keys are installed and tested row by row.
+
+![Main keys step 1](images/keyboard_main_1.jpeg)
+
+![Main keys step 2](images/keyboard_main_2.jpeg)
+
+![Main keys step 3](images/keyboard_main_3.jpeg)
+
+Finally the keyboard is complete.
+
+![Keyboard](images/keyboard_us.jpeg)
+
+A sparkfun Arduino Pro Micro allows the keyboard to
+act as a real USB HID keyboard to be used with any PC
+or Raspberry Pi or even the FPGA Compantion.
+
+![Keyboard](images/arduino_hid.jpeg)
