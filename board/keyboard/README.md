@@ -69,7 +69,7 @@ Initially all SMD parts are mounted. The general function can then
 be tested with the Arduino test sketch controlling the LED and reacting
 to contacts being simulated using tweezers or the like.
 
-![PCB](images/keyboard_pcb.jpeg)
+![PCB](images/keyboard_pcb.jpg)
 
 Some optional aligmment spacer grids can be used to help align the
 switches during assembly.
