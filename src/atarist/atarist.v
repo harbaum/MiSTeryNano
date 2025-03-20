@@ -54,9 +54,11 @@ module atarist (
 	input [8:0] 	   acsi_sd_byte_addr,
 					 
     // serial/rs232 to MCU
-	output             serial_tx_available,
+	output [31:0]      serial_status,
+	output [7:0]       serial_tx_available,
 	input              serial_tx_strobe,
 	output [7:0]       serial_tx_data,
+	output [7:0]       serial_rx_available,
 	input              serial_rx_strobe,
 	input [7:0]        serial_rx_data,
 				
@@ -514,11 +516,13 @@ mfp mfp (
 	.dtack    ( mfp_dtack     ),
 
 	// serial/rs232 interface io-controller<->mfp
+	.serial_status_out         (serial_status),
+
 	.serial_data_out_available (serial_tx_available),
 	.serial_strobe_out         (serial_tx_strobe),
 	.serial_data_out           (serial_tx_data),
-	.serial_status_out         (),
 
+	.serial_data_in_free       (serial_rx_available),
 	.serial_strobe_in          (serial_rx_strobe),
 	.serial_data_in            (serial_rx_data),
 

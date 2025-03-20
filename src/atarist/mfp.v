@@ -36,10 +36,11 @@ module mfp (
 	output           dtack,
 
 	// serial rs232 connection to io controller
-	output           serial_data_out_available,
+	output [7:0]     serial_data_out_available,  // bytes available
+	output [7:0]     serial_data_in_free,        // free buffer available
 	input            serial_strobe_out,
 	output     [7:0] serial_data_out,
-	output    [63:0] serial_status_out,
+	output    [31:0] serial_status_out,
 
 	// serial rs223 connection from io controller
 	input            serial_strobe_in,
@@ -51,6 +52,9 @@ module mfp (
 	input      [7:0] i     // input port
 );
 
+// report the available unused space in the input fifo
+assign serial_data_in_free = { 4'h0, serial_data_in_space };   
+
 wire serial_data_out_fifo_full;
 wire serial_data_in_full;
 
@@ -59,6 +63,8 @@ wire write = clk_en & ~bus_selD & bus_sel & ~rw;
 // --- mfp output fifo ---
 // filled by the CPU when writing to the mfp uart data register
 // emptied by the io controller when reading via SPI
+assign serial_data_out_available[7:4] = 4'h0;
+
 io_fifo mfp_out_fifo (
 	.reset            ( reset ),
 
@@ -72,18 +78,26 @@ io_fifo mfp_out_fifo (
 	.out_strobe       ( serial_strobe_out ),
 	.out_enable       ( 1'b0 ),
 
-    .space            (  ),
-    .empty            (  ),
-	.full             ( serial_data_out_fifo_full ),
-	.data_available   ( serial_data_out_available )
+	.space            (  ),
+	.used             ( serial_data_out_available[3:0] ),
+	.empty            (  ),
+	.full             ( serial_data_out_fifo_full )
 );
 
-reg serial_cpu_data_read, serial_cpu_data_readD;
-wire serial_data_in_available;
-wire [7:0] serial_data_in_cpu;
-wire serial_data_in_empty;
+reg serial_cpu_data_read;
+wire [7:0] serial_data_in_cpu;   
+wire	   serial_data_in_empty;
+wire [3:0] serial_data_in_used;   
 wire [3:0] serial_data_in_space;
+wire	   uart_rx_busy;
 
+// As long as "rx busy" the same previous byte can still be read from the
+// UDR/rx fifo. Thus we increment the io_fifo read pointer at the end of
+// the rx_busy phase which is the falling edge of uart_rx_busy
+reg uart_rx_busyD;   
+always @(posedge clk) uart_rx_busyD <= uart_rx_busy;
+wire uart_rx_busy_ends = !uart_rx_busy && uart_rx_busyD;   
+   
 // --- mfp input fifo ---
 // filled by the io controller when writing via SPI
 // emptied by CPU when reading the mfp uart data register
@@ -98,12 +112,12 @@ io_fifo mfp_in_fifo (
 	.out_clk          ( clk ),
 	.out              ( serial_data_in_cpu ),
 	.out_strobe       ( 1'b0 ),
-	.out_enable       ( serial_cpu_data_read && serial_data_in_available ),
+	.out_enable       ( !serial_data_in_empty && uart_rx_busy_ends ),
 
 	.space            ( serial_data_in_space ),
+	.used             ( serial_data_in_used ),
 	.empty            ( serial_data_in_empty ),
-	.full             ( serial_data_in_full ),
-	.data_available   ( serial_data_in_available )
+	.full             ( serial_data_in_full )
 );
 
 // ---------------- mfp uart data to/from io controller ------------
@@ -111,8 +125,6 @@ io_fifo mfp_in_fifo (
 always @(posedge clk) begin
 	serial_cpu_data_read <= 1'b0;
 	if (clk_en) begin
-		serial_cpu_data_readD <= serial_cpu_data_read;
-
 		// read on uart data register
 		if(bus_sel && rw && (addr == 5'h17))
 			serial_cpu_data_read <= 1'b1;
@@ -281,8 +293,8 @@ wire [7:0] gpip_cpu_out = (i & ~ddr) | (gpip & ddr);
 
 // assemble output status structure. Adjust bitrate endianess
 assign serial_status_out = { 
-	bitrate[7:0], bitrate[15:8], bitrate[23:16], bitrate[31:24], 
-	databits, parity, stopbits, input_fifo_status };
+	bitrate[7:0], bitrate[15:8], bitrate[23:16], 
+	databits, parity, stopbits };
 
 wire [11:0] timerd_state = { timerd_ctrl_o, timerd_set_data };
 
@@ -292,46 +304,42 @@ wire [11:0] timerd_state = { timerd_ctrl_o, timerd_set_data };
 // --- export bit rate ---
 // try to calculate bitrate from timer d config
 // bps is 2.457MHz/2/16/prescaler/datavalue
-wire [31:0] bitrate = 
-	(uart_ctrl[6] !=    1'b1)?32'h80000000:    // uart prescaler not 1
-	(timerd_state == 12'h101)?32'd19200:       // 19200 bit/s
-	(timerd_state == 12'h102)?32'd9600:        // 9600 bit/s
-	(timerd_state == 12'h104)?32'd4800:        // 4800 bit/s
-	(timerd_state == 12'h105)?32'd3600:        // 3600 bit/s (?? isn't that 3840?)
-	(timerd_state == 12'h108)?32'd2400:        // 2400 bit/s
-	(timerd_state == 12'h10a)?32'd2000:        // 2000 bit/s (exact 1920)
-	(timerd_state == 12'h10b)?32'd1800:        // 1800 bit/s (exact 1745)
-	(timerd_state == 12'h110)?32'd1200:        // 1200 bit/s
-	(timerd_state == 12'h120)?32'd600:         // 600 bit/s
-	(timerd_state == 12'h140)?32'd300:         // 300 bit/s
-	(timerd_state == 12'h160)?32'd200:         // 200 bit/s
-	(timerd_state == 12'h180)?32'd150:         // 150 bit/s
-	(timerd_state == 12'h18f)?32'd134:         // 134 bit/s
-	(timerd_state == 12'h18f)?32'd134:         // 134 bit/s (134.27)
-	(timerd_state == 12'h1af)?32'd110:         // 110 bit/s (109.71)
-	(timerd_state == 12'h240)?32'd75:          // 75 bit/s (120)
-	(timerd_state == 12'h260)?32'd50:          // 50 bit/s (80)
-	32'h80000001;                              // unsupported bit rate	
+wire [23:0] bitrate = 
+	(uart_ctrl[6] !=    1'b1)?24'h800000:      // uart prescaler not 1
+	(timerd_state == 12'h101)?24'd19200:       // 19200 bit/s
+	(timerd_state == 12'h102)?24'd9600:        // 9600 bit/s
+	(timerd_state == 12'h104)?24'd4800:        // 4800 bit/s
+	(timerd_state == 12'h105)?24'd3600:        // 3600 bit/s (?? isn't that 3840?)
+	(timerd_state == 12'h108)?24'd2400:        // 2400 bit/s
+	(timerd_state == 12'h10a)?24'd2000:        // 2000 bit/s (exact 1920)
+	(timerd_state == 12'h10b)?24'd1800:        // 1800 bit/s (exact 1745)
+	(timerd_state == 12'h110)?24'd1200:        // 1200 bit/s
+	(timerd_state == 12'h120)?24'd600:         // 600 bit/s
+	(timerd_state == 12'h140)?24'd300:         // 300 bit/s
+	(timerd_state == 12'h160)?24'd200:         // 200 bit/s
+	(timerd_state == 12'h180)?24'd150:         // 150 bit/s
+	(timerd_state == 12'h18f)?24'd134:         // 134 bit/s (134.27)
+	(timerd_state == 12'h1af)?24'd110:         // 110 bit/s (109.71)
+	(timerd_state == 12'h240)?24'd75:          // 75 bit/s (120)
+	(timerd_state == 12'h260)?24'd50:          // 50 bit/s (80)
+	24'h800001;                                // unsupported bit rate	
 
-wire [7:0] input_fifo_status = { serial_data_in_space, 1'b0,
-	serial_data_in_empty, serial_data_in_full, serial_data_in_available };
-	
-wire [7:0] parity = 
-	(uart_ctrl[1] == 1'b0)?8'h00:    // no parity
-	(uart_ctrl[0] == 1'b0)?8'h01:    // odd parity
-	8'h02;                           // even parity
+wire [1:0] parity = 
+	(uart_ctrl[1] == 1'b0)?2'h0:    // no parity
+	(uart_ctrl[0] == 1'b0)?2'h1:    // odd parity
+	2'h02;                          // even parity
 
-wire [7:0] stopbits = 
-	(uart_ctrl[3:2] == 2'b00)?8'hff: // sync mode not supported
-	(uart_ctrl[3:2] == 2'b01)?8'h00: // async 1 stop bit
-	(uart_ctrl[3:2] == 2'b10)?8'h01: // async 1.5 stop bits
-	8'h11;                           // async 2 stop bits
+wire [1:0] stopbits = 
+	(uart_ctrl[3:2] == 2'b00)?2'h3: // sync mode not supported
+	(uart_ctrl[3:2] == 2'b01)?2'h0: // async 1 stop bit
+	(uart_ctrl[3:2] == 2'b10)?2'h1: // async 1.5 stop bits
+	2'h2;                           // async 2 stop bits
 
-wire [7:0] databits = 
-	(uart_ctrl[5:4] == 2'b00)?8'd8:  // 8 data bits
-	(uart_ctrl[5:4] == 2'b01)?8'd7:  // 7 data bits
-	(uart_ctrl[5:4] == 2'b10)?8'd6:  // 6 data bits
-	8'd5;                            // 5 data bits
+wire [3:0] databits = 
+	(uart_ctrl[5:4] == 2'b00)?4'd8:  // 8 data bits
+	(uart_ctrl[5:4] == 2'b01)?4'd7:  // 7 data bits
+	(uart_ctrl[5:4] == 2'b10)?4'd6:  // 6 data bits
+	4'd5;                            // 5 data bits
 
 // cpu controllable uart control bits
 reg [1:0] uart_rx_ctrl;
@@ -339,6 +347,69 @@ reg [3:0] uart_tx_ctrl;
 reg [6:0] uart_ctrl;
 reg [7:0] uart_sync_chr;
 
+// timer to simulate the timing behaviour of a serial transmitter by
+// reporting "tx buffer not empty" for about one byte time after each byte
+// being requested to be sent
+
+// bps is 2.457MHz/2/16/prescaler/datavalue. These values are used for byte timing
+// and are thus 10*the bit values (1 start + 8 data + 1 stop)
+wire [10:0] uart_prediv =
+	   (timerd_ctrl_o[2:0] == 3'b000)?11'd0:  // timer stopped
+	   (timerd_ctrl_o[2:0] == 3'b001)?11'd40:
+	   (timerd_ctrl_o[2:0] == 3'b010)?11'd100:
+	   (timerd_ctrl_o[2:0] == 3'b011)?11'd160:
+	   (timerd_ctrl_o[2:0] == 3'b100)?11'd500:
+	   (timerd_ctrl_o[2:0] == 3'b101)?11'd600:
+	   (timerd_ctrl_o[2:0] == 3'b110)?11'd1000:
+	   11'd2000;
+
+reg [15:0] uart_rx_prediv_cnt;   
+reg [15:0] uart_tx_prediv_cnt;   
+reg [7:0]  uart_tx_delay_cnt;   
+wire	   uart_tx_busy = uart_tx_delay_cnt != 8'd0;
+reg [7:0]  uart_rx_delay_cnt;   
+assign     uart_rx_busy = uart_rx_delay_cnt != 8'd0;
+
+// delay data_in_available one more cycle to give the fifo a chance to remove one item
+wire	   serial_data_in_available = !serial_data_in_empty && !uart_rx_busy && !uart_rx_busyD;   
+
+always @(posedge clk) begin
+
+   // the timer itself runs at 2.457 MHz      
+   if(clk_ext) begin
+      if(uart_rx_prediv_cnt != 16'd0)
+	 uart_rx_prediv_cnt <= uart_rx_prediv_cnt - 16'd1;
+      else begin
+	 uart_rx_prediv_cnt <= { uart_prediv-11'd1, 5'b00000 };	 
+	 if(uart_rx_delay_cnt != 8'd0)
+	   uart_rx_delay_cnt <= uart_rx_delay_cnt - 8'd1;
+      end
+	 
+      if(uart_tx_prediv_cnt != 16'd0)
+	 uart_tx_prediv_cnt <= uart_tx_prediv_cnt - 16'd1;
+      else begin
+	 uart_tx_prediv_cnt <= { uart_prediv-11'd1, 5'b00000 };	 
+	 if(uart_tx_delay_cnt != 8'd0)
+	   uart_tx_delay_cnt <= uart_tx_delay_cnt - 8'd1;
+      end
+   end
+
+   // CPU reads the UDR
+   if(serial_cpu_data_read && serial_data_in_available) begin
+      uart_rx_delay_cnt <= timerd_set_data;
+      uart_rx_prediv_cnt <= { uart_prediv-11'd1, 5'b00000 };    // load predivider with 2*16 the predivider value
+   end
+
+   // cpu bus access to uart data register
+   if(clk_en && ~bus_selD && bus_sel && (addr == 5'h17) && !rw) begin
+      // CPU write to UDR starts the delay counter. The uart transamitter is then
+      // reported busy as long as the counter runs
+      uart_tx_delay_cnt <= timerd_set_data;
+      uart_tx_prediv_cnt <= { uart_prediv-11'd1, 5'b00000 };    // load predivider with 2*16 the predivider value    
+   end
+      
+end
+   
 // cpu read interface
 always @(*) begin
 
@@ -370,8 +441,8 @@ always @(*) begin
 		// uart: report "tx buffer empty" if fifo is not full
 		if(addr == 5'h13) dout = uart_sync_chr; 
 		if(addr == 5'h14) dout = { uart_ctrl, 1'b0 }; 
-		if(addr == 5'h15) dout = {  serial_data_in_available, 5'b00000 , uart_rx_ctrl}; 
-		if(addr == 5'h16) dout = { !serial_data_out_fifo_full, 3'b000 , uart_tx_ctrl}; 
+		if(addr == 5'h15) dout = { serial_data_in_available, 5'b00000 , uart_rx_ctrl}; 
+		if(addr == 5'h16) dout = { !serial_data_out_fifo_full && !uart_tx_busy, 3'b000 , uart_tx_ctrl}; 
 		if(addr == 5'h17) dout = serial_data_in_cpu;
 
 	end else if(iack) begin
@@ -401,9 +472,8 @@ wire [7:0] gpio_irq = ~aer ^ ((i & ~ti_irq_mask) | (ti_irq & ti_irq_mask));
 reg [15:0] ipr_reset;
 
 // the cpu reading data clears rx irq. It may raise again immediately if there's more
-// data in the input fifo. Use a delayed cpu read signal to make sure the fifo finishes
-// removing the byte before
-wire uart_rx_irq = serial_data_in_available && !serial_cpu_data_readD;
+// data in the input fifo.
+wire uart_rx_irq = serial_data_in_available;
 
 // the io controller reading data clears tx irq. It may raus again immediately if 
 // there's more data in the output fifo

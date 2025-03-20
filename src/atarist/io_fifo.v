@@ -40,7 +40,7 @@ module io_fifo #(
 
 	output [DEPTH-1:0] space,
 	output empty,
-	output data_available,
+	output [DEPTH-1:0] used,
 	output full
 );
 
@@ -52,7 +52,7 @@ reg [FIFO_ADDR_BITS-1:0] writeP, readP;
 
 assign full = (readP == (writeP + 1));
 assign empty = (readP == writeP);
-assign data_available = (readP != writeP);
+assign used = writeP - readP;
 
 assign space = readP - writeP - 1'd1;
 
@@ -62,7 +62,7 @@ reg in_strobeD, in_strobeD2;
 reg out_strobeD, out_strobeD2;
 
 // present current value. If fifo is empty show last value
-assign out = data_available?fifo[readP]:fifo[readP-1'd1];
+assign out = !empty?fifo[readP]:fifo[readP-1'd1];
 
 always @(posedge out_clk) begin
 	// bring strobes in local clock domain

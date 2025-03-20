@@ -333,9 +333,11 @@ hid hid (
 wire sdc_int;
 wire sdc_iack = int_ack[3];
 
-wire       serial_tx_available;
+wire [31:0] serial_status;
+wire [7:0] serial_tx_available;
 wire       serial_tx_strobe;
 wire [7:0] serial_tx_data;
+wire [7:0] serial_rx_available;
 wire       serial_rx_strobe;
 wire [7:0] serial_rx_data;
 
@@ -350,9 +352,11 @@ sysctrl sysctrl (
         .data_out(sys_data_out),
 
 		// port io (used to expose rs232)
+	    .port_status(serial_status),
 		.port_out_available(serial_tx_available),
         .port_out_strobe(serial_tx_strobe),
 		.port_out_data(serial_tx_data),	 
+		.port_in_available(serial_rx_available),
         .port_in_strobe(serial_rx_strobe),
 		.port_in_data(serial_rx_data),	 
 				 
@@ -433,9 +437,11 @@ atarist atarist (
     .midi_tx(midi_out),
 
     // serial/rs232
+	.serial_status       ( serial_status       ),
 	.serial_tx_available ( serial_tx_available ),
 	.serial_tx_strobe    ( serial_tx_strobe    ),
 	.serial_tx_data      ( serial_tx_data      ),
+	.serial_rx_available ( serial_rx_available ),
 	.serial_rx_strobe    ( serial_rx_strobe    ),
 	.serial_rx_data      ( serial_rx_data      ),
 
