@@ -72,14 +72,20 @@ reg [7:0] port_index;
 // include the menu rom derived from atarist.xml
 reg [15:0] menu_rom_addr;
 wire [7:0] menu_rom_data;
-   
+
+menu_rom menu_romI (
+ .clk(clk),
+ .addr(menu_rom_addr[11:0]),
+ .data(menu_rom_data)
+);  
+
 module menu_rom (
   input		   clk, 
   input [11:0]	   addr,
   output reg [7:0] data
 );
    
-reg [7:0] atarist_xml[0:4095];
+   reg [7:0] atarist_xml[0:4095];
    initial begin
       // generate hex e.g.: xxd -c1 -p atarist.xml > atarist_xml.hex
       $readmemh("atarist_xml.hex", atarist_xml);
