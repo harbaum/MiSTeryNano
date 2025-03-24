@@ -77,6 +77,7 @@ add_file tang/nano20k/atarist_lcd.sdc
 add_file fx68k/microrom.mem
 add_file fx68k/nanorom.mem
 add_file ikbd/rom/ikbd.hex
+add_file misc/atarist_xml.hex
 
 set_option -synthesis_tool gowinsynthesis
 set_option -output_base_name atarist_lcd
