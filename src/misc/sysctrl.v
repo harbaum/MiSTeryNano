@@ -70,31 +70,18 @@ reg [7:0] port_cmd;
 reg [7:0] port_index;
 
 // include the menu rom derived from atarist.xml
-reg [15:0] menu_rom_addr;
-wire [7:0] menu_rom_data;
+reg [11:0] menu_rom_addr;
+reg [7:0]  menu_rom_data;
 
-menu_rom menu_romI (
- .clk(clk),
- .addr(menu_rom_addr[11:0]),
- .data(menu_rom_data)
-);  
+// generate hex e.g.:
+// gzip -n atarist.xml
+// xxd -c1 -p atarist.xml.gz > atarist_xml.hex
+reg [7:0] atarist_xml[1024];
+initial $readmemh("atarist_xml.hex", atarist_xml);
 
-module menu_rom (
-  input		   clk, 
-  input [11:0]	   addr,
-  output reg [7:0] data
-);
+always @(posedge clk)
+  menu_rom_data <= atarist_xml[menu_rom_addr];
    
-   reg [7:0] atarist_xml[0:4095];
-   initial begin
-      // generate hex e.g.: xxd -c1 -p atarist.xml > atarist_xml.hex
-      $readmemh("atarist_xml.hex", atarist_xml);
-   end
-   
-   always @( posedge clk) 
-     data <= atarist_xml[addr];
-endmodule
-
 // process mouse events
 always @(posedge clk) begin
    if(reset) begin
@@ -134,32 +121,34 @@ always @(posedge clk) begin
       if(port_out_available && !port_out_availableD)
 	sys_int <= 1'b1;
       
-      if(data_in_strobe) begin      
+      if(data_in_strobe) begin
         if(data_in_start) begin
-            state <= 4'd1;
-            command <= data_in;
-        end else if(state != 4'd0) begin
+           state <= 4'd0;
+           command <= data_in;
+	   menu_rom_addr <= 12'd0;
+	   data_out <= 8'h00;
+        end else begin
             if(state != 4'd15) state <= state + 4'd1;
 	    
             // CMD 0: status data
             if(command == 8'd0) begin
                 // return some pattern that would not appear randomly
-	            // on e.g. an unprogrammed device
-                if(state == 4'd1) data_out <= 8'h5c;
-                if(state == 4'd2) data_out <= 8'h42;
-                if(state == 4'd3) data_out <= 8'h01;   // core id 1 = Atari ST
+	        // on e.g. an unprogrammed device
+                if(state == 4'd0) data_out <= 8'h5c;
+                if(state == 4'd1) data_out <= 8'h42;
+                if(state == 4'd2) data_out <= 8'h01;   // core id 1 = Atari ST
             end
 	   
             // CMD 1: there are two MCU controlled LEDs
             if(command == 8'd1) begin
-                if(state == 4'd1) leds <= data_in[1:0];
+                if(state == 4'd0) leds <= data_in[1:0];
             end
 
             // CMD 2: a 24 color value to be mapped e.g. onto the ws2812
             if(command == 8'd2) begin
-                if(state == 4'd1) color[15: 8] <= data_in_rev;
-                if(state == 4'd2) color[ 7: 0] <= data_in_rev;
-                if(state == 4'd3) color[23:16] <= data_in_rev;
+                if(state == 4'd0) color[15: 8] <= data_in_rev;
+                if(state == 4'd1) color[ 7: 0] <= data_in_rev;
+                if(state == 4'd2) color[23:16] <= data_in_rev;
             end
 
             // CMD 3: return button state
@@ -170,9 +159,9 @@ always @(posedge clk) begin
             // CMD 4: config values (e.g. set by user via OSD)
             if(command == 8'd4) begin
                 // second byte can be any character which identifies the variable to set 
-                if(state == 4'd1) id <= data_in;
+                if(state == 4'd0) id <= data_in;
 
-                if(state == 4'd2) begin
+                if(state == 4'd1) begin
                     // Value "C": chipset ST(0), MegaST(1) or STE(2)
                     if(id == "C") system_chipset <= data_in[1:0];
                     // Value "M": 4MB(0) or 8MB(1)
@@ -201,7 +190,7 @@ always @(posedge clk) begin
             // CMD 5: interrupt control
             if(command == 8'd5) begin
                 // second byte acknowleges the interrupts
-                if(state == 4'd1) int_ack <= data_in;
+                if(state == 4'd0) int_ack <= data_in;
 
 	        // interrupt[0] notifies the MCU of a FPGA cold boot e.g. if
                 // the FPGA has been loaded via USB
@@ -214,19 +203,19 @@ always @(posedge clk) begin
 	        // bit[1]: port data is available
                 data_out <= { 6'b000000, (port_out_available != 8'd0), coldboot };
 	        // reading the interrupt source acknowledges the coldboot notification
-	        if(state == 4'd1) coldboot <= 1'b0;            
+	        if(state == 4'd0) coldboot <= 1'b0;            
 	    end
 
             // CMD 7: port command (e.g. rs232)
             if(command == 8'd7) begin
 
 	       // the first two bytes of a port command always have the same meaning ...
-               if(state == 4'd1) begin
+               if(state == 4'd0) begin
 		  // first byte is the subcommand
 		  port_cmd <= data_in;
 		  // return the number of ports implemented in this core
 		  data_out <= 8'd1;
-	       end else if(state == 4'd2) begin
+	       end else if(state == 4'd1) begin
 		  // second byte is the port index (if several ports are supported)
 		  port_index <= data_in;
 		  // return port type (currently supports only 0=serial)
@@ -236,14 +225,14 @@ always @(posedge clk) begin
 
 		  // port subcommand 0: get status
 		  if(port_cmd == 8'd0 && port_index == 8'd0) begin
-		     if(state == 4'd3)       data_out <= port_out_available;
-		     else if(state == 4'd4)  data_out <= port_in_available;
+		     if(state == 4'd2)       data_out <= port_out_available;
+		     else if(state == 4'd3)  data_out <= port_in_available;
 		     // port status for type 0 (serial) is still close to the format
 		     // that was introduced with the first MiST
-		     else if(state == 4'd5)  data_out <= port_status[31:24];  // bitrate[7:0]
-		     else if(state == 4'd6)  data_out <= port_status[23:16];  // bitrate[15:8]
-		     else if(state == 4'd7)  data_out <= port_status[15:8];   // bitrate[23:16]
-		     else if(state == 4'd8)  data_out <= port_status[7:0];    // databits, parity and stopbits
+		     else if(state == 4'd4)  data_out <= port_status[31:24];  // bitrate[7:0]
+		     else if(state == 4'd5)  data_out <= port_status[23:16];  // bitrate[15:8]
+		     else if(state == 4'd6)  data_out <= port_status[15:8];   // bitrate[23:16]
+		     else if(state == 4'd7)  data_out <= port_status[7:0];    // databits, parity and stopbits
 		     else                    data_out <= 8'h00;
 		  end
 		  
@@ -270,11 +259,8 @@ always @(posedge clk) begin
 	   
             // CMD 8: read (menu) config
             if(command == 8'd8) begin
-	       if(state == 4'd1) menu_rom_addr <= 16'h0000;
-	       else begin
-		  data_out <= menu_rom_data;
-		  menu_rom_addr <= menu_rom_addr + 16'd1;		  
-	       end
+	       data_out <= menu_rom_data;
+	       menu_rom_addr <= menu_rom_addr + 12'd1;
 	    end
 	   
 	end
