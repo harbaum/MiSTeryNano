@@ -73,6 +73,7 @@ add_file misc/sdcmd_ctrl.v
 add_file misc/sysctrl.v
 add_file misc/video_analyzer.v
 add_file misc/dualshock2.v
+add_file misc/atarist_keymap.v
 add_file misterynano.sv
 add_file tang/mega138k/flash_dspi.v
 add_file tang/mega138k/sdram.v

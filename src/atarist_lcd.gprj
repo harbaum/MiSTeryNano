@@ -67,6 +67,7 @@
         <File path="misc/sdcmd_ctrl.v" type="file.verilog" enable="1"/>
         <File path="misc/sysctrl.v" type="file.verilog" enable="1"/>
         <File path="misc/video_analyzer.v" type="file.verilog" enable="1"/>
+        <File path="misc/atarist_keymap.v" type="file.verilog" enable="1"/>
         <File path="misterynano.sv" type="file.verilog" enable="1"/>
         <File path="tang/nano20k/flash_dspi.v" type="file.verilog" enable="1"/>
         <File path="tang/nano20k/gowin_dpb/fdc_dpram.v" type="file.verilog" enable="1"/>

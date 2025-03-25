@@ -73,6 +73,7 @@ add_file misc/sd_rw.v
 add_file misc/sdcmd_ctrl.v
 add_file misc/sysctrl.v
 add_file misc/video_analyzer.v
+add_file misc/atarist_keymap.v
 add_file tang/nano20k/flash_dspi.v
 add_file tang/nano20k/gowin_clkdiv/gowin_clkdiv.v
 add_file tang/nano20k/gowin_dpb/fdc_dpram.v

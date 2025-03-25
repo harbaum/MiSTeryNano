@@ -136,7 +136,7 @@ always @(posedge clk) begin
 	        // on e.g. an unprogrammed device
                 if(state == 4'd0) data_out <= 8'h5c;
                 if(state == 4'd1) data_out <= 8'h42;
-                if(state == 4'd2) data_out <= 8'h01;   // core id 1 = Atari ST
+                if(state == 4'd2) data_out <= 8'h00;   // core id 0 = Generic core
             end
 	   
             // CMD 1: there are two MCU controlled LEDs
