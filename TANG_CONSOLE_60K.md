@@ -18,6 +18,10 @@ The whole setup will look like this:
 
 ![MiSTeryNano on TM138K](board/m0s_pmod/m0s_pmod_tc60k.jpg)
 
+An optional Plastation Dualshock 2 PMOD may by inserted in the second PMOD
+closer to the HDMI connector. A game controller in port P1 will then be
+mapped to the Atari ST's joystick port.
+
 The firmware for the M0S Dock is the [same version as for the Tang
 Nano 20K and all other boards](https://github.com/harbaum/FPGA-Companion).
 
