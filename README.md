@@ -3,7 +3,7 @@
 The MiSTeryNano is a port of the
 [MiSTery Atari STE FPGA core](https://github.com/gyurco/MiSTery) to the
 [Tang Nano 20k FPGA board](https://wiki.sipeed.com/nano20k). It has
-also been ported to the [Tang Primer 25K](TANG_PRIMER_25K.md) and the [Tang Mega 138K](TANG_MEGA_138K.md).
+also been ported to the [Tang Primer 25K](TANG_PRIMER_25K.md), the [Tang Mega 138K](TANG_MEGA_138K.md) and the [Tang Console 60K](TANG_CONSOLE_60K.md).
 
 For support and more information please visit the [Atari forum](https://www.atari-forum.com/viewtopic.php?p=457209).
 
@@ -41,6 +41,7 @@ The MiSTeryNano is a work in progress. Current features are:
     * [Tang Nano 20k](https://wiki.sipeed.com/nano20k)
     * [Tang Primer 25k](TANG_PRIMER_25K.md)
     * [Tang Mega 138k](TANG_MEGA_138K.md)
+    * [Tang Console 60k](TANG_CONSOLE_60K.md)	
 
 ## Videos
 
