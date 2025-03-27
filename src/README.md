@@ -13,21 +13,22 @@ or display variantes for HDMI or an RGB LCD.
 
 Currently supported variants are:
 
-  * ```atari``` - Tang Nano 20K + HDMI + DB9 joystick + MIDI
-  * ```atari_lcd``` - Tang Nano 20K + RGB LCD
-  * ```atari_lcd_hdmi``` - Tang Nano 20K + HDMI but FPGA Companion attached on the same pins as it was on ```atari_lcd``` option.
-  * ```atari_parport``` - Tang Nano 20K + HDMI + parallel port
-  * ```atari_tp25k``` - Tang Primer 25K + HMDI
-  * ```atari_tm138k``` - Tang Mega 138K + HMDI
+  * ```atarist``` - Tang Nano 20K + HDMI + DB9 joystick + MIDI
+  * ```atarist_lcd``` - Tang Nano 20K + RGB LCD
+  * ```atarist_lcd_hdmi``` - Tang Nano 20K + HDMI but FPGA Companion attached on the same pins as it was on ```atarist_lcd``` option.
+  * ```atarist_parport``` - Tang Nano 20K + HDMI + parallel port
+  * ```atarist_tp25k``` - Tang Primer 25K + HMDI
+  * ```atarist_tm138k``` - Tang Mega 138K + HMDI
+  * ```atarist_tc60k``` - Tang Console 60K + HMDI
 
-### ```atari``` and ```atari_lcd_hdmi```
+### ```atarist``` and ```atarist_lcd_hdmi```
 
-This is the regular MiSTeryNano Atari ST implementation as descibed
+This is the regular MiSTeryNano Atari ST implementation as described
 elsewhere in this repository.
 
-```atari_lcd_hdmi``` differs only with FPGA companion pins.
+```atarist_lcd_hdmi``` differs only with FPGA companion pins.
 
-### ```atari_lcd```
+### ```atarist_lcd```
 
 This variant works with the 5inch 800x480 RGB LCD available as an odd-on
 to the Tang nano 20K. Since the LCD uses most of the IO signals the
@@ -36,7 +37,7 @@ interface to the M0S/BL616/MCU uses different pins. See
 
 Audio is output via the Tang Nano 20K audio amplifier.
 
-### ```atari_parport```
+### ```atarist_parport```
 
 This is an mainly untested variant implementing a printer port instead
 of the joystick interface. This can be used to control peripherals meant
@@ -45,15 +46,17 @@ to be connected to the Atari ST printer port like e.g. the
 additional level shifting since the Tang Nano 20k runs its IOs at 3.3 volts
 while the centronics printer port was 5 volts.
 
-### ```atari_tp25k```
+### ```atarist_tp25k```
 
 This is a variant for the [Tang Primer 25k](https://github.com/harbaum/MiSTeryNano/blob/main/TANG_PRIMER_25K.md).
 
-### ```atari_tm138k```
+### ```atarist_tm138k```
 
-This is a variant for the [Tang Mega 128k](https://github.com/harbaum/MiSTeryNano/blob/main/TANG_PRIMER_138K.md).
+This is a variant for the [Tang Mega 138k](https://github.com/harbaum/MiSTeryNano/blob/main/TANG_PRIMER_138K.md).
 
+### ```atarist_tc60k```
 
+This is a variant for the [Tang Console with 60k module](https://github.com/harbaum/MiSTeryNano/blob/main/TANG_CONSOLE_60K.md).
 
 Some of these variants use the IDE and come with config files for the
 GoWin IDE (files ending in ```.gprj```), some use TCL based command

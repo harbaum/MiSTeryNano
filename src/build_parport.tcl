@@ -73,6 +73,7 @@ add_file misc/sd_rw.v
 add_file misc/sdcmd_ctrl.v
 add_file misc/sysctrl.v
 add_file misc/video_analyzer.v
+add_file misc/atarist_keymap.v
 add_file tang/nano20k/flash_dspi.v
 add_file tang/nano20k/gowin_clkdiv/gowin_clkdiv.v
 add_file tang/nano20k/gowin_dpb/fdc_dpram.v
@@ -89,6 +90,7 @@ add_file tang/nano20k/atarist.sdc
 add_file fx68k/microrom.mem
 add_file fx68k/nanorom.mem
 add_file ikbd/rom/ikbd.hex
+add_file misc/atarist_xml.hex
 
 set_option -synthesis_tool gowinsynthesis
 set_option -output_base_name atarist_parport
