@@ -78,6 +78,7 @@
         <File path="misc/sdcmd_ctrl.v" type="file.verilog" enable="1"/>
         <File path="misc/sysctrl.v" type="file.verilog" enable="1"/>
         <File path="misc/video_analyzer.v" type="file.verilog" enable="1"/>
+        <File path="misc/atarist_keymap.v" type="file.verilog" enable="1"/>
         <File path="tang/nano20k/flash_dspi.v" type="file.verilog" enable="1"/>
         <File path="tang/nano20k/gowin_clkdiv/gowin_clkdiv.v" type="file.verilog" enable="1"/>
         <File path="tang/nano20k/gowin_dpb/fdc_dpram.v" type="file.verilog" enable="1"/>
@@ -94,5 +95,6 @@
         <File path="fx68k/microrom.mem" type="file.other" enable="1"/>
         <File path="fx68k/nanorom.mem" type="file.other" enable="1"/>
         <File path="ikbd/rom/ikbd.hex" type="file.other" enable="1"/>
+        <File path="misc/atarist_xml.hex" type="file.other" enable="1"/>
     </FileList>
 </Project>

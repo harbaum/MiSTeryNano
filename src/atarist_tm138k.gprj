@@ -96,5 +96,6 @@
         <File path="fx68k/microrom.mem" type="file.other" enable="1"/>
         <File path="fx68k/nanorom.mem" type="file.other" enable="1"/>
         <File path="ikbd/rom/ikbd.hex" type="file.other" enable="1"/>
+        <File path="misc/atarist_xml.hex" type="file.other" enable="1"/>
     </FileList>
 </Project>
