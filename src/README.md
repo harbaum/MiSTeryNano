@@ -1,7 +1,8 @@
 # MiSTeryNano FPGA core source code
 
-This is the source code of the FPGA side of the MiSTeryNano project. To be
-fully functional this also needs a [MCU with matching firmware](../bl616).
+This is the source code of the FPGA side of the MiSTeryNano
+project. To be fully functional this also needs a [MCU with matching
+firmware](https://github.com/harbaum/FPGA-Companion/).
 
 ## Build variants
 
