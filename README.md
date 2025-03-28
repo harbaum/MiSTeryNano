@@ -2,8 +2,11 @@
 
 The MiSTeryNano is a port of the
 [MiSTery Atari STE FPGA core](https://github.com/gyurco/MiSTery) to the
-[Tang Nano 20k FPGA board](https://wiki.sipeed.com/nano20k). It has
-also been ported to the [Tang Primer 25K](TANG_PRIMER_25K.md), the [Tang Mega 138K](TANG_MEGA_138K.md) and the [Tang Console 60K](TANG_CONSOLE_60K.md).
+[Tang series of FPGA boards](https://wiki.sipeed.com/hardware/en/tang/index.html)
+like the [Tang Nano 20k FPGA board](https://wiki.sipeed.com/nano20k).
+
+A complete MiSTeryNano setup also requires a supporting MCU acting as
+the [FPGA Companion](https://github.com/harbaum/FPGA-Companion/).
 
 For support and more information please visit the [Atari forum](https://www.atari-forum.com/viewtopic.php?p=457209).
 
@@ -11,7 +14,7 @@ For support and more information please visit the [Atari forum](https://www.atar
 
 ## Current state
 
-The MiSTeryNano is a work in progress. Current features are:
+The MiSTeryNano's current features are:
 
   * Atari ST/STE
     * Complete Atari ST/E chipset
@@ -35,13 +38,17 @@ The MiSTeryNano is a work in progress. Current features are:
     * Images stored in .HD format
   * MIDI
     * Physical MIDI-IN and OUT
-  * [Optional custom carrier board](board/misteryshield20k/)
+  * Optional custom carrier board like the [MiSTeryShield20k](board/misteryshield20k/) or [MiSTeryShield20k RPiPico](https://github.com/vossstef/tang_nano_20k_c64/tree/main/board/misteryshield20k_rpipico)
   * [Optional case](https://github.com/prcoder-1/MiSTeryNano-Case)
   * Runs on various Tang variants
     * [Tang Nano 20k](https://wiki.sipeed.com/nano20k)
     * [Tang Primer 25k](TANG_PRIMER_25K.md)
     * [Tang Mega 138k](TANG_MEGA_138K.md)
     * [Tang Console 60k](TANG_CONSOLE_60K.md)	
+  * Supports different MCUs for the [FPGA Companion](https://github.com/harbaum/FPGA-Companion/)
+    * [M0S Dock/BL616](https://github.com/harbaum/FPGA-Companion/tree/main/src/bl616)
+    * [Raspberry Pi Pico/RP2040](https://github.com/harbaum/FPGA-Companion/tree/main/src/rp2040)
+    * [ESP32-S2 and S3](https://github.com/harbaum/FPGA-Companion/tree/main/src/esp32)
 
 ## Videos
 
@@ -78,19 +85,20 @@ These videos primarily document the progress during development:
 
 In order to use the MiSTeryNano the following things are needed:
 
-  * [Tang Nano 20k FPGA board](https://wiki.sipeed.com/nano20k) to run the MiSTeryNano core
-  * [M0S Dock](https://wiki.sipeed.com/hardware/en/maixzero/m0s/m0s.html) to connect USB keyboard and mouse
-  * a breadboard to wire everything up and some jumper wires, or
+  * Tang FPGA board like e.g. the [Tang Nano 20k](https://wiki.sipeed.com/nano20k) to run the MiSTeryNano core itself
+  * MCU board like the [M0S Dock](https://wiki.sipeed.com/hardware/en/maixzero/m0s/m0s.html) to run the [FPGA Companion](https://github.com/harbaum/FPGA-Companion/) to connect USB keyboard and mouse
+  * Breadboard to wire everything up and some jumper wires, or
   * [a MiSTeryShield](board/misteryshield20k/)
   * a USB-C to USB-A adapter to connect regular USB devices to the M0S Dock
 
+Many other variants can be built using various Tang FPGA boards and different MCUs. 
+
 ![MiSTeryNano breadboard](images/misterynano_bb.jpeg)
 
-## Installation
+## Installation on e.g. Tang Nano 20k
 
 The installation of MiSTeryNano on the Tang Nano 20k using can be done
-using a [Linux PC](INSTALLATION_LINUX.md) or a
-[Windows PC](INSTALLATION_WINDOWS.md).
+using a [Linux PC](INSTALLATION_LINUX.md) or a [Windows PC](INSTALLATION_WINDOWS.md).
 
 See the [trouble shooting guide](TROUBLESHOOTING.md) if you run into problems.
 
