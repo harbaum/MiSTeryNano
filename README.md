@@ -26,7 +26,7 @@ The MiSTeryNano's current features are:
     * Blitter
   * Supports most TOS versions
   * Full IKBD implementation
-    * Mapped to USB via BL616 MCU
+    * Mapped to USB via [FPGA Companion](https://github.com/harbaum/FPGA-Companion/)
     * Mouse and keyboard via USB
     * Joystick via USB or dedicated IO pins of Tang Nano 20k
   * Floppy disk images
@@ -54,13 +54,14 @@ The MiSTeryNano's current features are:
 
 These videos primarily document the progress during development:
 
+  * [MiSTeryNano #22: MiSTeryNano #22: Running Atari ST demo on Efinix Trion T20 FPGA](https://youtube.com/shorts/_95nhmBHSxg)
   * [MiSTeryNano #21: I built a half sized keyboard for my FPGA Atari ST](https://youtube.com/shorts/clQujxjdr9I)
   * [MiSTeryNano #20: Atari STE on Tang Primer 25k FPGA](https://youtube.com/shorts/i-hUT1_UNOY)
-  * [MiSTeryNano #19: Atari STE Stardust on Tang Mega 138K FPGA](https://youtube.com/shorts/CI1L_LBodlw)
 
 <details><summary>More ...</summary>
 <ul>
-  <li><a href="https://youtube.com/shorts/_D7Gc8IL2GA">MiSTeryNano #18: Cheap RGB LCD for Atari ST in FPGA</a></li>
+  <li><a href="https://youtube.com/shorts/CI1L_LBodlw">MiSTeryNano #19: Atari STE Stardust on Tang Mega 138K FPGA</a></li>
+  <li><a href="https://youtube.com/shorts/_D7Gc8IL2GA">MiSTeryNano #18: Cheap RGB LCD for Atari ST in FPGA
   <li><a href="https://youtube.com/shorts/qh_TCCgo1xY">MiSTeryNano #17: C64 on Tang Nano 20K</a></li>
   <li><a href="https://youtube.com/shorts/IOfeoJvnrmE">MiSTeryNano #16: Atari ST MIDI Space Quest 3 on Roland MT32</a></li>
   <li><a href="https://youtube.com/shorts/-kPpSlpkzvA">MiSTeryNano #15: Power Without the Price: The Tang Nano 20k is the cheapest Atari ST</a></li>
