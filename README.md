@@ -54,7 +54,7 @@ The MiSTeryNano's current features are:
 
 These videos primarily document the progress during development:
 
-  * [MiSTeryNano #22: MiSTeryNano #22: Running Atari ST demo on Efinix Trion T20 FPGA](https://youtube.com/shorts/_95nhmBHSxg)
+  * [MiSTeryNano #22: Running Atari ST demo on Efinix Trion T20 FPGA](https://youtube.com/shorts/_95nhmBHSxg)
   * [MiSTeryNano #21: I built a half sized keyboard for my FPGA Atari ST](https://youtube.com/shorts/clQujxjdr9I)
   * [MiSTeryNano #20: Atari STE on Tang Primer 25k FPGA](https://youtube.com/shorts/i-hUT1_UNOY)
 
