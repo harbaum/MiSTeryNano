@@ -77,8 +77,14 @@ reg [7:0]  menu_rom_data;
 // gzip -n atarist.xml
 // xxd -c1 -p atarist.xml.gz > atarist_xml.hex
 reg [7:0] atarist_xml[1024];
-initial $readmemh("atarist_xml.hex", atarist_xml);
-
+`ifndef EFINIX
+   initial $readmemh("atarist_xml.hex", atarist_xml);
+`else
+  // it would be great if a global define could be used for the
+  // filename here. But that does not work, at least not in efinity
+  initial $readmemh("atarist_t20_xml.hex", atarist_xml);
+`endif
+   
 always @(posedge clk)
   menu_rom_data <= atarist_xml[menu_rom_addr];
    

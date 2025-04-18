@@ -6,81 +6,110 @@
 */
 
 module misterynano (
-  input 		clk,
-  input 		reset, // S2
-  input 		user, // S1
+  input			clk,
+`ifdef EFINIX
+  // with efinix, all plls are toplevel
+  input         flash_clk,      // 100 MHz SPI flash clock
+`endif
+  input			reset, // S2
+  input			user, // S1
 
-  input 		clk32,
-  input 		pll_lock_main,
-  output 		por, // power on-reset (! all PLL's locked)
+  input			clk32,
+  input			pll_lock_main,
+  output		por, // power on-reset (! all PLL's locked)
 
-  output [5:0] 	leds_n,
-  output 		ws2812,
+  output [5:0]	leds_n,
+  output		ws2812,
 
   // spi flash interface
-  output 		mspi_cs,
-  output 		mspi_clk,
-  inout 		mspi_di,
-  inout 		mspi_hold,
-  inout 		mspi_wp,
-  inout 		mspi_do,
-
+  output		mspi_cs,
+`ifdef EFINIX
+  input			mspi_di_in,
+  output		mspi_di_out,
+  output		mspi_di_oe,
+  input			mspi_do_in,
+  output		mspi_do_out,
+  output		mspi_do_oe,
+`else
+  output		mspi_clk,
+  inout			mspi_di,
+  inout			mspi_hold,
+  inout			mspi_wp,
+  inout			mspi_do,
+`endif
+					
   // "Magic" port names that the gowin compiler connects to the on-chip SDRAM
-  output 		sdram_clk,
-  output 		sdram_cke,
-  output 		sdram_cs_n, // chip select
-  output 		sdram_cas_n, // columns address select
-  output 		sdram_ras_n, // row address select
-  output 		sdram_wen_n, // write enable
-  inout [31:0] 	sdram_dq, // up to 32 bit bidirectional data bus
-  output [12:0] sdram_addr, // up to 13 bit multiplexed address bus
-  output [1:0] 	sdram_ba, // two banks
-  output [3:0] 	sdram_dqm, // 32/4
+  output		sdram_clk,
+  output		sdram_cke,
+  output		sdram_cs_n, // chip select
+  output		sdram_cas_n, // columns address select
+  output		sdram_ras_n, // row address select
+  output		sdram_wen_n, // write enable
+`ifdef EFINIX
+  input [15:0]	sdram_dq_in,
+  output [15:0]	sdram_dq_out,
+  output [15:0]	sdram_dq_oe,
+  output [1:0]	sdram_dqm, // 16/2
+`else
+  inout [31:0]	sdram_dq, // up to 32 bit bidirectional data bus
+  output [3:0]	sdram_dqm, // 32/4
+`endif
+  output [12:0]	sdram_addr, // up to 13 bit multiplexed address bus
+  output [1:0]	sdram_ba, // two banks
 
   // MCU interface
-  input 		mcu_sclk,
-  input 		mcu_csn,
-  output 		mcu_miso, // from FPGA to MCU
-  input 		mcu_mosi, // from MCU to FPGA
-  output 		mcu_intn,
+  input			mcu_sclk,
+  input			mcu_csn,
+  output		mcu_miso, // from FPGA to MCU
+  input			mcu_mosi, // from MCU to FPGA
+  output		mcu_intn,
 
   // generic IO, used for mouse/joystick/...
-  input [7:0] 	io,
+  input [7:0]	io,
 
   // the parallel port of the ST only carries few signals
-  output 		parallel_strobe_oe,
-  input 		parallel_strobe_in, 
-  output 		parallel_strobe_out, 
-  output 		parallel_data_oe,
-  input [7:0] 	parallel_data_in,
-  output [7:0] 	parallel_data_out,
-  input 		parallel_busy, 
+  output		parallel_strobe_oe,
+  input			parallel_strobe_in, 
+  output		parallel_strobe_out, 
+  output		parallel_data_oe,
+  input [7:0]	parallel_data_in,
+  output [7:0]	parallel_data_out,
+  input			parallel_busy, 
  					
   // MIDI
-  input 		midi_in,
-  output 		midi_out,
+  input			midi_in,
+  output		midi_out,
 		   
   // SD card slot
-  output 		sd_clk,
-  inout 		sd_cmd, // MOSI
-  inout [3:0] 	sd_dat, // 0: MISO
-	   
+  output		sd_clk,
+`ifdef EFINIX
+  input			sd_cmd_in, // MOSI
+  output		sd_cmd_out,
+  output		sd_cmd_oe,
+  input [3:0]	sd_dat_in, // 0: MISO
+  output [3:0]	sd_dat_out,
+  output [3:0]	sd_dat_oe,
+`else
+  inout			sd_cmd, // MOSI
+  inout [3:0]	sd_dat, // 0: MISO
+`endif  
+  
   // scandoubled digital video to be
   // used with lcds
-  output 		lcd_clk,
-  output 		lcd_hs_n,
-  output 		lcd_vs_n,
-  output 		lcd_de,
-  output [5:0] 	lcd_r,
-  output [5:0] 	lcd_g,
-  output [5:0] 	lcd_b,
+  output		lcd_clk,
+  output		lcd_hs_n,
+  output		lcd_vs_n,
+  output		lcd_de,
+  output [5:0]	lcd_r,
+  output [5:0]	lcd_g,
+  output [5:0]	lcd_b,
 
-  output 		vreset,
-  output [1:0] 	vmode,
-  output 		vwide,
+  output		vreset,
+  output [1:0]	vmode,
+  output		vwide,
 
   // digital 16 bit audio output
-  output [15:0] audio [2]
+  output [15:0]	audio [2]
 );
 
 wire [5:0] leds;      // control leds with positive logic
@@ -113,10 +142,11 @@ wire       system_tos_slot;
    
 /* -------------- clock generation --------------- */
 
+`ifdef EFINIX
+// in Efinix FPGAs the clock generation and PLLs are external.
+assign por = !pll_lock_main;
+`else
 wire pll_lock_flash;   
-wire pll_lock = pll_lock_main && pll_lock_flash;
-assign por = !pll_lock;
-
 wire flash_clk;      // 100.265 MHz SPI flash clock
 flash_pll flash_pll (
         .clkout( flash_clk ),
@@ -124,7 +154,10 @@ flash_pll flash_pll (
         .lock(pll_lock_flash),
         .clkin(clk)
     );
-   
+wire pll_lock = pll_lock_main && pll_lock_flash;
+assign por = !pll_lock;
+`endif
+    
 /* -------------------- flash -------------------- */  
 
 wire rom_n;
@@ -140,6 +173,7 @@ flash flash (
     .busy(),
 
     // cpu expects ROM to start at $fc0000 and it is in fact is at $100000 in
+    // cpu expects ROM to start at $fc0000 and it is in fact is at $100000 in
     // ST mode and at $140000 in STE mode. $180000 and $1c0000 are the secondary
     // slots which can be selected from the OSD
     .address( { 3'b001, system_tos_slot, (system_chipset >= 2'd2)?1'b1:1'b0, rom_addr[17:1] } ),
@@ -147,10 +181,19 @@ flash flash (
     .dout(rom_dout),
 
     .mspi_cs(mspi_cs),
+`ifdef EFINIX
+    .mspi_di_in(mspi_di_in),
+    .mspi_di_out(mspi_di_out),
+    .mspi_di_oe(mspi_di_oe),
+    .mspi_do_in(mspi_do_in),
+    .mspi_do_out(mspi_do_out),
+    .mspi_do_oe(mspi_do_oe)
+`else
     .mspi_di(mspi_di),
-    .mspi_hold(mspi_hold),
+    .mspi_do(mspi_do),
     .mspi_wp(mspi_wp),
-    .mspi_do(mspi_do)
+    .mspi_hold(mspi_hold)
+`endif
 );
 
 /* -------------------- RAM -------------------- */
@@ -192,7 +235,13 @@ sdram sdram (
         // interface to sdram chip
         .sd_clk(sdram_clk),      // clock
         .sd_cke(sdram_cke),      // clock enable
-        .sd_data(sdram_dq),      // 32 bit bidirectional data bus
+`ifdef EFINIX
+        .sd_data_in(sdram_dq_in), // 16 bit bidirectional data bus
+        .sd_data_out(sdram_dq_out), 
+        .sd_data_oe(sdram_dq_oe),
+`else
+        .sd_data(sdram_dq),      // 16/32 bit bidirectional data bus
+`endif        
         .sd_addr(sdram_addr),    // 11 bit multiplexed address bus
         .sd_dqm(sdram_dqm),      // two byte masks
         .sd_ba(sdram_ba),        // two banks
@@ -203,7 +252,7 @@ sdram sdram (
 
         // allow RAM access to the entire 8MB provided by the
         // Tang Nano 20k. It's up to the ST chipset to make use
-        // if this
+        // of this
         .refresh(refresh),
         .din(mdout),                // data input from chipset/cpu
         .dout(mdin),
@@ -212,7 +261,7 @@ sdram sdram (
         .cs( !ras_n && !ram_a[23] ),// cpu/chipset requests read/write
         .we( !we_n )                // cpu/chipset requests write
 );
-
+   
 // ST video signals to be sent through the scan doubler
 wire st_hs_n, st_vs_n, st_bl_n, st_de;
 wire [3:0] st_r;
@@ -257,7 +306,7 @@ mcu_spi mcu (
         .mcu_osd_din(osd_data_out),
         .mcu_sdc_din(sdc_data_out)
         );
-
+        
 // ---- Mix HID mouse/joystick and DB9 joystick -----
 
 // joy0 is usually used for the mouse, joy1 for the joystick. The
@@ -329,7 +378,7 @@ hid hid (
         .joystick0(hid_joy),
         .joystick1()
          );   
-
+         
 wire sdc_int;
 wire sdc_iack = int_ack[3];
 
@@ -361,7 +410,13 @@ sysctrl sysctrl (
 		.port_in_data(serial_rx_data),	 
 				 
         // values controlled by the OSD
+`ifdef EFINIX
+        .system_chipset(),
+        .system_cubase_en(),
+`else
         .system_chipset(system_chipset),
+        .system_cubase_en(system_cubase_en),
+`endif
         .system_memory(system_memory),
         .system_video(system_video),
         .system_reset(system_reset),
@@ -369,7 +424,6 @@ sysctrl sysctrl (
         .system_volume(system_volume),
         .system_wide_screen(system_wide_screen),
         .system_floppy_wprot(system_floppy_wprot),
-        .system_cubase_en(system_cubase_en),
         .system_port_mouse(system_port_mouse),
         .system_tos_slot(system_tos_slot),
         
@@ -381,7 +435,11 @@ sysctrl sysctrl (
         .leds(system_leds),
         .color(ws2812_color)
          );   
-
+         
+`ifdef EFINIX
+assign system_chipset = 2'd0;   // regular ST only
+assign system_cubase_en = 1'b0; // no cubase dongle support   
+`endif
 
 // signals to wire the floppy controller to the sd card
 wire [1:0]  sd_rd;   // fdc requests sector read
@@ -396,6 +454,11 @@ wire [31:0] sd_img_size;
 wire [3:0]  sd_img_mounted;
 reg         sd_ready;
 
+`ifdef EFINIX
+ `define NO_ACSI
+`endif
+   
+`ifndef NO_ACSI
 // signals to wire ACSI to the SD card, some of these should be combined
 // with the floppy iside atarist.v and ultimately inside dma.v 
 wire [1:0] 	acsi_rd_req;
@@ -407,7 +470,8 @@ wire acsi_sd_rd_byte_strobe = sd_rd_byte_strobe;
 wire [7:0] acsi_sd_rd_byte = sd_rd_data;
 wire [7:0] acsi_sd_wr_byte;
 wire [8:0] acsi_sd_byte_addr = sd_byte_index;
-
+`endif
+   
 atarist atarist (
     .clk_32(clk32),
     .resb(!system_reset[0] && !reset && !por && ram_ready && flash_ready && sd_ready),       // user reset button
@@ -459,6 +523,17 @@ atarist atarist (
     .sd_img_size    ( sd_img_size ),
 
     // ACSI disk/sd card interface
+`ifdef NO_ACSI
+	.acsi_rd_req( ),
+	.acsi_wr_req( ),
+	.acsi_sd_lba( ),
+ 	.acsi_sd_done(1'b0),
+ 	.acsi_sd_busy(1'b0),
+	.acsi_sd_rd_byte_strobe(1'b0),
+	.acsi_sd_rd_byte(8'h00),
+	.acsi_sd_wr_byte(),
+	.acsi_sd_byte_addr(9'h000),
+`else
 	.acsi_rd_req(acsi_rd_req),
 	.acsi_wr_req(acsi_wr_req),
 	.acsi_sd_lba(acsi_lba),
@@ -468,7 +543,8 @@ atarist atarist (
 	.acsi_sd_rd_byte(acsi_sd_rd_byte),
 	.acsi_sd_wr_byte(acsi_sd_wr_byte),
 	.acsi_sd_byte_addr(acsi_sd_byte_addr),
-
+`endif
+				 
     // floppy/acsi sd card interface
 	.sd_lba         ( sd_lba ),
 	.sd_rd          ( sd_rd ),
@@ -503,7 +579,7 @@ atarist atarist (
 
     .leds(leds[3:0])     // HDD 1:0 / FDC 1:0
   );
-
+  
 /* ------------ expand audio to 16 bits and apply volume adjustment ------------ */
 wire [15:0] audio16_l = { audio_l[14], audio_l };
 wire [15:0] audio16_r = { audio_r[14], audio_r };
@@ -562,7 +638,7 @@ video video (
          .lcd_g(lcd_g),
          .lcd_b(lcd_b)
 	     );
-   
+
 // -------------------------- SD card -------------------------------
 
 assign leds[5:4] = system_leds[1:0];
@@ -590,6 +666,7 @@ always @(posedge clk32) begin
     end
 end
 
+`ifndef NO_ACSI
 // differentiate between floppy and acsi requests
 wire      is_acsi = (acsi_rd_req != 0) ||  (acsi_wr_req != 0) || is_acsi_D;   
 reg 	  is_acsi_D;
@@ -603,7 +680,8 @@ always @(posedge clk32) begin
    if(sd_rd || sd_wr)
      is_acsi_D <= 1'b0;
 end
-
+`endif
+   
 sd_card #(
     .CLK_DIV(3'd1)                    // for 32 Mhz clock
 ) sd_card (
@@ -612,9 +690,18 @@ sd_card #(
   
     // SD card signals
     .sdclk(sd_clk),
+`ifdef EFINIX
+    .sdcmd_in(sd_cmd_in),
+    .sdcmd_out(sd_cmd_out),
+    .sdcmd_oe(sd_cmd_oe),
+    .sddat_in(sd_dat_in),
+    .sddat_out(sd_dat_out),
+    .sddat_oe(sd_dat_oe),
+`else
     .sdcmd(sd_cmd),
     .sddat(sd_dat),
-
+`endif
+    
     // mcu interface
     .data_strobe(mcu_sdc_strobe),
     .data_start(mcu_start),
@@ -630,15 +717,24 @@ sd_card #(
     .irq(sdc_int),
     .iack(sdc_iack),
 
+`ifdef NO_ACSI
+	// on t20 only floppy is being implemented
+    .rstart( { 2'b00, sd_rd } ), 
+    .wstart( { 2'b00, sd_wr } ),
+    .rsector( sd_lba ),
+    .inbyte(sd_wr_data),
+`else
     // user read sector command interface (sync with clk32)
     .rstart( { acsi_rd_req, sd_rd} ), 
     .wstart( { acsi_wr_req, sd_wr } ), 
     .rsector( is_acsi?acsi_lba:sd_lba),
+    .inbyte(is_acsi?acsi_sd_wr_byte:sd_wr_data),
+`endif
+
     .rbusy(sd_busy),
     .rdone(sd_done),
-
+		   
     // sector data output interface (sync with clk32)
-    .inbyte(is_acsi?acsi_sd_wr_byte:sd_wr_data),
     .outen(sd_rd_byte_strobe), // when outen=1, a byte of sector content is read out from outbyte
     .outaddr(sd_byte_index),   // outaddr from 0 to 511, because the sector size is 512
     .outbyte(sd_rd_data)       // a byte of sector content

@@ -27,8 +27,17 @@ module sd_rw # (
     output [3:0]       sddat,
     input [3:0]	       sddat_in,
 `else
+`ifdef EFINIX
+    input	       sdcmd_in, 
+    output	       sdcmd_out, 
+    output	       sdcmd_oe, 
+    input [3:0]	   sddat_in,
+    output [3:0]   sddat_out,
+    output [3:0]   sddat_oe,
+`else
     inout	       sdcmd, 
-    inout [3:0]	       sddat,
+    inout [3:0]	       sddat,    
+`endif   
 `endif   
    
     // show card status
@@ -55,8 +64,14 @@ reg [3:0] sddatout;
 assign sddat = sddatoe ? sddatout : 4'b1111;
 wire [3:0] sddatin = sddatoe ? 4'b1111 : sddat_in;
 `else
+`ifdef EFINIX
+assign sddat_out = sddatout;
+assign sddat_oe = sddatoe;
+wire [3:0] sddatin = sddatoe ? 4'b1111 : sddat_in;
+`else
 assign sddat = sddatoe ? sddatout : 4'bzzzz;
 wire [3:0] sddatin = sddatoe ? 4'b1111 : sddat;
+`endif
 `endif
    
 initial {outen, outaddr, outbyte} = 0;
@@ -143,7 +158,13 @@ sdcmd_ctrl u_sdcmd_ctrl (
     .rstn        ( rstn         ),
     .clk         ( clk          ),
     .sdclk       ( sdclk        ),
-    .sdcmd       ( sdcmd        ),
+`ifdef EFINIX
+    .sdcmd_in    ( sdcmd_in     ),
+    .sdcmd_out   ( sdcmd_out    ),
+    .sdcmd_oe    ( sdcmd_oe     ),
+`else    
+    .sdcmd       ( sdcmd        ),    
+`endif
 `ifdef VERILATOR
     .sdcmd_in    ( sdcmd_in     ),
 `endif   

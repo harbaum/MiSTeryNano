@@ -21,8 +21,17 @@ module sd_card # (
     output [3:0]	  sddat,
     input [3:0]		  sddat_in,
 `else
+`ifdef EFINIX
+    input			  sdcmd_in, 
+    output			  sdcmd_out, 
+    output			  sdcmd_oe, 
+    input [3:0]		  sddat_in,    
+    output [3:0]	  sddat_out,    
+    output [3:0]	  sddat_oe,    
+`else
     inout			  sdcmd, 
     inout [3:0]		  sddat,
+`endif   
 `endif   
 
     // mcu interface
@@ -298,15 +307,28 @@ always @(posedge clk) begin
       end
    end
 end
-   
+
+// TODO: FIXME
+wire sdclkx;
+assign sdclk = !sdclkx;  
+
 sd_rw #(.CLK_DIV(CLK_DIV), .SIMULATE(SIMULATE)) sd_rw (
    // rstn active-low, 1:working, 0:reset
    .rstn(rstn),
    .clk(clk),
 
-   .sdclk(sdclk),
+   .sdclk(sdclkx),
+`ifdef EFINIX
+   .sdcmd_in(sdcmd_in),
+   .sdcmd_out(sdcmd_out),
+   .sdcmd_oe(sdcmd_oe),
+   .sddat_in(sddat_in),
+   .sddat_out(sddat_out),
+   .sddat_oe(sddat_oe),
+`else
    .sdcmd(sdcmd),
    .sddat(sddat),
+`endif   
 `ifdef VERILATOR
    .sdcmd_in(sdcmd_in),
    .sddat_in(sddat_in),

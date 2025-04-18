@@ -19,7 +19,6 @@ typedef struct {
 	logic phi1, phi2;		// In PHI1 or PHI2 phase
 } blt_clks;
 
-
 localparam REG_00 = 0;
 localparam REG_02 = 2/2;
 localparam REG_04 = 4/2;
@@ -37,20 +36,48 @@ localparam REG_1A = 26/2;
 localparam REG_1C = 28/2;
 
 
-module stBlitter( input blt_clks Clks, input ASn, RWn, LDSn, UDSn,
-			input FC0, FC1, FC2,
-			input BERRn, iDTACKn,
-			output ctrlOe, dataOe, oASn, oDSn, oRWn, oDTACKn,
-			output selected,			// System selects us as output mux
+module stBlitter(
+`ifndef EFINIX
+		 input	       blt_clks Clks,
+`else
+		 input clk,
+		 input aRESETn,	// Async neg reset on FPGA reset	
+		 input sReset,	// Sync reset on emulated system
+		 input pwrUp,	// Asserted together with sReset on coldstart
+		 
+		 input enPhi1,
+		 input enPhi2,	// Clock enables. Next cycle is PHI1 or PHI2
+`endif		  
+		  input	       ASn, RWn, LDSn, UDSn,
+		  input	       FC0, FC1, FC2,
+		  input	       BERRn, iDTACKn,
+		  output       ctrlOe, dataOe, oASn, oDSn, oRWn, oDTACKn,
+		  output       selected, // System selects us as output mux
 
-			input iBRn, BGIn,
-			input iBGACKn,				// GLUE output, or optionally additional bus masters.
-			output oBRn, oBGACKn,
-			output INTn, BGOn,
-			input [15:0] dmaInput,		// Separated DMA input might benefit some cores.
+		  input	       iBRn, BGIn,
+		  input	       iBGACKn, // GLUE output, or optionally additional bus masters.
+		  output       oBRn, oBGACKn,
+		  output       INTn, BGOn,
+		  input [15:0] dmaInput, // Separated DMA input might benefit some cores.
 			
-			input [23:1] iABUS, output [23:1] oABUS, 
-			input [15:0] iDBUS, output [15:0] oDBUS);
+		  input [23:1] iABUS, output [23:1] oABUS, 
+		  input [15:0] iDBUS, output [15:0] oDBUS);
+
+`ifdef EFINIX
+blt_clks Clks;
+
+assign Clks.clk = clk;
+assign Clks.aRESETn = aRESETn;
+assign Clks.sReset = sReset;
+assign Clks.pwrUp = pwrUp;
+
+assign Clks.enPhi1 = enPhi1;
+assign Clks.enPhi2 = enPhi2;
+assign Clks.anyPhi = enPhi2 | enPhi1;
+
+assign { Clks.extReset, Clks.phi1, Clks.phi2} = 3'b000;
+`endif
+
 			
 	wire blitSpace = { iABUS[23:6], 6'b0} == 24'hFF8A00;				// Space: FF8A00 - FF8A3F
 	assign selected = ({ FC2, FC1, FC0 } == 3'b101) & !ASn & blitSpace;

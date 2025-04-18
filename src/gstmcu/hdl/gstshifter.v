@@ -146,6 +146,29 @@ always @(posedge clk32) begin
 		pixel_offset <= 4'h0;
 
 		monocolor <= 1'b1;
+        
+`ifdef SET_DEFAULT_PALETTE
+	   // the palette registers are not set by default and the atari sets
+	   // them at boot time. For simulation or testing without working
+	   // CPU it can be useful to be able to set a color palette automatically
+           { palette_r[ 0], palette_g[ 0], palette_b[ 0] } <= 12'h777;
+           { palette_r[ 1], palette_g[ 1], palette_b[ 1] } <= 12'h700;
+           { palette_r[ 2], palette_g[ 2], palette_b[ 2] } <= 12'h070;
+           { palette_r[ 3], palette_g[ 3], palette_b[ 3] } <= 12'h770;
+           { palette_r[ 4], palette_g[ 4], palette_b[ 4] } <= 12'h007;
+           { palette_r[ 5], palette_g[ 5], palette_b[ 5] } <= 12'h707;
+           { palette_r[ 6], palette_g[ 6], palette_b[ 6] } <= 12'h077;
+           { palette_r[ 7], palette_g[ 7], palette_b[ 7] } <= 12'h555;
+           { palette_r[ 8], palette_g[ 8], palette_b[ 8] } <= 12'h333;
+           { palette_r[ 9], palette_g[ 9], palette_b[ 9] } <= 12'h733;
+           { palette_r[10], palette_g[10], palette_b[10] } <= 12'h373;
+           { palette_r[11], palette_g[11], palette_b[11] } <= 12'h773;
+           { palette_r[12], palette_g[12], palette_b[12] } <= 12'h337;
+           { palette_r[13], palette_g[13], palette_b[13] } <= 12'h737;
+           { palette_r[14], palette_g[14], palette_b[14] } <= 12'h377;
+           { palette_r[15], palette_g[15], palette_b[15] } <= 12'h000;
+`endif
+           
 	end else begin
 		// a bit of delay to the shmode register write - Closure demo likes it
 		shmode <= shmode_d;

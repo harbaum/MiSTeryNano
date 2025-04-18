@@ -22,16 +22,14 @@ module top(
 
   // MiSTer SDRAM module
   output		O_sdram_clk,
-  output		O_sdram_cs_n, // chip select
-  output		O_sdram_cas_n,
-    
- // columns address select
+  output		O_sdram_cs_n,  // chip select
+  output		O_sdram_cas_n, // column address select
   output		O_sdram_ras_n, // row address select
   output		O_sdram_wen_n, // write enable
-  inout [15:0]	IO_sdram_dq, // 16 bit bidirectional data bus
-  output [12:0]	O_sdram_addr, // 13 bit multiplexed address bus
-  output [1:0]	O_sdram_ba, // two banks
-  output [1:0]	O_sdram_dqm, // 16/2
+  inout [15:0]	IO_sdram_dq,   // 16 bit bidirectional data bus
+  output [12:0]	O_sdram_addr,  // 13 bit multiplexed address bus
+  output [1:0]	O_sdram_ba,    // two banks
+  output [1:0]	O_sdram_dqm,   // 16/2
 
   // interface to external BL616/M0S
   inout [7:0]	m0s,
@@ -109,7 +107,7 @@ misterynano misterynano (
   .sdram_clk   ( O_sdram_clk    ),
   .sdram_cke   ( ),
   .sdram_cs_n  ( O_sdram_cs_n   ), // chip select
-  .sdram_cas_n ( O_sdram_cas_n  ), // columns address select
+  .sdram_cas_n ( O_sdram_cas_n  ), // column address select
   .sdram_ras_n ( O_sdram_ras_n  ), // row address select
   .sdram_wen_n ( O_sdram_wen_n  ), // write enable
   .sdram_dq    ( sdram_dq       ), // 16 bit bidirectional data bus
@@ -118,7 +116,7 @@ misterynano misterynano (
   .sdram_dqm   ( sdram_dqm      ), // 16/4
 
   // generic IO, used for mouse/joystick/...
-  .io          ( 1'b11111111    ), // unused
+  .io          ( 8'b11111111    ), // unused
 
   // mcu interface
   .mcu_sclk ( spi_io_clk  ),

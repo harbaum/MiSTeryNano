@@ -3,7 +3,8 @@
 The MiSTeryNano is a port of the
 [MiSTery Atari STE FPGA core](https://github.com/gyurco/MiSTery) to the
 [Tang series of FPGA boards](https://wiki.sipeed.com/hardware/en/tang/index.html)
-like the [Tang Nano 20k FPGA board](https://wiki.sipeed.com/nano20k).
+like the [Tang Nano 20k FPGA board](https://wiki.sipeed.com/nano20k). The
+Efinix T20 is also partly supported.
 
 A complete MiSTeryNano setup also requires a supporting MCU acting as
 the [FPGA Companion](https://github.com/harbaum/FPGA-Companion/).
@@ -45,6 +46,7 @@ The MiSTeryNano's current features are:
     * [Tang Primer 25k](TANG_PRIMER_25K.md)
     * [Tang Mega 138k](TANG_MEGA_138K.md)
     * [Tang Console 60k](TANG_CONSOLE_60K.md)	
+    * [Efinix T20BGA256](src/efinix/t20_bga256/README.md)
   * Supports different MCUs for the [FPGA Companion](https://github.com/harbaum/FPGA-Companion/)
     * [M0S Dock/BL616](https://github.com/harbaum/FPGA-Companion/tree/main/src/bl616)
     * [Raspberry Pi Pico/RP2040](https://github.com/harbaum/FPGA-Companion/tree/main/src/rp2040)

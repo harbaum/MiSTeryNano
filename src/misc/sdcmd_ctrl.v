@@ -16,7 +16,13 @@ module sdcmd_ctrl (
     output              sdcmd,
     input               sdcmd_in,
 `else
+`ifdef EFINIX
+    input               sdcmd_in,
+    output              sdcmd_out,
+    output              sdcmd_oe,
+`else
     inout               sdcmd,
+`endif
 `endif   
     // config clk freq
     input  wire  [15:0] clkdiv,
@@ -47,8 +53,14 @@ reg sdcmdout = 1'b1;
 assign sdcmd = sdcmdoe ? sdcmdout : 1'b1;
 wire sdcmdin = sdcmdoe ? 1'b1 : sdcmd_in;
 `else
+`ifdef EFINIX
+assign sdcmd_out = sdcmdout;
+assign sdcmd_oe = sdcmdoe;
+wire sdcmdin = sdcmdoe ? 1'b1 : sdcmd_in;
+`else
 assign sdcmd = sdcmdoe ? sdcmdout : 1'bz;
 wire sdcmdin = sdcmdoe ? 1'b1 : sdcmd;
+`endif
 `endif
    
 function  [6:0] CalcCrc7;

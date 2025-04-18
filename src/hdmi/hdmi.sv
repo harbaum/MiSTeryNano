@@ -44,8 +44,14 @@ module hdmi
     input logic [AUDIO_BIT_WIDTH-1:0] audio_sample_word [1:0],
 
     // These outputs go to your HDMI port
-    output logic [2:0]		      tmds,
-    output logic		      tmds_clock
+`ifdef EFINIX
+    output logic [5:0] tmds,       // 6+2 pins/pmod used for hdmi
+    output logic [1:0] tmds_clock
+`else
+   // These outputs go to your HDMI port
+    output logic [2:0] tmds,
+    output logic tmds_clock
+`endif    
 );
 
 localparam int NUM_CHANNELS = 3;
@@ -279,5 +285,5 @@ generate
 endgenerate
 
 serializer #(.NUM_CHANNELS(NUM_CHANNELS)) serializer(.clk_pixel(clk_pixel), .clk_pixel_x5(clk_pixel_x5), .reset(reset), .tmds_internal(tmds_internal), .tmds(tmds), .tmds_clock(tmds_clock));
-
+   
 endmodule
