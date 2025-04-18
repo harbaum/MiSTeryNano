@@ -5,8 +5,12 @@ development board.
 
 ## Additional Hardware
 
-It expects some additional hardware to be connected to the ```BANK1B_1C```
-connector.
+The setup requires some additional hardware to be connected to the ```BANK1B_1C```
+connector. The photo below shows the HDMI being connected using an iCESugar
+HDMI PMOD. The SD card is barely visible under the colored ribbon cable 
+and a Raspberry Pi Pico is setup on a breadboard as the FPGA companion.
+It uses an additional USB connection with a USB hub to control wireless
+USB receivers for keyboard, touchpad and gamepad.
 
 ![MiSTeryNix setup](t20bga256_setup.jpeg)
 
