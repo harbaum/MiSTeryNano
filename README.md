@@ -3,8 +3,12 @@
 The MiSTeryNano is a port of the
 [MiSTery Atari STE FPGA core](https://github.com/gyurco/MiSTery) to the
 [Tang series of FPGA boards](https://wiki.sipeed.com/hardware/en/tang/index.html)
-like the [Tang Nano 20k FPGA board](https://wiki.sipeed.com/nano20k). The
-Efinix T20 is also partly supported.
+like the [Tang Nano 20k FPGA board](https://wiki.sipeed.com/nano20k). Recently support
+for the [Efinix T20](https://www.efinixinc.com/shop/t20.php) has been added.
+
+MiSTeryNano implements the hardware of an [Atari ST](https://de.wikipedia.org/wiki/Atari_ST) allowing it to
+run the original operating systems as well as the majority of games and
+productivity software of the [Atari ST](https://de.wikipedia.org/wiki/Atari_ST).
 
 A complete MiSTeryNano setup also requires a supporting MCU acting as
 the [FPGA Companion](https://github.com/harbaum/FPGA-Companion/).
