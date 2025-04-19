@@ -1,7 +1,10 @@
 # MiSTeryNix, MiSTeryNano for Efinix T20
 
 This is a very early port of MiSTeryNano to the Efinix T20BGA256
-development board.
+development board allowing it to run Atari ST software like the
+game Spherical.
+
+![MiSTeryNix running Spherical](t20bga256_spherical.jpeg)
 
 ## Additional Hardware
 
