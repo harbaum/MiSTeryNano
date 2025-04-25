@@ -59,13 +59,13 @@ The MiSTeryNano's current features are:
 ## Videos
 
 These videos primarily document the progress during development:
-
+  * [MiSTeryNano #23: Going online as if it's 1990](https://www.youtube.com/shorts/LzfyftSwXaw)
   * [MiSTeryNano #22: Running Atari ST demo on Efinix Trion T20 FPGA](https://youtube.com/shorts/_95nhmBHSxg)
   * [MiSTeryNano #21: I built a half sized keyboard for my FPGA Atari ST](https://youtube.com/shorts/clQujxjdr9I)
-  * [MiSTeryNano #20: Atari STE on Tang Primer 25k FPGA](https://youtube.com/shorts/i-hUT1_UNOY)
 
 <details><summary>More ...</summary>
 <ul>
+  <li><a href="https://youtube.com/shorts/i-hUT1_UNOY">MiSTeryNano #20: Atari STE on Tang Primer 25k FPGA</a></li>
   <li><a href="https://youtube.com/shorts/CI1L_LBodlw">MiSTeryNano #19: Atari STE Stardust on Tang Mega 138K FPGA</a></li>
   <li><a href="https://youtube.com/shorts/_D7Gc8IL2GA">MiSTeryNano #18: Cheap RGB LCD for Atari ST in FPGA
   <li><a href="https://youtube.com/shorts/qh_TCCgo1xY">MiSTeryNano #17: C64 on Tang Nano 20K</a></li>
