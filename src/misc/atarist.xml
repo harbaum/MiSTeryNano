@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Atari ST configuration -->
+<config name="MiSTeryNano" version="0">
+  <actions>
+    <!-- the init action is being executed immediately -->
+    <!-- when this file has been loaded -->
+    <action name="init">
+      <!-- (try to) load config from sd card -->
+      <load file="atarist.ini"/>
+      <set id="R" value="1"/>  <!-- keep machine in reset -->
+    </action>
+    
+    <!-- the ready action is being executed once all -->
+    <!-- initialization has been done -->
+    <action name="ready">
+      <set id="R" value="0"/>  <!-- release reset -->
+    </action>
+      
+    <action name="save">
+      <!-- save config to sd card -->
+      <save file="atarist.ini"/>
+    </action>
+      
+    <action name="reset">
+      <!-- trigger a system reset -->
+      <set id="R" value="1"/>
+      <delay ms="10"/>
+      <set id="R" value="0"/>      
+    </action>
+    
+    <action name="reset_hide">
+      <!-- trigger a system reset and hide OSD -->
+      <link action="reset"/>
+      <hide/>      
+    </action>      
+
+    <action name="cold_reset">
+      <!-- trigger a cold system reset -->
+      <set id="R" value="3"/>
+      <delay ms="10"/>
+      <set id="R" value="0"/>      
+    </action>
+    
+    <action name="cold_reset_hide">
+      <!-- trigger a cold reset and hide OSD -->
+      <link action="cold_reset"/>
+      <hide/>      
+    </action>
+  </actions>
+  
+  <menu label="MiSTeryNano">
+    <fileselector label="Disk A:" ext="st" index="0"/>
+    <menu label="System">
+      <list label="Chipset:" id="C" default="0" action="cold_reset">
+	<listentry label="ST" value="0"/>
+	<listentry label="Mega ST" value="1"/>
+	<listentry label="STE" value="2"/>
+      </list>
+      <list label="Memory:" id="M" default="0" action="cold_reset">
+	<listentry label="4MB" value="0"/>
+	<listentry label="8MB" value="1"/>
+      </list>
+      <list label="Video:" id="V" default="0">
+	<listentry label="Color" value="0"/>
+	<listentry label="Mono" value="1"/>
+      </list>	
+      <list label="Cartridge:" id="Q" default="0">
+	<listentry label="None" value="0"/>
+	<listentry label="Cubase 2&amp;3" value="1"/>
+      </list>
+      <list label="Mouse:" id="J" default="0">
+	<listentry label="USB" value="0"/>
+	<listentry label="Atari ST" value="1"/>
+	<listentry label="Amiga" value="2"/>
+      </list>
+      <list label="TOS Slot:" id="T" default="0">
+	<listentry label="Primary" value="0"/>
+	<listentry label="Secondary" value="1"/>
+      </list>
+      <button label="Cold Boot" action="cold_reset_hide"/>
+    </menu>
+    <menu label="Storage">
+      <fileselector label="Disk A:" ext="st" index="0" default="disk_a.st"/>
+      <fileselector label="Disk B:" ext="st" index="1" default="disk_b.st"/>
+      <fileselector label="ACSI #0:" ext="hd;img" index="2" default="acsi_0.hd"/>
+      <fileselector label="ACSI #1:" ext="hd;img" index="3" default="acsi_1.hd"/>
+      <list label="Disk prot.:" id="P" default="0">
+	<listentry label="None" value="0"/>
+	<listentry label="A:" value="1"/>
+	<listentry label="B:" value="2"/>
+	<listentry label="Both" value="3"/>
+      </list>
+    </menu>
+    <menu label="Settings">
+      <list label="Screen:" id="W" default="0">
+	<listentry label="Normal" value="0"/>
+	<listentry label="Wide" value="1"/>
+      </list>
+      <list label="Scanlines:" id="S" default="0">
+	<listentry label="None" value="0"/>
+	<listentry label="25%" value="1"/>
+	<listentry label="50%" value="2"/>
+	<listentry label="75%" value="3"/>
+      </list>
+      <list label="Volume:" id="A" default="1">
+	<listentry label="Mute" value="0"/>
+	<listentry label="33%" value="1"/>
+	<listentry label="66%" value="2"/>
+	<listentry label="100%" value="3"/>
+      </list>
+      <button label="Save settings" action="save"/>
+    </menu>
+    <button label="Reset" action="reset_hide"/>
+  </menu>    
+</config>
