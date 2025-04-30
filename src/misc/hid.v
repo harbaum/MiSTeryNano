@@ -71,6 +71,7 @@ always @(posedge clk) begin
       keyboard[12] <= 8'hff; keyboard[13] <= 8'hff; keyboard[14] <= 8'hff;      
 
    end else begin
+      // bring db9 data into local clock domain
       db9_portD <= db9_port;
       db9_portD2 <= db9_portD;
       

@@ -112,6 +112,14 @@ module misterynano (
   output [15:0]	audio [2]
 );
 
+// The Efinix T20 would not fit blitter and ACSI, so
+// we disable them. On GW2AR-18 ACSI saves ~200 LUTs, blitter 
+// saves ~2000 of them.
+`ifdef EFINIX
+ `define NO_ACSI
+ `define NO_BLITTER
+`endif
+   
 wire [5:0] leds;      // control leds with positive logic
 assign leds_n = ~leds;
 
@@ -410,7 +418,7 @@ sysctrl sysctrl (
 		.port_in_data(serial_rx_data),	 
 				 
         // values controlled by the OSD
-`ifdef EFINIX
+`ifdef NO_BLITTER
         .system_chipset(),
         .system_cubase_en(),
 `else
@@ -431,12 +439,12 @@ sysctrl sysctrl (
         .int_in( { 4'b0000, sdc_int, 1'b0, hid_int, 1'b0 }),
         .int_ack( int_ack ),
 
-        .buttons( {reset, user} ),
+        .buttons( {user, reset} ),
         .leds(system_leds),
         .color(ws2812_color)
          );   
          
-`ifdef EFINIX
+`ifdef NO_BLITTER
 assign system_chipset = 2'd0;   // regular ST only
 assign system_cubase_en = 1'b0; // no cubase dongle support   
 `endif
@@ -454,10 +462,6 @@ wire [31:0] sd_img_size;
 wire [3:0]  sd_img_mounted;
 reg         sd_ready;
 
-`ifdef EFINIX
- `define NO_ACSI
-`endif
-   
 `ifndef NO_ACSI
 // signals to wire ACSI to the SD card, some of these should be combined
 // with the floppy iside atarist.v and ultimately inside dma.v 
