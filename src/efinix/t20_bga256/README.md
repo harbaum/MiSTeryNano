@@ -6,6 +6,10 @@ game [Spherical](https://www.atarilegend.com/games/spherical).
 
 ![MiSTeryNix running Spherical](t20bga256_spherical.jpeg)
 
+## Custom board
+
+A custom add-on board for the t20bga256 is available [here](../../../board/t20_pmod). This combines all the hardware into one somewhat robust setup.
+
 ## Additional Hardware
 
 The setup requires some additional hardware to be connected to the ```BANK1B_1C```
