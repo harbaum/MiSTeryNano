@@ -45,10 +45,14 @@ The board has footprints for three unpopulated 0805 LEDs with related
 560 ohms resistors on the PCBs bottom. These can be populated and will
 indicate the presence of USB mouse, keyboard and joystick.
 
+![Schematic](schematic.png)
+[PDF](schematic.pdf)
+
+## 
+
 Finally, a unpopulated 5 pin connector carries the SWD signals as well
 the the UART RX/TX signals and can be populated for convenient
 firmware development and debugging. This is designed to use a right
 angle pin header mounted on the bottom side.
 
-![Schematic](schematic.png)
-[PDF](schematic.pdf)
+![Bottom](bottom.jpeg)
