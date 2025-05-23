@@ -29,6 +29,8 @@ The necessary firmware changes can be [enabled using a build option](https://git
 flashing this firmware the green LED next to the USB-C connector
 should start flashing.
 
+![Board](board.png)
+
 The board contains a BOOT button for later flashing just like any
 other Raspberry Pi Pico.
 
@@ -39,16 +41,14 @@ or from the USB-C connector of the Tang Nano 20k. This gives some
 flexibility when using HDMI adaptors or USB hubs plugged directly into
 the Tang Nano 20K or the shields USB-A port.
 
-![Board](board.png)
+![Schematic](schematic.png)
+[PDF](schematic.pdf)
+
+## Optional components
 
 The board has footprints for three unpopulated 0805 LEDs with related
 560 ohms resistors on the PCBs bottom. These can be populated and will
 indicate the presence of USB mouse, keyboard and joystick.
-
-![Schematic](schematic.png)
-[PDF](schematic.pdf)
-
-## 
 
 Finally, a unpopulated 5 pin connector carries the SWD signals as well
 the the UART RX/TX signals and can be populated for convenient
