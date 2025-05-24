@@ -1,4 +1,12 @@
-// Screw M3 x 12mm
+// A simple case for the MiSTeryNano (https://github.com/harbaum/MiSTeryNano)
+
+// This is the top half lid of the case, with a cutaway to access the MIDI ports
+// Comment line 40 out to remove the hole for the MIDI ports
+
+// Original author: Oliver Jaksch
+// CC BY-NC-SA 4.0 (https://creativecommons.org/licenses/by-nc-sa/4.0/)
+
+// For the optional screws, use 4x M3 12mm
 // Standoff 4.12 width / 6 height
 
 // Lid
@@ -30,7 +38,7 @@ difference() {
 // Frame MIDI
 difference() {
     translate ([0, 29.7, 9.5]) cube([57.5, 2, 21], true);
-    translate ([0, 29.7, 11.1]) cube([43, 2.1, 20.1], true);
+    translate ([0, 29.7, 11.1]) cube([43, 2.1, 20.1], true); // Comment out this line to remove MIDI ports hole
 }
 
 // Frame Joystick
