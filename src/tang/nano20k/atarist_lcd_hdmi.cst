@@ -74,11 +74,5 @@ IO_PORT "user" IO_TYPE=LVCMOS33 PULL_MODE=UP;
 IO_LOC "reset" 87;
 IO_PORT "reset" IO_TYPE=LVCMOS33 PULL_MODE=UP;
 
-// re-used JTAG pins as spi_dat (above) is not really
-// usable as there are resistors and capacistors that
-// limit the max data rate
-// IO_LOC "jtag_tck" 6;
-// IO_PORT "jtag_tck" IO_TYPE=LVCMOS33 PULL_MODE=UP;
-
 IO_LOC "clk" 4;
 IO_PORT "clk" PULL_MODE=UP;

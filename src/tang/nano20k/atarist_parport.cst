@@ -99,19 +99,15 @@ IO_PORT "spi_sclk" PULL_MODE=UP IO_TYPE=LVCMOS33;
 IO_LOC "spi_dat" 76;
 IO_PORT "spi_dat" PULL_MODE=UP IO_TYPE=LVCMOS33;
 IO_LOC "spi_dir" 75;
-IO_PORT "spi_dir" PULL_MODE=UP IO_TYPE=LVCMOS33;
+IO_PORT "spi_dir" PULL_MODE=NONE DRIVE=8 IO_TYPE=LVCMOS33;
+IO_LOC "spi_irqn" 69; // USB-C UART TX output
+IO_PORT "spi_irqn" PULL_MODE=NONE DRIVE=8 IO_TYPE=LVCMOS33;
 
 // two on-board buttons
 IO_LOC "user" 88;
 IO_PORT "user" IO_TYPE=LVCMOS33 PULL_MODE=DOWN;
 IO_LOC "reset" 87;
 IO_PORT "reset" IO_TYPE=LVCMOS33 PULL_MODE=DOWN;
-
-// re-used JTAG pins as spi_dat (above) is not really
-// usable as there are resistors and capacistors that
-// limit the max data rate
-// IO_LOC "jtag_tck" 6;
-// IO_PORT "jtag_tck" IO_TYPE=LVCMOS33 PULL_MODE=UP;
 
 IO_LOC "clk" 4;
 IO_PORT "clk" PULL_MODE=UP;

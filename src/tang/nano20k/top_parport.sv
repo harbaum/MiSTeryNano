@@ -54,17 +54,13 @@ module top(
   inout			sd_cmd, // MOSI
   inout [3:0]	sd_dat, // 0: MISO
 	   
-  // SPI connection to ob-board BL616. By default an external
-  // connection is used with a M0S Dock
-  input			spi_sclk, // in... 
-  input			spi_csn, // in (io?)
+  // SPI connection to on-board BL616 for 3921 assemblies 
+  // By default an external connection is used with a M0S Dock
+  input			spi_sclk,// in 
+  input			spi_csn, // in
   output		spi_dir, // out
-  input			spi_dat, // in (io?)
-
-  // spi_dir has a low-pass filter which makes it impossible to use
-  // we thus use jtag_tck as a replacement
-//  output    jtag_tck,
-//  input     jtag_tdi,    // this is being used for interrupt
+  input			spi_dat, // in
+  output		spi_irqn,// out
 
   // hdmi/tdms
   output		tmds_clk_n,
@@ -90,11 +86,10 @@ wire spi_intn;
 
 // intn and dout are outputs driven by the FPGA to the MCU
 // din, ss and clk are inputs coming from the MCU
-
-assign spi_dir = spi_io_dout;   // spi_dir has filter cap and pulldown any basically doesn't work
-// assign jtag_tck = spi_io_dout;
+// onboard connection to on-board BL616 only newer 3921 assemblies 
+assign spi_dir = spi_io_dout;
 assign m0s[5:0] = { 1'bz, spi_intn, 3'bzzz, spi_io_dout };
-// assign jtag_tdi = spi_intn;
+assign spi_irqn = spi_intn;
 
 // by default the internal SPI is being used. Once there is
 // a select from the external spi, then the connection is
