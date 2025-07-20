@@ -32,6 +32,13 @@ module top(
   // interface to external BL616/M0S on middle PMOD
   inout [7:0]	m0s,
 
+  // interface to onboard BL616 µC
+  input			spi_sclk, 
+  input			spi_csn,
+  output		spi_dir,
+  input			spi_dat,
+  output		spi_irqn,
+
   // two dual shock controllers on left PMOD, only P1 is used
   // by MiSTeryNano for joystick
   output		ds1_csn,
@@ -78,11 +85,38 @@ wire por;
 // din, ss and clk are inputs coming from the MCU
 assign m0s[7:0] = { 3'bzzz, spi_intn, 3'bzzz, spi_io_dout };
 
-// switch between internal SPI connected to the on-board bl616
-// or to the external one possibly connected to a M0S Dock
-wire spi_io_din = m0s[1];
-wire spi_io_ss = m0s[2];
-wire spi_io_clk = m0s[3];
+// map output data onto both spi outputs
+wire spi_io_dout;
+wire spi_intn;
+
+// intn and dout are outputs driven by the FPGA to the MCU
+// din, ss and clk are inputs coming from the MCU
+assign spi_dir = spi_io_dout;
+assign spi_irqn = spi_intn;
+
+// by default the internal SPI is being used. Once there is
+// a select from the external spi, then the connection is
+// being switched
+reg spi_ext;
+always @(posedge clk32) begin
+    if(por)
+        spi_ext = 1'b0;
+    else begin
+        // spi_ext is activated once the m0s pins 2 (ss or csn) is
+        // driven low by the m0s dock. This means that a m0s dock
+        // is connected and the FPGA switches its inputs to the
+        // m0s. Until then the inputs of the internal BL616 are
+        // being used.
+        if(m0s[2] == 1'b0)
+            spi_ext = 1'b1;
+    end
+end
+
+// switch between internal SPI connected to the on-board BL616 µC
+// or to the external connected M0S Dock or PiPico
+wire spi_io_din = spi_ext?m0s[1]:spi_dat;
+wire spi_io_ss = spi_ext?m0s[2]:spi_csn;
+wire spi_io_clk = spi_ext?m0s[3]:spi_sclk;
 
 wire [15:0] audio [2];
 wire        vreset;
