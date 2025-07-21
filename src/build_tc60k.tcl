@@ -103,5 +103,13 @@ set_option -use_done_as_gpio 1
 set_option -use_i2c_as_gpio 1
 set_option -use_cpu_as_gpio 1
 set_option -use_ready_as_gpio 1
+set_option -use_jtag_as_gpio 1
+set_option -show_all_warn 1
+set_option -bit_compress 1
+set_option -vccx 1.8
+set_option -vcc 0.9
+set_option -multi_boot 0
+set_option -mspi_jump 0
+set_option -cst_warn_to_error 1
 
 run all
