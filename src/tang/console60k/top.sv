@@ -1,7 +1,7 @@
 /*
-    top.sv - atarist on tang mega 138k toplevel
+    top.sv - atarist on tang console 60k toplevel
 
-    This top level implements the default variant for 138k
+    This top level implements the default variant for tc60k
 */ 
 
 module top(
@@ -9,6 +9,8 @@ module top(
 
   input			reset_n, // S2
   input			user_n, // S1
+
+  output [1:0]	leds_n,
 
   // spi flash interface
   output		mspi_cs,
@@ -123,6 +125,9 @@ wire        vreset;
 wire [1:0]  vmode;
 wire        vwide;
 
+wire [5:0] leds_int_n;
+assign leds_n = ~leds_int_n[1:0];
+
 assign lcd_bl = 1'bz;
    
 // MiSTer SDRAM is only 16 bits wide
@@ -205,7 +210,7 @@ misterynano misterynano (
   .pll_lock_main( pll_lock_hdmi),
   .por   ( por ),           // output. True while not all PLLs locked
 
-  .leds_n ( ),
+  .leds_n ( leds_int_n ),
   .ws2812 ( ),
 
   // spi flash interface
